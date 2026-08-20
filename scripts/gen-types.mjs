@@ -125,13 +125,26 @@ const foreignKeys = query(`
 const functions = query(`
   select coalesce(json_agg(row_to_json(t) order by t.name), '[]'::json) from (
     select p.proname as name,
-           pg_get_function_arguments(p.oid) as args,
-           pg_get_function_result(p.oid) as returns
+           p.pronargs as nargs,
+           p.pronargdefaults as ndefaults,
+           coalesce(p.proargnames, '{}') as arg_names,
+           (select array_agg(x.typname order by k.ord)
+              from unnest(p.proargtypes) with ordinality k(oid, ord)
+              join pg_type x on x.oid = k.oid) as arg_types,
+           (select array_agg(coalesce(x.typtype, 'b') = 'e' order by k.ord)
+              from unnest(p.proargtypes) with ordinality k(oid, ord)
+              join pg_type x on x.oid = k.oid) as arg_is_enum,
+           rt.typname as return_type,
+           (rt.typtype = 'e') as return_is_enum,
+           p.proretset as returns_set
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
+    join pg_type rt on rt.oid = p.prorettype
     where n.nspname = 'public'
       and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
       and p.prokind = 'f'
+      and p.proname not like 'prevent\\_%'
+      and p.proname <> 'set_updated_at'
   ) t;
 `);
 
@@ -217,11 +230,61 @@ const enumBlock = enums.length
       .join("\n")
   : "    [_ in never]: never;";
 
+function scalarTs(udt, isEnum) {
+  if (isEnum) return `Database["public"]["Enums"]["${udt}"]`;
+  switch (udt) {
+    case "void":
+      return "undefined";
+    case "bool":
+      return "boolean";
+    case "int2":
+    case "int4":
+    case "int8":
+    case "float4":
+    case "float8":
+    case "numeric":
+      return "number";
+    case "json":
+    case "jsonb":
+      return "Json";
+    case "record":
+									case "trigger":
+      return "unknown";
+    default:
+      return "string";
+  }
+}
+
+function renderFunction(f) {
+  const names = f.arg_names ?? [];
+  const types = f.arg_types ?? [];
+  const isEnum = f.arg_is_enum ?? [];
+  const nargs = types.length;
+  // The last `ndefaults` positional arguments are optional.
+  const firstOptional = nargs - (f.ndefaults ?? 0);
+
+  const args = nargs === 0
+    ? "Record<PropertyKey, never>"
+    : `{\n${types
+        .map((t, i) => {
+          const name = names[i] ?? `arg${i + 1}`;
+          const optional = i >= firstOptional;
+          const ts = scalarTs(t, isEnum[i] === true || isEnum[i] === "t");
+          // PostgreSQL accepts NULL for any parameter, so every argument is
+          // nullable on input. Only arguments with a DEFAULT may be omitted.
+          return `          ${name}${optional ? "?" : ""}: ${ts} | null;`;
+        })
+        .join("\n")}\n        }`;
+
+  const ret = scalarTs(f.return_type, f.return_is_enum === true || f.return_is_enum === "t");
+  const returns = f.returns_set ? `${ret}[]` : ret;
+
+  return `      ${f.name}: {\n        Args: ${args};\n        Returns: ${returns};\n      };`;
+}
+
 const functionBlock = functions.length
-  ? functions
-      .map((f) => `      // ${f.name}(${f.args}) returns ${f.returns}`)
-      .join("\n")
-  : "";
+  ? functions.map(renderFunction).join("\n")
+  : "      [_ in never]: never;";
 
 const header = `/**
  * AUTO-GENERATED. DO NOT EDIT BY HAND.
@@ -250,14 +313,7 @@ ${tableNames.map(renderTable).join("\n")}
 ${viewNames.length ? viewNames.map(renderTable).join("\n") : "      [_ in never]: never;"}
     };
     Functions: {
-      /**
-       * Commerce RPCs are invoked through \`src/lib/db/commerce-rpc.ts\` with
-       * explicit argument and result validation rather than through these
-       * generated signatures, so they are documented here for reference only.
-       *
 ${functionBlock}
-       */
-      [_ in never]: never;
     };
     Enums: {
 ${enumBlock}

@@ -132,14 +132,22 @@ webhooks and privileged mutations terminate in Route Handlers that call domain s
 
 ## Database — 62 tables
 
-Apply migrations strictly in order `0001 → 0010`. Never hand-recreate the schema in the
+Apply migrations strictly in order `0001 → 0011`. Never hand-recreate the schema in the
 Supabase dashboard. `supabase/seed.sql` is **development data only**.
 
-`0010` is a BAD ERA fix, not part of the delivered Kickoff v0.2 package. It corrects
-`convert_paid_checkout`, which used `on conflict (external_payment_intent_id)` against a
-**partial** unique index. PostgreSQL only infers a partial index when the statement repeats
-the index predicate, so every call raised "no unique or exclusion constraint matching the
-ON CONFLICT specification" and no verified Stripe payment could ever produce an order.
+`0010` and `0011` are BAD ERA fixes, not part of the delivered Kickoff v0.2 package. Both
+were found by executing the migrations and the acceptance matrix against real PostgreSQL —
+static validation cannot catch either.
+
+- **`0010`** — `convert_paid_checkout` used `on conflict (external_payment_intent_id)`
+  against a **partial** unique index. PostgreSQL only infers a partial index when the
+  statement repeats the predicate, so every call raised "no unique or exclusion constraint
+  matching the ON CONFLICT specification". No verified Stripe payment could produce an order.
+- **`0011`** — `release_checkout_inventory` assigned an untyped `case … end` (which resolves
+  to `text`) into the `reservation_status` enum column, so every call raised. That is the
+  only path that returns reserved stock, so expiry, payment failure and the abandoned-checkout
+  sweep all failed: every abandoned checkout stranded its units permanently.
+
 Migrations `0001-0009` are left byte-identical to the delivered package so their published
 SHA-256 checksums still verify.
 
@@ -180,8 +188,12 @@ npm run db:start     # initdb, start on :5433, replay migrations + seed
 npm run db:reset     # drop and replay from scratch
 npm run db:verify    # assert the 62-table / RLS / owner-policy / search_path invariants
 npm run db:types     # regenerate src/lib/db/generated.types.ts from the live schema
-scripts/local-db.sh smoke   # bundle conversion + idempotency acceptance test
+npm run db:acceptance   # the v0.2 acceptance matrix, including the last-unit race
 ```
+
+The acceptance matrix (`tests/integration/sql/`) is where the real commerce guarantees are
+proven — atomicity, idempotency and oversell protection live in PostgreSQL, not in
+TypeScript. Run it after ANY change to a migration or an RPC.
 
 `scripts/supabase-shim.sql` recreates the platform objects Supabase provides (the `auth`
 schema, `auth.uid()`, and the `anon` / `authenticated` / `service_role` roles). It is for
@@ -370,6 +382,37 @@ warnings, never freeform design controls.
 
 ---
 
+## Domain layer (Phase 1)
+
+```
+src/lib/
+  settings/store.ts               typed site_settings reader
+  inventory/availability.ts       PURE rules: bundle math, stock states, clamping
+  catalog/availability-lookup.ts  the ONE place sellable quantity is resolved
+  catalog/queries.ts              customer-safe product/variant projections
+  cart/service.ts                 cart lines, server-derived prices
+  checkout/create-checkout.ts     snapshot -> reserve -> Stripe session
+  orders/queries.ts               order reads from immutable snapshots
+  db/commerce-rpc.ts              the SECURITY DEFINER RPC boundary
+```
+
+Rules that hold across this layer:
+
+- **Availability is resolved in exactly one place.** `resolveSellableQuantities()` — so a
+  bundle can never look sellable on the product page and unsellable in the cart.
+- **Prices are never accepted from a client.** `cart_items` stores only variant and
+  quantity; the price is read fresh and frozen only into the checkout snapshot.
+- **Pre-checks are not guarantees.** Availability checks in TypeScript are fast rejections.
+  Oversell protection is `reserve_checkout_inventory`, which takes row locks.
+- **Catalog and order reads run on the service-role client**, which bypasses RLS, so each
+  function lists its columns explicitly and is responsible for leaking nothing. Never
+  `select("*")` on a table that has cost, credential or internal columns.
+- **No fabricated values.** Flat shipping has no default: checkout fails loudly with
+  `MissingSettingError` until the owner configures it.
+- **Failed checkout creation releases its reservation** rather than stranding stock.
+
+---
+
 ## Build phases
 
 Work **one phase at a time**. Write a short plan for the current phase only. Never attempt
@@ -378,7 +421,7 @@ every phase in one uncontrolled pass.
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Foundation: Next.js/TS/Tailwind, design tokens, Supabase migrations, auth skeleton, env validation, route shells | **Complete** |
-| 1 | Commerce core: products, variants, inventory, cart, Stripe Checkout, verified webhooks, order snapshots | Not started |
+| 1 | Commerce core: products, variants, inventory, cart, Stripe Checkout, verified webhooks, order snapshots | **Complete** (domain layer; awaiting live credentials for an end-to-end Stripe run) |
 | 2 | Public storefront: Home, Shop All, PDP, cart, responsive | Not started |
 | 3 | Studio core: shell, dashboard, media library, product/variant/inventory editors, authorization | Not started |
 | 4 | Site Editor: section registry, three-pane editor, autosave, preview, publish integration | Not started |

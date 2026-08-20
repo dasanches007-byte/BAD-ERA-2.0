@@ -6,6 +6,7 @@
 #   scripts/local-db.sh reset    drop schemas, replay 0001..NNNN, load seed
 #   scripts/local-db.sh verify   assert the security invariants
 #   scripts/local-db.sh types    regenerate src/lib/db/generated.types.ts
+#   scripts/local-db.sh acceptance  run the v0.2 acceptance matrix
 #   scripts/local-db.sh stop
 #
 # The shim in scripts/supabase-shim.sql recreates the platform objects Supabase
@@ -69,6 +70,15 @@ case "${1:-}" in
 
   smoke)
     psql_run -X -q -f "$ROOT/tests/integration/sql/smoke_bundle_conversion.sql"
+    ;;
+
+  acceptance)
+    # Deterministic cases run from a freshly seeded database.
+    "$0" reset >/dev/null
+    psql_run -X -q -f "$ROOT/tests/integration/sql/acceptance.sql"
+    # Case 1 needs two concurrent connections, so it runs separately.
+    "$0" reset >/dev/null
+    "$ROOT/tests/integration/sql/concurrency_last_unit.sh"
     ;;
 
   *)

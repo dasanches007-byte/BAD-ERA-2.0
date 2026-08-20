@@ -18,7 +18,8 @@
     "db:reset": "scripts/local-db.sh reset",
     "db:verify": "scripts/local-db.sh verify",
     "db:types": "scripts/local-db.sh types",
-    "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "db:acceptance": "scripts/local-db.sh acceptance"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",

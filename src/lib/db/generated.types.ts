@@ -3612,29 +3612,78 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      /**
-       * Commerce RPCs are invoked through `src/lib/db/commerce-rpc.ts` with
-       * explicit argument and result validation rather than through these
-       * generated signatures, so they are documented here for reference only.
-       *
-      // claim_stripe_event(p_stripe_event_id text, p_event_type text, p_payload_hash text DEFAULT NULL::text) returns boolean
-      // convert_paid_checkout(p_checkout_session_id uuid, p_stripe_checkout_session_id text, p_stripe_payment_intent_id text, p_paid_at timestamp with time zone DEFAULT now()) returns uuid
-      // finish_stripe_event(p_stripe_event_id text, p_processing_status text, p_error_message text DEFAULT NULL::text) returns void
-      // mark_checkout_payment_pending(p_checkout_session_id uuid) returns void
-      // next_bad_era_order_number() returns text
-      // next_bad_era_return_number() returns text
-      // next_bad_era_support_number() returns text
-      // prevent_inventory_movement_mutation() returns trigger
-      // prevent_published_navigation_mutation() returns trigger
-      // prevent_published_revision_mutation() returns trigger
-      // prevent_published_section_mutation() returns trigger
-      // release_checkout_inventory(p_checkout_session_id uuid, p_checkout_status checkout_snapshot_status DEFAULT 'expired'::checkout_snapshot_status) returns jsonb
-      // release_expired_checkout_inventory(p_limit integer DEFAULT 100) returns integer
-      // reserve_checkout_inventory(p_checkout_session_id uuid) returns jsonb
-      // set_updated_at() returns trigger
-      // studio_adjust_inventory(p_variant_id uuid, p_location_id uuid, p_delta_on_hand integer, p_reason inventory_reason, p_note text DEFAULT NULL::text) returns jsonb
-       */
-      [_ in never]: never;
+      claim_stripe_event: {
+        Args: {
+          p_stripe_event_id: string | null;
+          p_event_type: string | null;
+          p_payload_hash?: string | null;
+        };
+        Returns: boolean;
+      };
+      convert_paid_checkout: {
+        Args: {
+          p_checkout_session_id: string | null;
+          p_stripe_checkout_session_id: string | null;
+          p_stripe_payment_intent_id: string | null;
+          p_paid_at?: string | null;
+        };
+        Returns: string;
+      };
+      finish_stripe_event: {
+        Args: {
+          p_stripe_event_id: string | null;
+          p_processing_status: string | null;
+          p_error_message?: string | null;
+        };
+        Returns: undefined;
+      };
+      mark_checkout_payment_pending: {
+        Args: {
+          p_checkout_session_id: string | null;
+        };
+        Returns: undefined;
+      };
+      next_bad_era_order_number: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      next_bad_era_return_number: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      next_bad_era_support_number: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      release_checkout_inventory: {
+        Args: {
+          p_checkout_session_id: string | null;
+          p_checkout_status?: Database["public"]["Enums"]["checkout_snapshot_status"] | null;
+        };
+        Returns: Json;
+      };
+      release_expired_checkout_inventory: {
+        Args: {
+          p_limit?: number | null;
+        };
+        Returns: number;
+      };
+      reserve_checkout_inventory: {
+        Args: {
+          p_checkout_session_id: string | null;
+        };
+        Returns: Json;
+      };
+      studio_adjust_inventory: {
+        Args: {
+          p_variant_id: string | null;
+          p_location_id: string | null;
+          p_delta_on_hand: number | null;
+          p_reason: Database["public"]["Enums"]["inventory_reason"] | null;
+          p_note?: string | null;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
     availability_mode: "api_sync" | "webhook_sync" | "manual" | "made_to_order";
