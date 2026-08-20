@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
+import { getStripe } from '@/lib/payments/stripe/client';
+import { serverEnv } from '@/lib/env/server';
 import { constructStripeEvent } from '@/lib/payments/stripe/webhook';
 import { handleStripeCheckoutEvent } from '@/lib/checkout/stripe-event-handler';
 import { commerceRpc } from '@/lib/db/commerce-rpc';
 
 export const runtime = 'nodejs';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// The Stripe client and secrets are resolved per-request rather than at module
+// scope. See src/lib/payments/stripe/client.ts for why. The webhook semantics
+// below are unchanged from Kickoff v0.2.
 
 export async function POST(request: Request) {
   const signature = request.headers.get('stripe-signature');
@@ -17,7 +21,7 @@ export async function POST(request: Request) {
 
   let event: Stripe.Event;
   try {
-    event = constructStripeEvent(stripe, rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = constructStripeEvent(getStripe(), rawBody, signature, serverEnv().STRIPE_WEBHOOK_SECRET);
   } catch {
     return new NextResponse('Invalid Stripe signature', { status: 400 });
   }

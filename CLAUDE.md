@@ -132,8 +132,16 @@ webhooks and privileged mutations terminate in Route Handlers that call domain s
 
 ## Database — 62 tables
 
-Apply migrations strictly in order `0001 → 0009`. Never hand-recreate the schema in the
+Apply migrations strictly in order `0001 → 0010`. Never hand-recreate the schema in the
 Supabase dashboard. `supabase/seed.sql` is **development data only**.
+
+`0010` is a BAD ERA fix, not part of the delivered Kickoff v0.2 package. It corrects
+`convert_paid_checkout`, which used `on conflict (external_payment_intent_id)` against a
+**partial** unique index. PostgreSQL only infers a partial index when the statement repeats
+the index predicate, so every call raised "no unique or exclusion constraint matching the
+ON CONFLICT specification" and no verified Stripe payment could ever produce an order.
+Migrations `0001-0009` are left byte-identical to the delivered package so their published
+SHA-256 checksums still verify.
 
 `supabase/schema.combined.sql` is the full combined schema for reference.
 
@@ -158,6 +166,29 @@ Stripe event claiming: `claim_stripe_event()` / `finish_stripe_event()`.
 `src/lib/db/commerce-rpc.ts` is deliberately a **throwing placeholder**. It marks the v0.2
 application boundary. Implementing it against the server-only Supabase admin client is a
 v0.3 task — do not pretend the application layer is finished.
+
+---
+
+## Local database validation
+
+There is no hosted Supabase project yet. `scripts/local-db.sh` runs the full schema against
+a local PostgreSQL 16 cluster so migrations, RLS and the commerce RPCs can be verified
+without one.
+
+```sh
+npm run db:start     # initdb, start on :5433, replay migrations + seed
+npm run db:reset     # drop and replay from scratch
+npm run db:verify    # assert the 62-table / RLS / owner-policy / search_path invariants
+npm run db:types     # regenerate src/lib/db/generated.types.ts from the live schema
+scripts/local-db.sh smoke   # bundle conversion + idempotency acceptance test
+```
+
+`scripts/supabase-shim.sql` recreates the platform objects Supabase provides (the `auth`
+schema, `auth.uid()`, and the `anon` / `authenticated` / `service_role` roles). It is for
+local validation **only** and must never be applied to a hosted project.
+
+When the hosted project exists, regenerate types with the official Supabase CLI or the
+Supabase MCP `generate_typescript_types` tool — the output shapes are interchangeable.
 
 ---
 
@@ -346,7 +377,7 @@ every phase in one uncontrolled pass.
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Foundation: Next.js/TS/Tailwind, design tokens, Supabase migrations, auth skeleton, env validation, route shells | Not started |
+| 0 | Foundation: Next.js/TS/Tailwind, design tokens, Supabase migrations, auth skeleton, env validation, route shells | **Complete** |
 | 1 | Commerce core: products, variants, inventory, cart, Stripe Checkout, verified webhooks, order snapshots | Not started |
 | 2 | Public storefront: Home, Shop All, PDP, cart, responsive | Not started |
 | 3 | Studio core: shell, dashboard, media library, product/variant/inventory editors, authorization | Not started |
@@ -363,6 +394,18 @@ Keep this table current as phases complete.
 After each phase: run lint / typecheck / tests / build and report **exact** results. For UI
 phases, capture desktop and mobile screenshots and compare against the references in
 `brand/reference/` (see `brand/ASSET_MAP.md`).
+
+---
+
+## Verification
+
+```sh
+npm run verify   # lint -> typecheck -> test -> build
+```
+
+Run it before every commit, and report **exact** results after each phase. Builds must stay
+hermetic: `next build` must succeed with no secrets present. That is why Stripe is
+constructed lazily per-request and why the Studio segment is `force-dynamic`.
 
 ---
 

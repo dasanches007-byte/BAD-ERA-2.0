@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   BAD ERA design tokens
+
+   The single source of visual truth. Components consume these tokens through
+   Tailwind utilities (bg-surface, text-ink, font-display, …) and never
+   hard-code a hex value, a font stack or a raw pixel rhythm.
+
+   Locked by Master Spec v1.9 §1.1. Do not add bright dashboard blues, neon
+   accents, gradients-as-decoration or generic admin-template styling.
+
+   NOTE ON THE LOGO: no font in this file may be used to reconstruct the
+   BAD ERA monogram. The mark is owner-supplied locked artwork
+   (brand/logo/bad-era-monogram-master.png) and is always rendered as an image.
+   ========================================================================== */
+
+@theme {
+  /* --- Surfaces: near-black with subtle warm-black variation --- */
+  --color-void: #050505; /* deepest — full-bleed cinematic ground */
+  --color-surface: #0a0a0a; /* default page background */
+  --color-surface-raised: #101010; /* cards, panels, Studio workspaces */
+  --color-surface-overlay: #161514; /* menus, drawers, modals (warm-shifted) */
+  --color-surface-inset: #070707; /* wells, code, inset fields */
+
+  /* --- Ink: bone / ivory / soft white, never pure #fff --- */
+  --color-ink: #f4f1ea; /* primary text — bone */
+  --color-ink-strong: #fbf9f5; /* display headlines only */
+  --color-ink-muted: #9d9a94; /* secondary copy */
+  --color-ink-subtle: #6b6864; /* tertiary, timestamps, meta */
+  --color-ink-disabled: #47443f;
+
+  /* --- Inverse: for the rare light surface (email, print, inverse logo) --- */
+  --color-inverse-surface: #f4f1ea;
+  --color-inverse-ink: #0a0a0a;
+
+  /* --- Accent: restrained metallic / silver / stone.
+         Colour should come from photography, not from chrome. --- */
+  --color-accent: #c8c2b6; /* stone — primary accent */
+  --color-accent-strong: #e0dbd1; /* hover / active lift */
+  --color-accent-muted: #8a857c;
+
+  /* --- Hairline borders: low-contrast and deliberate --- */
+  --color-line: #232220;
+  --color-line-strong: #34322e;
+  --color-line-faint: #171614;
+
+  /* --- Semantic state. Always paired with a label or icon, never colour
+         alone (Spec §10.4.19, §10.5.10). Desaturated to stay in-world. --- */
+  --color-state-success: #7f9c7f;
+  --color-state-warning: #c2a15e;
+  --color-state-critical: #b5726b;
+  --color-state-info: #8a9099;
+  --color-state-neutral: #6b6864;
+
+  /* --- Type families --- */
+  --font-display: var(--font-bad-era-display), "Didot", "Bodoni MT",
+    "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-bad-era-sans), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  /* --- Editorial display scale (fluid, cinematic) --- */
+  --text-display-xl: clamp(3.5rem, 11vw, 9rem);
+  --text-display-xl--line-height: 0.92;
+  --text-display-xl--letter-spacing: 0.02em;
+  --text-display-lg: clamp(2.75rem, 7vw, 5.5rem);
+  --text-display-lg--line-height: 0.96;
+  --text-display-lg--letter-spacing: 0.015em;
+  --text-display-md: clamp(2rem, 4.5vw, 3.25rem);
+  --text-display-md--line-height: 1.04;
+  --text-display-md--letter-spacing: 0.01em;
+  --text-display-sm: clamp(1.5rem, 3vw, 2.125rem);
+  --text-display-sm--line-height: 1.12;
+
+  /* --- Utility labels: small uppercase sans with generous tracking --- */
+  --text-label-lg: 0.8125rem;
+  --text-label-lg--line-height: 1.4;
+  --text-label-lg--letter-spacing: 0.16em;
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1.45;
+  --text-label--letter-spacing: 0.2em;
+  --text-label-sm: 0.625rem;
+  --text-label-sm--line-height: 1.4;
+  --text-label-sm--letter-spacing: 0.24em;
+
+  /* --- Cinematic spacing rhythm: sections must breathe --- */
+  --spacing-section: 7.5rem;
+  --spacing-section-lg: 11rem;
+  --spacing-gutter: 1.5rem;
+  --spacing-gutter-lg: 3rem;
+
+  /* --- Motion: slow, controlled, never bouncy or gamified --- */
+  --ease-bad-era: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --animate-duration-fast: 200ms;
+  --animate-duration-base: 420ms;
+  --animate-duration-slow: 900ms;
+
+  /* --- Controlled overlay for text-over-image legibility.
+         The Site Editor may NOT change these (Spec §3.2). --- */
+  --overlay-hero: linear-gradient(
+    180deg,
+    rgb(5 5 5 / 0.15) 0%,
+    rgb(5 5 5 / 0.35) 45%,
+    rgb(5 5 5 / 0.78) 100%
+  );
+  --overlay-card: linear-gradient(
+    180deg,
+    rgb(5 5 5 / 0) 40%,
+    rgb(5 5 5 / 0.72) 100%
+  );
+}
+
+/* Full-bleed dark ground. BAD ERA is a single committed dark identity, so the
+   palette does not invert under prefers-color-scheme. */
+html {
+  background-color: var(--color-void);
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-synthesis-weight: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Visible focus is a hard accessibility requirement (Spec §19). */
+:focus-visible {
+  outline: 1px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-inverse-ink);
+}
+
+/* Motion must never be a barrier (Spec §19). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@utility label {
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  letter-spacing: var(--text-label--letter-spacing);
+  text-transform: uppercase;
+}
+
+@utility hairline {
+  border: 1px solid var(--color-line);
+}
+
+@utility shell {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 90rem;
+  padding-inline: var(--spacing-gutter);
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    padding-inline: var(--spacing-gutter-lg);
+  }
+}
