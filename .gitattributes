@@ -1,0 +1,8 @@
+*.docx  binary
+*.zip   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.sql   text eol=lf
+*.md    text eol=lf
+*.ts    text eol=lf

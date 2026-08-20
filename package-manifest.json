@@ -1,0 +1,36 @@
+{
+  "package": "BAD ERA Claude Build Kickoff",
+  "version": "0.2",
+  "master_reference": "BAD_ERA_Master_Product_Engineering_Spec_v1_9.docx",
+  "schema_table_count": 62,
+  "migration_order": [
+    "0001_extensions_types.sql",
+    "0002_identity_catalog_providers.sql",
+    "0003_customers_carts_inventory.sql",
+    "0004_orders_fulfillment.sql",
+    "0005_returns_content_admin.sql",
+    "0006_integrity_indexes_triggers.sql",
+    "0007_checkout_snapshots.sql",
+    "0008_atomic_commerce_rpcs.sql",
+    "0009_rls_security.sql"
+  ],
+  "authoritative": {
+    "architecture": "architecture/application-folder-tree.txt",
+    "security": "architecture/security-contract-v0.2.md",
+    "database_migrations": [
+      "supabase/migrations/0001_extensions_types.sql",
+      "supabase/migrations/0002_identity_catalog_providers.sql",
+      "supabase/migrations/0003_customers_carts_inventory.sql",
+      "supabase/migrations/0004_orders_fulfillment.sql",
+      "supabase/migrations/0005_returns_content_admin.sql",
+      "supabase/migrations/0006_integrity_indexes_triggers.sql",
+      "supabase/migrations/0007_checkout_snapshots.sql",
+      "supabase/migrations/0008_atomic_commerce_rpcs.sql",
+      "supabase/migrations/0009_rls_security.sql"
+    ],
+    "development_seed": "supabase/seed.sql",
+    "fulfillment_contract": "src/lib/fulfillment/contract.ts",
+    "stripe_webhook_route": "src/app/api/webhooks/stripe/route.ts",
+    "acceptance_matrix": "tests/integration/ACCEPTANCE_MATRIX.md"
+  }
+}

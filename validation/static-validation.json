@@ -1,0 +1,27 @@
+{
+  "table_count": 62,
+  "unknown_fk_targets": [],
+  "missing_rls": [],
+  "missing_owner": [],
+  "functions_without_search_path": [],
+  "security_definers_without_search_path": [],
+  "checks": {
+    "exact_62_tables": true,
+    "all_fk_targets_resolve": true,
+    "rls_all_tables": true,
+    "owner_policy_all_tables": true,
+    "no_anon_table_grants": true,
+    "public_functions_restricted": true,
+    "all_functions_fixed_search_path": true,
+    "all_security_definer_fixed_search_path": true,
+    "raw_stripe_body": true,
+    "stripe_signature_construct": true,
+    "delayed_payment_handled": true,
+    "expired_releases": true,
+    "provider_contract_present": true,
+    "bad_era_stock_adapter": true,
+    "manual_supplier_adapter": true,
+    "bundle_seed": true
+  },
+  "all_checks_pass": true
+}

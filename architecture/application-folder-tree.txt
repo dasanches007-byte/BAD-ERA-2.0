@@ -1,0 +1,154 @@
+bad-era/
+├── src/
+│   ├── app/
+│   │   ├── (storefront)/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── shop/
+│   │   │   │   └── page.tsx
+│   │   │   ├── products/
+│   │   │   │   └── [handle]/
+│   │   │   │       └── page.tsx
+│   │   │   ├── collections/
+│   │   │   │   └── [handle]/
+│   │   │   │       └── page.tsx
+│   │   │   ├── account/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── orders/
+│   │   │   │       └── [orderNumber]/
+│   │   │   │           └── page.tsx
+│   │   │   ├── checkout/
+│   │   │   │   ├── success/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── cancelled/
+│   │   │   │       └── page.tsx
+│   │   │   └── support/
+│   │   │       └── page.tsx
+│   │   ├── studio/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── products/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [productId]/
+│   │   │   │       ├── page.tsx
+│   │   │   │       ├── variants/
+│   │   │   │       │   └── page.tsx
+│   │   │   │       └── fulfillment/
+│   │   │   │           └── page.tsx
+│   │   │   ├── inventory/
+│   │   │   │   └── page.tsx
+│   │   │   ├── orders/
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [orderId]/
+│   │   │   │       └── page.tsx
+│   │   │   ├── fulfillment/
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── ready-to-ship/
+│   │   │   │   ├── supplier-orders/
+│   │   │   │   ├── providers/
+│   │   │   │   │   ├── page.tsx
+│   │   │   │   │   └── [providerId]/
+│   │   │   │   │       └── page.tsx
+│   │   │   │   ├── action-required/
+│   │   │   │   ├── shipments/
+│   │   │   │   └── history/
+│   │   │   ├── customers/
+│   │   │   ├── returns/
+│   │   │   ├── support/
+│   │   │   ├── site/
+│   │   │   │   ├── pages/
+│   │   │   │   ├── navigation/
+│   │   │   │   └── globals/
+│   │   │   ├── media/
+│   │   │   ├── publishing/
+│   │   │   └── settings/
+│   │   ├── api/
+│   │   │   ├── checkout/
+│   │   │   │   └── create/
+│   │   │   │       └── route.ts
+│   │   │   ├── webhooks/
+│   │   │   │   ├── stripe/
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── providers/
+│   │   │   │       └── [providerKey]/
+│   │   │   │           └── route.ts
+│   │   │   ├── studio/
+│   │   │   │   ├── inventory/
+│   │   │   │   │   └── adjust/
+│   │   │   │   │       └── route.ts
+│   │   │   │   ├── fulfillments/
+│   │   │   │   │   └── [fulfillmentId]/
+│   │   │   │   │       ├── retry/
+│   │   │   │   │       │   └── route.ts
+│   │   │   │   │       └── manual/
+│   │   │   │   │           └── route.ts
+│   │   │   │   └── publish/
+│   │   │   │       └── route.ts
+│   │   │   └── preview/
+│   │   │       └── route.ts
+│   │   └── auth/
+│   │       └── callback/
+│   │           └── route.ts
+│   ├── components/
+│   │   ├── storefront/
+│   │   ├── studio/
+│   │   └── ui/
+│   ├── lib/
+│   │   ├── auth/
+│   │   ├── db/
+│   │   │   ├── client.ts
+│   │   │   ├── server.ts
+│   │   │   ├── admin.ts
+│   │   │   ├── generated.types.ts
+│   │   │   └── queries/
+│   │   ├── catalog/
+│   │   ├── cart/
+│   │   ├── checkout/
+│   │   ├── inventory/
+│   │   ├── orders/
+│   │   ├── payments/
+│   │   │   └── stripe/
+│   │   ├── fulfillment/
+│   │   │   ├── contract.ts
+│   │   │   ├── registry.ts
+│   │   │   ├── router.ts
+│   │   │   └── providers/
+│   │   │       ├── bad-era-stock.ts
+│   │   │       └── manual-supplier.ts
+│   │   ├── returns/
+│   │   ├── support/
+│   │   ├── cms/
+│   │   ├── media/
+│   │   ├── publishing/
+│   │   ├── email/
+│   │   ├── validation/
+│   │   ├── errors/
+│   │   ├── idempotency/
+│   │   └── observability/
+│   ├── types/
+│   └── styles/
+├── supabase/
+│   ├── migrations/
+│   │   ├── 0001_extensions_types.sql
+│   │   ├── 0002_identity_catalog_providers.sql
+│   │   ├── 0003_customers_carts_inventory.sql
+│   │   ├── 0004_orders_fulfillment.sql
+│   │   ├── 0005_returns_content_admin.sql
+│   │   └── 0006_integrity_indexes_triggers.sql
+│   ├── seed.sql
+│   └── config.toml
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   ├── e2e/
+│   └── fixtures/
+├── scripts/
+├── public/
+├── middleware.ts
+├── instrumentation.ts
+├── next.config.ts
+├── postcss.config.mjs
+├── tailwind.config.ts
+├── tsconfig.json
+├── package.json
+└── .env.example
