@@ -65,7 +65,7 @@ export const commerceRpc: CommerceRpc = {
     const { data, error } = await db.rpc("claim_stripe_event", {
       p_stripe_event_id: eventId,
       p_event_type: eventType,
-      p_payload_hash: payloadHash ?? null,
+      p_payload_hash: payloadHash ?? undefined,
     });
 
     if (error) fail("claim_stripe_event", error);
@@ -78,7 +78,7 @@ export const commerceRpc: CommerceRpc = {
       p_stripe_event_id: eventId,
       p_processing_status: status,
       // Store a bounded summary. Full provider payloads stay out of this column.
-      p_error_message: errorMessage ? errorMessage.slice(0, 2000) : null,
+      p_error_message: errorMessage ? errorMessage.slice(0, 2000) : undefined,
     });
 
     if (error) fail("finish_stripe_event", error);
@@ -116,7 +116,11 @@ export const commerceRpc: CommerceRpc = {
     const { data, error } = await db.rpc("convert_paid_checkout", {
       p_checkout_session_id: checkoutId,
       p_stripe_checkout_session_id: stripeSessionId,
-      p_stripe_payment_intent_id: paymentIntentId,
+      // A Checkout Session with payment_status 'no_payment_required' carries no
+      // PaymentIntent, and the SQL argument accepts NULL. Supabase's generator
+      // types every argument without a DEFAULT as a non-null `string`, so it
+      // cannot express that. Cast rather than invent a placeholder id.
+      p_stripe_payment_intent_id: paymentIntentId as unknown as string,
     });
 
     if (error) fail("convert_paid_checkout", error);
