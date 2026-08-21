@@ -1,93 +1,41 @@
-import {
-  CampaignFeature,
-  EditorialStoryGrid,
-  HeroEditorial,
-  Newsletter,
-  TrustStrip,
-} from "@/components/sections";
-import {
-  Archive01Feature,
-  ProductRail,
-} from "@/components/sections/product-sections";
+import { renderSections } from "@/components/sections/render";
 import { DEFAULT_HOME_SECTIONS } from "@/lib/cms/default-home";
+import { getPublishedSections } from "@/lib/cms/pages";
 import { listActiveProducts } from "@/lib/catalog/queries";
 import { safeCatalogRead } from "@/lib/catalog/safe";
-import type { CatalogProduct } from "@/lib/catalog/queries";
-import type { Section } from "@/lib/cms/sections";
 
 /**
  * Homepage — the approved Homepage 3.0 structure (Master Spec §3.1).
  *
- * Sections come from `DEFAULT_HOME_SECTIONS` today. Phase 4 swaps that single
- * import for a `page_sections` read against the published revision; every
- * renderer below stays exactly as it is.
+ * Sections come from the PUBLISHED revision in `page_sections`. That is the
+ * Phase 4 seam Phase 2 was built around: only the data source changed, and not
+ * one renderer was touched.
  *
- * Revalidates rather than rendering fully dynamically, so inventory and price
- * changes reach the page without a deploy.
+ * `DEFAULT_HOME_SECTIONS` survives as a fallback for a database that has never
+ * been seeded, so a fresh environment still renders the approved structure
+ * instead of a blank page.
+ *
+ * Revalidates rather than rendering fully dynamically, so a publish reaches the
+ * page without a deploy.
  */
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const sections = DEFAULT_HOME_SECTIONS.filter((s) => s.enabled);
+  // Published content wins. The fallback covers two cases: a database that has
+  // never been seeded, and one that is unreachable.
+  //
+  // The second matters because `next build` prerenders this page and must stay
+  // hermetic — a build that fails when the database is down is a build that
+  // cannot ship a hotfix. Degrading to the approved structure beats both a
+  // failed build and a blank page, so the failure is logged loudly instead.
+  const published = await getPublishedSections("home").catch((error) => {
+    console.error("[bad-era] published sections read failed; using defaults", error);
+    return null;
+  });
+  const sections = published ?? DEFAULT_HOME_SECTIONS;
 
   // One catalog read serves every product-backed section on the page.
   const products = await safeCatalogRead("home", listActiveProducts);
-  const byHandle = new Map(products.map((p) => [p.handle, p]));
 
-  return <>{sections.map((section) => renderSection(section, products, byHandle))}</>;
-}
-
-function renderSection(
-  section: Section,
-  allProducts: CatalogProduct[],
-  byHandle: Map<string, CatalogProduct>,
-) {
-  switch (section.type) {
-    case "hero.editorial":
-      return <HeroEditorial key={section.sectionId} section={section} />;
-
-    case "trust.strip":
-      return <TrustStrip key={section.sectionId} section={section} />;
-
-    case "campaign.feature":
-      return <CampaignFeature key={section.sectionId} section={section} />;
-
-    case "product.rail": {
-      // Curated order wins. An empty curation falls back to active products
-      // rather than rendering an empty rail.
-      const curated = section.productHandles
-        .map((handle) => byHandle.get(handle))
-        .filter((p): p is CatalogProduct => Boolean(p));
-      const products = curated.length > 0 ? curated : allProducts.slice(0, 4);
-      return (
-        <ProductRail key={section.sectionId} section={section} products={products} />
-      );
-    }
-
-    case "archive01.feature": {
-      const products = section.productHandles
-        .map((handle) => byHandle.get(handle))
-        .filter((p): p is CatalogProduct => Boolean(p));
-      return (
-        <Archive01Feature
-          key={section.sectionId}
-          section={section}
-          products={products}
-        />
-      );
-    }
-
-    case "editorial.story_grid":
-      return <EditorialStoryGrid key={section.sectionId} section={section} />;
-
-    case "newsletter":
-      return <Newsletter key={section.sectionId} section={section} />;
-
-    default: {
-      // Exhaustiveness: adding a section type without a renderer is a compile
-      // error, not a silently blank page.
-      const _never: never = section;
-      return _never;
-    }
-  }
+  return <>{renderSections(sections, products)}</>;
 }

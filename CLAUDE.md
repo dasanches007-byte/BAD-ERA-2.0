@@ -488,6 +488,41 @@ Rules that hold across Studio:
 - Studio never displays a third party as "connected" — only whether BAD ERA has
   it *configured*, which is checkable without asserting something unverified.
 
+## Site Editor (Phase 4)
+
+```
+src/lib/cms/
+  registry.ts          Zod schemas + inspector definitions per section_type
+  pages.ts             Draft/published revision reads
+  page-actions.ts      Autosave, publish, rollback
+  default-home.ts      Fallback only — the database is now the source
+src/components/
+  sections/render.tsx  The ONE renderer, shared by the page and the preview
+  studio/site-editor.tsx  Three-pane shell, autosave, publish
+  studio/inspector.tsx    Schema-generated fields
+```
+
+Rules that hold across the editor:
+
+- **The inspector has exactly six field kinds**: text, textarea, media, cta,
+  productList, repeater. There is no colour, font, size, spacing, CSS or HTML
+  field, and that absence *is* the guardrail. `tests/unit/section-registry.test.ts`
+  fails the build if a seventh kind appears.
+- **A draft is always a separate revision.** Migration `0006` triggers reject any
+  update to a published revision or its sections, so publishing is a state flip
+  on the draft, never an edit of live content. Verified against the live
+  database: a direct `UPDATE` on the live revision is rejected.
+- **Publishing validates every section first.** If any fails, nothing is written
+  and live keeps serving the previous revision.
+- **Rollback republishes an old revision as a NEW one.** History is append-only.
+- **The preview renders through `renderSections`, the same function the public
+  page uses.** A preview that renders through a different path is a preview that
+  lies. It is owner-gated and `force-dynamic` so draft content never reaches the
+  public cache.
+- **The homepage falls back to `DEFAULT_HOME_SECTIONS` when the published read
+  fails.** `next build` prerenders that page, and a build that fails when the
+  database is down cannot ship a hotfix. The failure is logged loudly.
+
 ## Build phases
 
 Work **one phase at a time**. Write a short plan for the current phase only. Never attempt
@@ -499,7 +534,7 @@ every phase in one uncontrolled pass.
 | 1 | Commerce core: products, variants, inventory, cart, Stripe Checkout, verified webhooks, order snapshots | **Complete** (domain layer; awaiting live credentials for an end-to-end Stripe run) |
 | 2 | Public storefront: Home, Shop All, PDP, cart, responsive | **Complete** (renders against a live catalog; awaiting database credentials for an end-to-end pass) |
 | 3 | Studio core: shell, dashboard, media library, product/variant/inventory editors, authorization | **Complete** (awaiting an owner account for a visual pass) |
-| 4 | Site Editor: section registry, three-pane editor, autosave, preview, publish integration | Not started |
+| 4 | Site Editor: section registry, three-pane editor, autosave, preview, publish integration | **Complete** (awaiting an owner session for a visual pass) |
 | 5 | Orders & customers: accounts, addresses, order history, Studio workspaces | Not started |
 | 6 | Fulfillment: Providers, Inventory & Fulfillment panel, Manual Supplier, Action Required recovery | Not started |
 | 7 | Returns / refunds / support | Not started |
