@@ -413,6 +413,42 @@ Rules that hold across this layer:
 
 ---
 
+## Storefront (Phase 2)
+
+```
+src/components/
+  ui/logo.tsx              Monogram (locked artwork) + Wordmark. NEVER reconstruct the mark.
+  ui/media-slot.tsx        Every editorial image. Renders a placeholder until Studio fills it.
+  storefront/site-header.tsx   Locked global component
+  storefront/site-footer.tsx   Locked global component
+  storefront/product-card.tsx  Price from commerce data, availability from stock state
+  storefront/variant-picker.tsx  Client. Sold-out variants disabled but legible
+  storefront/cart-lines.tsx      Client. Mutations go through Server Actions
+  sections/                Section renderers, one per registered section_type
+src/lib/cms/
+  sections.ts              Typed section payloads + MediaSlot/CTA field types
+  default-home.ts          Default Homepage 3.0 content — the Phase 4 seam
+```
+
+Rules that hold across the storefront:
+
+- **The homepage renders from typed section payloads, not JSX literals.** Phase 4
+  replaces the `DEFAULT_HOME_SECTIONS` import with a `page_sections` read and the
+  renderers do not change. `renderSection` is exhaustive, so adding a section type
+  without a renderer is a compile error rather than a blank page.
+- **Every image is a `MediaSlot`.** Asset id, alt text, and independent desktop and
+  mobile focal points. Final photography drops in from Studio with no code change.
+  Never a CSS background, never a baked-in mockup.
+- **Optional product surfaces degrade; commerce surfaces do not.** `safeCatalogRead`
+  lets a product rail render nothing when the catalog is unreachable, so the brand
+  page survives an outage. Never wrap a cart, checkout, inventory or order read in it —
+  and a PDP catalog failure rethrows rather than rendering a misleading 404.
+- **The display serif needs `lnum`.** Without lining figures forced in the theme,
+  "ERA 00" renders as "ERA oo".
+- Newsletter signup belongs to the footer only. The `newsletter` section type stays
+  registered for other pages.
+- Social links are owner-owed. Do not invent handles to fill the footer.
+
 ## Build phases
 
 Work **one phase at a time**. Write a short plan for the current phase only. Never attempt
@@ -422,7 +458,7 @@ every phase in one uncontrolled pass.
 |---|---|---|
 | 0 | Foundation: Next.js/TS/Tailwind, design tokens, Supabase migrations, auth skeleton, env validation, route shells | **Complete** |
 | 1 | Commerce core: products, variants, inventory, cart, Stripe Checkout, verified webhooks, order snapshots | **Complete** (domain layer; awaiting live credentials for an end-to-end Stripe run) |
-| 2 | Public storefront: Home, Shop All, PDP, cart, responsive | Not started |
+| 2 | Public storefront: Home, Shop All, PDP, cart, responsive | **Complete** (renders against a live catalog; awaiting database credentials for an end-to-end pass) |
 | 3 | Studio core: shell, dashboard, media library, product/variant/inventory editors, authorization | Not started |
 | 4 | Site Editor: section registry, three-pane editor, autosave, preview, publish integration | Not started |
 | 5 | Orders & customers: accounts, addresses, order history, Studio workspaces | Not started |

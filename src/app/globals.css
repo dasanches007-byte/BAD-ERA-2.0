@@ -56,6 +56,10 @@
   /* --- Type families --- */
   --font-display: var(--font-bad-era-display), "Didot", "Bodoni MT",
     "Playfair Display", Georgia, "Times New Roman", serif;
+  /* Force lining figures. Without this the display serif falls back to
+     oldstyle numerals and "ERA 00" renders as "ERA oo". */
+  --font-display--font-feature-settings: "lnum" 1, "tnum" 0;
+  --font-display--font-variant-numeric: lining-nums;
   --font-sans: var(--font-bad-era-sans), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
