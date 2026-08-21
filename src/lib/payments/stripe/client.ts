@@ -2,7 +2,7 @@ import "server-only";
 
 import Stripe from "stripe";
 
-import { serverEnv } from "@/lib/env/server";
+import { stripeEnv } from "@/lib/env/server";
 
 /**
  * Lazily-constructed Stripe client.
@@ -20,7 +20,7 @@ let cached: Stripe | undefined;
 
 export function getStripe(): Stripe {
   if (!cached) {
-    cached = new Stripe(serverEnv().STRIPE_SECRET_KEY);
+    cached = new Stripe(stripeEnv().STRIPE_SECRET_KEY);
   }
   return cached;
 }

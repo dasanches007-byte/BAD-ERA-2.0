@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { getStripe } from '@/lib/payments/stripe/client';
-import { serverEnv } from '@/lib/env/server';
+import { stripeEnv } from '@/lib/env/server';
 import { constructStripeEvent } from '@/lib/payments/stripe/webhook';
 import { handleStripeCheckoutEvent } from '@/lib/checkout/stripe-event-handler';
 import { commerceRpc } from '@/lib/db/commerce-rpc';
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 
   let event: Stripe.Event;
   try {
-    event = constructStripeEvent(getStripe(), rawBody, signature, serverEnv().STRIPE_WEBHOOK_SECRET);
+    event = constructStripeEvent(getStripe(), rawBody, signature, stripeEnv().STRIPE_WEBHOOK_SECRET);
   } catch {
     return new NextResponse('Invalid Stripe signature', { status: 400 });
   }

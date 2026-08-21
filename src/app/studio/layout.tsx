@@ -30,7 +30,9 @@ export default async function StudioLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   const identity = await getStudioIdentity();
-  if (!identity) redirect("/");
+  // Send them somewhere they can act, not to the storefront. This gate is a
+  // convenience: every Studio read and mutation re-verifies authorization.
+  if (!identity) redirect("/sign-in?next=/studio");
 
   return (
     <div className="flex min-h-screen flex-col bg-surface text-ink lg:flex-row">

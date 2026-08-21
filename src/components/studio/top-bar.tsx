@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { signOutAction } from "@/lib/auth/actions";
+
 /**
  * Studio top bar (Master Spec §10.2, §10.3.1).
  *
@@ -40,6 +42,14 @@ export function StudioTopBar({
         <span className="label hidden text-ink-subtle sm:inline">
           {displayName ?? "Owner"}
         </span>
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="label text-ink-muted transition-colors hover:text-ink"
+          >
+            Sign out
+          </button>
+        </form>
       </div>
     </div>
   );

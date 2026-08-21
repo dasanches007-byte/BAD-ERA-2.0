@@ -10,18 +10,31 @@ import { z } from "zod";
  * Stripe secret must never be reachable from a browser bundle
  * (Security Contract v0.2, Master Spec §16.1, §17).
  *
- * Variables are validated lazily on first access so that `next build` and
- * `next lint` do not require a fully provisioned environment. The first server
- * code path that actually needs a secret fails loudly, with every missing key
- * named at once.
+ * The contract is split by INTEGRATION rather than validated as one block.
+ * A single all-or-nothing schema meant no server route could run until every
+ * secret existed, so the owner could not sign in to Studio to configure the
+ * store until Stripe and Resend were already configured — and Resend is not
+ * used until Phase 7. Each group is now validated at its own point of use, and
+ * fails loudly there naming exactly what is missing.
  */
 
-const serverEnvSchema = z.object({
+/**
+ * `.optional()` accepts `undefined`, not `""`. A .env file with `KEY=""`
+ * therefore fails an optional check, which is almost never what the author
+ * meant. Treat blank as absent everywhere.
+ */
+const blankAsUndefined = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    schema,
+  );
+
+/** Always required: without these nothing can serve a request at all. */
+const baseSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
 
-  /** Public Supabase project URL. Safe to expose; still validated here. */
   NEXT_PUBLIC_SUPABASE_URL: z.url({
     error: "NEXT_PUBLIC_SUPABASE_URL must be the full https URL of the project",
   }),
@@ -40,64 +53,95 @@ const serverEnvSchema = z.object({
     .string()
     .min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
 
-  /** SERVER ONLY. */
-  STRIPE_SECRET_KEY: z.string().min(1, "STRIPE_SECRET_KEY is required"),
-
-  /** SERVER ONLY. Verifies raw webhook bodies. */
-  STRIPE_WEBHOOK_SECRET: z
-    .string()
-    .min(1, "STRIPE_WEBHOOK_SECRET is required"),
-
   /** Canonical public origin, used for Stripe redirect URLs and emails. */
   NEXT_PUBLIC_SITE_URL: z.url().default("http://localhost:3000"),
 
-  /**
-   * Resend is not wired until Phase 7. Optional so earlier phases can run
-   * without it; the email service asserts its presence at point of use.
-   */
-  RESEND_API_KEY: z.string().min(1).optional(),
-  RESEND_FROM_EMAIL: z.email().optional(),
-
   /** Signed Site Editor preview access (Phase 4). */
-  PREVIEW_SECRET: z.string().min(16).optional(),
+  PREVIEW_SECRET: blankAsUndefined(z.string().min(16).optional()),
 });
 
-export type ServerEnv = z.infer<typeof serverEnvSchema>;
+/** Required only on Stripe code paths. */
+const stripeSchema = z.object({
+  STRIPE_SECRET_KEY: z.string().min(1, "STRIPE_SECRET_KEY is required"),
+  STRIPE_WEBHOOK_SECRET: z
+    .string()
+    .min(1, "STRIPE_WEBHOOK_SECRET is required"),
+});
 
-let cached: ServerEnv | undefined;
+/** Required only on transactional email paths (Phase 7). */
+const resendSchema = z.object({
+  RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY is required"),
+  RESEND_FROM_EMAIL: z.email("RESEND_FROM_EMAIL must be a valid address"),
+});
+
+export type ServerEnv = z.infer<typeof baseSchema>;
+export type StripeEnv = z.infer<typeof stripeSchema>;
+export type ResendEnv = z.infer<typeof resendSchema>;
+
+function parseOrThrow<T extends z.ZodTypeAny>(
+  schema: T,
+  label: string,
+): z.infer<T> {
+  const parsed = schema.safeParse(process.env);
+  if (parsed.success) return parsed.data;
+
+  const details = parsed.error.issues
+    .map((issue) => `  - ${issue.path.join(".") || "(root)"}: ${issue.message}`)
+    .join("\n");
+
+  throw new Error(
+    `Missing ${label} configuration. Fill these in .env.local:\n${details}`,
+  );
+}
+
+let cachedBase: ServerEnv | undefined;
+let cachedStripe: StripeEnv | undefined;
+let cachedResend: ResendEnv | undefined;
 
 export function serverEnv(): ServerEnv {
-  if (cached) return cached;
+  cachedBase ??= parseOrThrow(baseSchema, "core server");
+  return cachedBase;
+}
 
-  const parsed = serverEnvSchema.safeParse(process.env);
+/** Call from Stripe code paths only. Throws naming the missing Stripe keys. */
+export function stripeEnv(): StripeEnv {
+  cachedStripe ??= parseOrThrow(stripeSchema, "Stripe");
+  return cachedStripe;
+}
 
-  if (!parsed.success) {
-    const details = parsed.error.issues
-      .map((issue) => `  - ${issue.path.join(".") || "(root)"}: ${issue.message}`)
-      .join("\n");
-
-    throw new Error(
-      `Invalid server environment. Copy .env.example to .env.local and fill in:\n${details}`,
-    );
-  }
-
-  cached = parsed.data;
-  return cached;
+/** Call from email code paths only (Phase 7). */
+export function resendEnv(): ResendEnv {
+  cachedResend ??= parseOrThrow(resendSchema, "Resend");
+  return cachedResend;
 }
 
 /**
- * Non-throwing check for health/diagnostic surfaces (the Studio settings screen
- * shows integration health without ever revealing a secret value).
+ * Non-throwing status for diagnostic surfaces.
+ *
+ * The Studio dashboard reports whether each integration is CONFIGURED without
+ * ever revealing a secret value, and without taking the page down when one is
+ * absent.
  */
 export function serverEnvStatus(): {
-  ok: boolean;
+  core: boolean;
+  stripe: boolean;
+  resend: boolean;
   missing: string[];
 } {
-  const parsed = serverEnvSchema.safeParse(process.env);
-  if (parsed.success) return { ok: true, missing: [] };
+  const core = baseSchema.safeParse(process.env);
+  const stripe = stripeSchema.safeParse(process.env);
+  const resend = resendSchema.safeParse(process.env);
+
+  const missing = [
+    ...(core.success ? [] : core.error.issues.map((i) => i.path.join("."))),
+    ...(stripe.success ? [] : stripe.error.issues.map((i) => i.path.join("."))),
+    ...(resend.success ? [] : resend.error.issues.map((i) => i.path.join("."))),
+  ];
 
   return {
-    ok: false,
-    missing: parsed.error.issues.map((issue) => issue.path.join(".")),
+    core: core.success,
+    stripe: stripe.success,
+    resend: resend.success,
+    missing,
   };
 }

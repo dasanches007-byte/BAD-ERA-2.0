@@ -9,6 +9,7 @@ import {
   formatDateTime,
   formatMoney,
 } from "@/components/studio/primitives";
+import { serverEnvStatus } from "@/lib/env/server";
 import {
   getDashboardSummary,
   getLowStock,
@@ -211,11 +212,13 @@ function LowStock({ rows }: { rows: LowStockRow[] }) {
  * unverified assertion about a third party (Master Spec §10.4.7).
  */
 function IntegrationHealth() {
+  // Uses the validated contract rather than raw process.env, so a key that is
+  // present but malformed reports as NOT configured instead of a false green.
+  const status = serverEnvStatus();
   const integrations = [
-    { name: "Supabase", configured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY) },
-    { name: "Stripe", configured: Boolean(process.env.STRIPE_SECRET_KEY) },
-    { name: "Stripe webhook", configured: Boolean(process.env.STRIPE_WEBHOOK_SECRET) },
-    { name: "Resend", configured: Boolean(process.env.RESEND_API_KEY) },
+    { name: "Supabase", configured: status.core },
+    { name: "Stripe", configured: status.stripe },
+    { name: "Resend", configured: status.resend },
   ];
 
   return (
