@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { StudioNav } from "@/components/studio/studio-nav";
+import { StudioTopBar } from "@/components/studio/top-bar";
 import { getStudioIdentity } from "@/lib/auth/studio";
 
 /**
@@ -31,9 +33,17 @@ export default async function StudioLayout({
   if (!identity) redirect("/");
 
   return (
-    <div className="min-h-screen bg-surface text-ink">
-      {/* Studio navigation rail and top bar are built in Phase 3. */}
-      {children}
+    <div className="flex min-h-screen flex-col bg-surface text-ink lg:flex-row">
+      <StudioNav />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <StudioTopBar
+          displayName={identity.displayName}
+          environment={
+            process.env.NODE_ENV === "production" ? "production" : "development"
+          }
+        />
+        <main className="flex-1 px-6 py-8 lg:px-10 lg:py-10">{children}</main>
+      </div>
     </div>
   );
 }

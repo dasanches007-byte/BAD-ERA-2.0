@@ -132,10 +132,10 @@ webhooks and privileged mutations terminate in Route Handlers that call domain s
 
 ## Database — 62 tables
 
-Apply migrations strictly in order `0001 → 0011`. Never hand-recreate the schema in the
+Apply migrations strictly in order `0001 → 0012`. Never hand-recreate the schema in the
 Supabase dashboard. `supabase/seed.sql` is **development data only**.
 
-`0010` and `0011` are BAD ERA fixes, not part of the delivered Kickoff v0.2 package. Both
+`0010`, `0011` and `0012` are BAD ERA additions, not part of the delivered Kickoff v0.2 package. Both
 were found by executing the migrations and the acceptance matrix against real PostgreSQL —
 static validation cannot catch either.
 
@@ -449,6 +449,45 @@ Rules that hold across the storefront:
   registered for other pages.
 - Social links are owner-owed. Do not invent handles to fill the footer.
 
+## Studio (Phase 3)
+
+```
+src/components/studio/
+  nav.ts                   Navigation model + active-route matching
+  studio-nav.tsx           Client. Desktop rail, mobile drawer
+  top-bar.tsx              Environment + save state
+  primitives.tsx           PageHeader, Panel, StatusChip, EmptyState, LoadError
+  product-form.tsx         Client. Product fields
+  variant-editor.tsx       Client. Variant fields (never quantity)
+  inventory-table.tsx      Client. Audited +/- and absolute set
+  media-library.tsx        Client. Upload, alt text, archive
+src/lib/studio/
+  dashboard.ts             Real-record summaries only
+  products.ts   product-types.ts    server read / client-safe split
+  inventory.ts  inventory-actions.ts
+  media.ts      media-types.ts  media-actions.ts
+  product-actions.ts
+```
+
+Rules that hold across Studio:
+
+- **A `server-only` module may never be imported by a Client Component**, not even
+  for a helper. Each server module has a `*-types.ts` sibling holding the shapes
+  and pure helpers; the client imports that. Importing a runtime value across
+  that line is a build failure, which is the guard working.
+- **A failed read renders as a failure, never as a zero.** `LoadError` exists so
+  the owner never acts on a fabricated "0 orders" that is really a broken query.
+- **Quantity is never a form field.** Product and variant forms edit labels,
+  price and policy; stock changes only through `studio_adjust_inventory`, which
+  re-verifies ownership in PostgreSQL and writes an append-only movement.
+- **Authorization is checked twice**: `requireStudioOwner()` in the action for a
+  clean message, and again inside the RPC as the real boundary.
+- **Archive over delete.** Media archiving is refused while an asset is still
+  referenced; variants deactivate rather than delete so order history survives.
+- Owner-facing mode labels ("I stock this") are primary; the enum is metadata.
+- Studio never displays a third party as "connected" — only whether BAD ERA has
+  it *configured*, which is checkable without asserting something unverified.
+
 ## Build phases
 
 Work **one phase at a time**. Write a short plan for the current phase only. Never attempt
@@ -459,7 +498,7 @@ every phase in one uncontrolled pass.
 | 0 | Foundation: Next.js/TS/Tailwind, design tokens, Supabase migrations, auth skeleton, env validation, route shells | **Complete** |
 | 1 | Commerce core: products, variants, inventory, cart, Stripe Checkout, verified webhooks, order snapshots | **Complete** (domain layer; awaiting live credentials for an end-to-end Stripe run) |
 | 2 | Public storefront: Home, Shop All, PDP, cart, responsive | **Complete** (renders against a live catalog; awaiting database credentials for an end-to-end pass) |
-| 3 | Studio core: shell, dashboard, media library, product/variant/inventory editors, authorization | Not started |
+| 3 | Studio core: shell, dashboard, media library, product/variant/inventory editors, authorization | **Complete** (awaiting an owner account for a visual pass) |
 | 4 | Site Editor: section registry, three-pane editor, autosave, preview, publish integration | Not started |
 | 5 | Orders & customers: accounts, addresses, order history, Studio workspaces | Not started |
 | 6 | Fulfillment: Providers, Inventory & Fulfillment panel, Manual Supplier, Action Required recovery | Not started |

@@ -42,6 +42,10 @@ case "${1:-}" in
     psql_run -q -c "drop schema if exists public cascade; create schema public;" >/dev/null
     psql_run -q -c "drop schema if exists private cascade;" >/dev/null
     psql_run -q -c "drop schema if exists auth cascade;" >/dev/null
+    # The storage schema is shim-provided too. Dropping it keeps a reset a true
+    # from-scratch replay — otherwise migration 0012's object policies survive
+    # and collide on the next run.
+    psql_run -q -c "drop schema if exists storage cascade;" >/dev/null
     # The shim is idempotent; roles survive a schema drop.
     psql_run -q -f "$ROOT/scripts/supabase-shim.sql" >/dev/null
     for f in "$ROOT"/supabase/migrations/[0-9]*.sql; do

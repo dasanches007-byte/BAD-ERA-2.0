@@ -60,3 +60,49 @@ as $$
 $$;
 
 grant execute on function auth.uid(), auth.role() to anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- Supabase Storage stand-in.
+--
+-- Migration 0012 creates the Media Library buckets and their object policies.
+-- Supabase provisions the `storage` schema; a bare cluster does not, so the
+-- migration could not replay locally without this.
+--
+-- Only the columns and constraints BAD ERA actually touches are reproduced.
+-- This is NOT a functional Storage implementation — it exists so migration
+-- 0012 applies and its policies can be inspected during local validation.
+-- ---------------------------------------------------------------------------
+
+create schema if not exists storage;
+grant usage on schema storage to anon, authenticated, service_role;
+
+create table if not exists storage.buckets (
+  id text primary key,
+  name text not null unique,
+  owner uuid references auth.users(id) on delete set null,
+  public boolean not null default false,
+  file_size_limit bigint,
+  allowed_mime_types text[],
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists storage.objects (
+  id uuid primary key default gen_random_uuid(),
+  bucket_id text references storage.buckets(id) on delete cascade,
+  name text,
+  owner uuid references auth.users(id) on delete set null,
+  metadata jsonb,
+  path_tokens text[],
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  last_accessed_at timestamptz not null default now()
+);
+
+-- Supabase ships storage.objects with RLS on. The local policies from 0012 are
+-- meaningless without it, and their presence is what local validation asserts.
+alter table storage.objects enable row level security;
+
+grant select, insert, update, delete on storage.objects to authenticated;
+grant select on storage.objects to anon;
+grant all on storage.buckets, storage.objects to service_role;
