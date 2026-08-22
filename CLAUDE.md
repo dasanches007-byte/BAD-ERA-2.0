@@ -523,6 +523,38 @@ Rules that hold across the editor:
   fails.** `next build` prerenders that page, and a build that fails when the
   database is down cannot ship a hotfix. The failure is logged loudly.
 
+## Orders & customers (Phase 5)
+
+```
+src/lib/account/
+  session.ts  session-types.ts   resolve the signed-in customer
+  queries.ts  query-types.ts     their orders and addresses
+  actions.ts                     profile + address mutations
+src/lib/studio/
+  orders.ts      Studio order list/detail (sees fulfillment groups)
+  customers.ts   Studio customer list/detail
+```
+
+Rules that hold across this layer:
+
+- **Two identities, never conflated.** `auth.users.id` is who is signed in;
+  `customers.id` owns carts, orders and addresses. A signed-in visitor may have
+  no customer record yet, so reads return null rather than creating one — nothing
+  is created as a side effect of a read.
+- **Ownership is enforced in the query, not by the URL.** These reads run on the
+  service-role client, which bypasses RLS, so every one filters on the
+  caller's own `customerId`.
+- **The customer id never comes from user input.** Account mutations re-resolve
+  identity server-side; a form field carrying `customerId` would let anyone edit
+  another customer's profile.
+- **Status stays decomposed.** Payment, fulfillment, return and refund are four
+  separate fields in both Studio and the account area, never one badge.
+- **Editing the address book never rewrites a past order.** Order snapshots are
+  immutable, so history keeps showing where a parcel actually went.
+- `tests/unit/customer-data-boundary.test.ts` asserts that no customer-facing
+  read references supplier cost, credentials, internal notes, audit rows or
+  `variant_financials`, and that none uses `select("*")`.
+
 ## Build phases
 
 Work **one phase at a time**. Write a short plan for the current phase only. Never attempt
@@ -535,7 +567,7 @@ every phase in one uncontrolled pass.
 | 2 | Public storefront: Home, Shop All, PDP, cart, responsive | **Complete** (renders against a live catalog; awaiting database credentials for an end-to-end pass) |
 | 3 | Studio core: shell, dashboard, media library, product/variant/inventory editors, authorization | **Complete** (awaiting an owner account for a visual pass) |
 | 4 | Site Editor: section registry, three-pane editor, autosave, preview, publish integration | **Complete** (awaiting an owner session for a visual pass) |
-| 5 | Orders & customers: accounts, addresses, order history, Studio workspaces | Not started |
+| 5 | Orders & customers: accounts, addresses, order history, Studio workspaces | **Complete** (awaiting real orders for an end-to-end pass) |
 | 6 | Fulfillment: Providers, Inventory & Fulfillment panel, Manual Supplier, Action Required recovery | Not started |
 | 7 | Returns / refunds / support | Not started |
 | 8 | Publishing / version control | Not started |
