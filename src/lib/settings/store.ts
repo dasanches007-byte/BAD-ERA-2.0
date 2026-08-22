@@ -21,6 +21,7 @@ export const SETTING_KEYS = {
   storeCurrency: "store.currency",
   lowStockLimitedAt: "inventory.limited_availability_at",
   lowStockFewAt: "inventory.only_a_few_left_at",
+  returnWindowDays: "returns.window_days",
 } as const;
 
 export class MissingSettingError extends Error {
@@ -91,4 +92,17 @@ export async function getStockThresholds(): Promise<{
     limitedAvailabilityAt: int.safeParse(limited).data ?? 10,
     onlyAFewLeftAt: int.safeParse(few).data ?? 4,
   };
+}
+
+/**
+ * Return window, in days (Master Spec §9.1).
+ *
+ * Unlike flat shipping, a default IS appropriate here: a return policy that
+ * silently accepts nothing would be worse than one with a conservative window,
+ * and the owner can widen it from Studio without a deploy.
+ */
+export async function getReturnWindowDays(): Promise<number> {
+  const value = await readSetting(SETTING_KEYS.returnWindowDays);
+  const parsed = z.coerce.number().int().positive().safeParse(value);
+  return parsed.success ? parsed.data : 30;
 }

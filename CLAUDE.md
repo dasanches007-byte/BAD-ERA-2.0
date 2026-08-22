@@ -591,6 +591,45 @@ Rules that hold across fulfillment:
 - Mode-conditional fields: only STOCKED shows a local quantity; manual suppliers
   never show API or sync controls.
 
+## Returns, refunds & support (Phase 7)
+
+```
+src/lib/returns/
+  types.ts       eligibility, transitions, condition/disposition labels
+  queries.ts     customer + Studio reads
+  actions.ts     request / transition / inspect / RESTOCK
+src/lib/refunds/
+  actions.ts     Stripe refund, deliberately its own module
+src/lib/support/
+  types.ts  queries.ts  actions.ts
+```
+
+Rules that hold across this layer:
+
+- **Refund is not restock, and approval is not refund.** Three lifecycles that
+  never trigger one another: the return moves through its own states, money
+  moves only in `refunds/actions.ts`, and stock moves only through
+  `restockReturnItemAction`. `tests/unit/returns-refunds.test.ts` asserts the
+  refund path contains no inventory call and the approval path contains no
+  Stripe call.
+- **Restock is gated three ways**: the return must be received, the item must
+  have been inspected and dispositioned `restock`, and it must not already carry
+  a `restocked_at`. A damaged item can never be dispositioned as restock.
+- **Restock runs through `studio_adjust_inventory`**, so a returned unit enters
+  stock as an audited movement like every other change.
+- **The refund row is written before Stripe is called**, so a crash mid-call
+  leaves a pending row to reconcile rather than an invisible refund. It becomes
+  `succeeded` only once Stripe confirms, and `failed` if Stripe refuses.
+- **Pending refunds count against the refundable limit**, so two concurrent
+  refunds cannot together exceed what was captured. Stripe gets an idempotency
+  key derived from the local refund id.
+- **Internal notes live in `support_notes`, messages in `support_messages`.**
+  A note has no visibility flag to misconfigure, and no customer-facing query
+  reads that table.
+- The return window is configurable from Studio settings; unlike flat shipping
+  it has a sane default, because a policy that silently accepts nothing is worse
+  than a conservative one.
+
 ## Build phases
 
 Work **one phase at a time**. Write a short plan for the current phase only. Never attempt
@@ -605,7 +644,7 @@ every phase in one uncontrolled pass.
 | 4 | Site Editor: section registry, three-pane editor, autosave, preview, publish integration | **Complete** (awaiting an owner session for a visual pass) |
 | 5 | Orders & customers: accounts, addresses, order history, Studio workspaces | **Complete** (awaiting real orders for an end-to-end pass) |
 | 6 | Fulfillment: Providers, Inventory & Fulfillment panel, Manual Supplier, Action Required recovery | **Complete** (awaiting real paid orders for an end-to-end pass) |
-| 7 | Returns / refunds / support | Not started |
+| 7 | Returns / refunds / support | **Complete** (refunds await live Stripe keys to exercise) |
 | 8 | Publishing / version control | Not started |
 | 9 | Hardening: security headers, MFA, rate limits, observability, a11y, SEO, performance, backups | Not started |
 | 10 | Full QA / launch readiness — **stop and report; do not launch publicly** | Not started |
