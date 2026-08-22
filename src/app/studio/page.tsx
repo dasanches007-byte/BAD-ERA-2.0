@@ -5,20 +5,18 @@ import {
   LoadError,
   PageHeader,
   Panel,
-  StatusChip,
-  formatDateTime,
-  formatMoney,
 } from "@/components/studio/primitives";
+import {
+  IntegrationHealth,
+  LowStock,
+  RecentOrders,
+  SummaryRow,
+} from "@/components/studio/dashboard-panels";
 import { serverEnvStatus } from "@/lib/env/server";
 import {
   getDashboardSummary,
   getLowStock,
   getRecentOrders,
-} from "@/lib/studio/dashboard";
-import type {
-  DashboardSummary,
-  LowStockRow,
-  RecentOrder,
 } from "@/lib/studio/dashboard";
 
 export const metadata = { title: "Home" };
@@ -37,6 +35,17 @@ export default async function StudioDashboardPage() {
     getRecentOrders(),
     getLowStock(),
   ]);
+
+  // Uses the validated contract rather than raw process.env, so a key that is
+  // present but malformed reports as NOT configured instead of a false green.
+  // Studio never claims a third party is "connected" — only that BAD ERA has it
+  // configured, which is checkable without asserting something unverified.
+  const envStatus = serverEnvStatus();
+  const integrations = [
+    { name: "Supabase", configured: envStatus.core },
+    { name: "Stripe", configured: envStatus.stripe },
+    { name: "Resend", configured: envStatus.resend },
+  ];
 
   return (
     <div className="space-y-10">
@@ -97,147 +106,8 @@ export default async function StudioDashboardPage() {
       </div>
 
       <Panel title="Integrations">
-        <IntegrationHealth />
+        <IntegrationHealth integrations={integrations} />
       </Panel>
     </div>
-  );
-}
-
-function SummaryRow({ summary }: { summary: DashboardSummary }) {
-  const items = [
-    {
-      label: "Paid revenue · 30 days",
-      value: formatMoney(summary.paidRevenueCents, summary.currency),
-      detail: `${summary.paidOrderCount} paid ${summary.paidOrderCount === 1 ? "order" : "orders"}`,
-    },
-    {
-      label: "Awaiting fulfillment",
-      value: String(summary.awaitingFulfillment),
-      detail: "Paid, not yet shipped",
-    },
-    {
-      label: "Action required",
-      value: String(summary.openIssues),
-      detail: "Unresolved fulfillment issues",
-    },
-    {
-      label: "Stock attention",
-      value: String(summary.lowStockCount + summary.outOfStockCount),
-      detail: `${summary.outOfStockCount} out, ${summary.lowStockCount} low`,
-    },
-  ];
-
-  return (
-    <div className="grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-2 xl:grid-cols-4">
-      {items.map((item) => (
-        <div key={item.label} className="bg-surface-raised px-6 py-7">
-          <p className="label text-ink-subtle">{item.label}</p>
-          <p className="mt-4 font-display text-3xl text-ink-strong">{item.value}</p>
-          <p className="mt-2 text-xs text-ink-subtle">{item.detail}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function RecentOrders({ orders }: { orders: RecentOrder[] }) {
-  return (
-    <ul className="divide-y divide-line">
-      {orders.map((order) => (
-        <li key={order.id}>
-          <Link
-            href={`/studio/orders/${order.id}`}
-            className="flex items-center justify-between gap-4 px-6 py-4 transition-colors hover:bg-surface-overlay"
-          >
-            <div className="min-w-0">
-              <p className="text-sm text-ink">{order.orderNumber}</p>
-              <p className="mt-1 truncate text-xs text-ink-subtle">
-                {order.customerEmail} · {formatDateTime(order.placedAt)}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              {/* Payment and fulfillment stay separate: never collapse
-                  operational truth into one badge (Master Spec §7.1). */}
-              <StatusChip tone={order.paymentStatus === "paid" ? "success" : "warning"}>
-                {order.paymentStatus.replace(/_/g, " ")}
-              </StatusChip>
-              <StatusChip
-                tone={order.fulfillmentStatus === "fulfilled" ? "success" : "neutral"}
-              >
-                {order.fulfillmentStatus.replace(/_/g, " ")}
-              </StatusChip>
-              <span className="w-20 text-right text-sm text-ink">
-                {formatMoney(order.totalCents, order.currency)}
-              </span>
-            </div>
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function LowStock({ rows }: { rows: LowStockRow[] }) {
-  return (
-    <ul className="divide-y divide-line">
-      {rows.map((row) => {
-        const out = row.available <= 0;
-        return (
-          <li
-            key={row.variantId}
-            className="flex items-center justify-between gap-4 px-6 py-4"
-          >
-            <div className="min-w-0">
-              <p className="truncate text-sm text-ink">{row.productTitle}</p>
-              <p className="mt-1 truncate text-xs text-ink-subtle">
-                {row.variantTitle}
-                {row.sku ? ` · ${row.sku}` : ""}
-              </p>
-            </div>
-            <StatusChip tone={out ? "critical" : "warning"}>
-              {out ? "Sold out" : `${row.available} left`}
-            </StatusChip>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-/**
- * Integration health.
- *
- * Reports whether each integration is CONFIGURED, which is checkable without a
- * network call. It deliberately does not claim "connected" — that would be an
- * unverified assertion about a third party (Master Spec §10.4.7).
- */
-function IntegrationHealth() {
-  // Uses the validated contract rather than raw process.env, so a key that is
-  // present but malformed reports as NOT configured instead of a false green.
-  const status = serverEnvStatus();
-  const integrations = [
-    { name: "Supabase", configured: status.core },
-    { name: "Stripe", configured: status.stripe },
-    { name: "Resend", configured: status.resend },
-  ];
-
-  return (
-    <ul className="divide-y divide-line">
-      {integrations.map((integration) => (
-        <li
-          key={integration.name}
-          className="flex items-center justify-between gap-4 px-6 py-4"
-        >
-          <span className="text-sm text-ink">{integration.name}</span>
-          <StatusChip tone={integration.configured ? "success" : "neutral"}>
-            {integration.configured ? "Configured" : "Not configured"}
-          </StatusChip>
-        </li>
-      ))}
-      <li className="flex items-center justify-between gap-4 px-6 py-4">
-        <span className="text-sm text-ink">Pirate Ship</span>
-        <StatusChip tone="info">Manual by design</StatusChip>
-      </li>
-    </ul>
   );
 }

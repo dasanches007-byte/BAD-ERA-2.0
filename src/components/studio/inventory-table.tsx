@@ -7,7 +7,7 @@ import {
   adjustInventoryAction,
   setInventoryAction,
 } from "@/lib/studio/inventory-actions";
-import type { InventoryRow } from "@/lib/studio/inventory";
+import type { InventoryRow } from "@/lib/studio/inventory-types";
 
 /**
  * Inventory table (Master Spec §10.3.4).

@@ -49,7 +49,7 @@ export default async function StudioSitePage() {
               <li key={page.id}>
                 <Link
                   href={`/studio/site/${page.pageKey}`}
-                  className="flex items-center justify-between gap-4 px-6 py-5 transition-colors hover:bg-surface-overlay"
+                  className="flex flex-col gap-3 px-6 py-5 transition-colors hover:bg-surface-overlay sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm text-ink">{page.title}</p>
@@ -60,7 +60,7 @@ export default async function StudioSitePage() {
                         : ""}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3 sm:shrink-0">
                     {page.hasDraft ? (
                       <StatusChip tone="warning">Unpublished draft</StatusChip>
                     ) : null}

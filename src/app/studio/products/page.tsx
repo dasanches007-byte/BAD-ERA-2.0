@@ -49,7 +49,7 @@ export default async function StudioProductsPage() {
               <li key={product.id}>
                 <Link
                   href={`/studio/products/${product.id}`}
-                  className="flex items-center justify-between gap-4 px-6 py-5 transition-colors hover:bg-surface-overlay"
+                  className="flex flex-col gap-3 px-6 py-5 transition-colors hover:bg-surface-overlay sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm text-ink">{product.title}</p>
@@ -59,11 +59,11 @@ export default async function StudioProductsPage() {
                       {product.kind === "bundle" ? " · bundle" : ""}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-4 sm:shrink-0">
                     <StatusChip tone={statusTone(product.status)}>
                       {product.status}
                     </StatusChip>
-                    <span className="w-20 text-right text-sm text-ink">
+                    <span className="text-sm text-ink sm:w-20 sm:text-right">
                       {product.priceFromCents !== null
                         ? formatMoney(product.priceFromCents, product.currency)
                         : "—"}

@@ -1,6 +1,11 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/db/admin";
+import type {
+  DashboardSummary,
+  LowStockRow,
+  RecentOrder,
+} from "@/lib/studio/dashboard-types";
 
 /**
  * Studio dashboard reads (Master Spec §10.1).
@@ -13,35 +18,11 @@ import { createAdminClient } from "@/lib/db/admin";
  * its columns explicitly and never selects cost or credential columns.
  */
 
-export type DashboardSummary = {
-  paidRevenueCents: number;
-  paidOrderCount: number;
-  currency: string;
-  awaitingFulfillment: number;
-  openIssues: number;
-  lowStockCount: number;
-  outOfStockCount: number;
-};
-
-export type RecentOrder = {
-  id: string;
-  orderNumber: string;
-  customerEmail: string;
-  totalCents: number;
-  currency: string;
-  paymentStatus: string;
-  fulfillmentStatus: string;
-  placedAt: string;
-};
-
-export type LowStockRow = {
-  variantId: string;
-  productTitle: string;
-  variantTitle: string;
-  sku: string | null;
-  available: number;
-  lowStockThreshold: number;
-};
+export type {
+  DashboardSummary,
+  LowStockRow,
+  RecentOrder,
+} from "@/lib/studio/dashboard-types";
 
 /** Revenue over a trailing window, counted only from PAID orders. */
 export async function getDashboardSummary(
