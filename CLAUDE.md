@@ -555,6 +555,42 @@ Rules that hold across this layer:
   read references supplier cost, credentials, internal notes, audit rows or
   `variant_financials`, and that none uses `select("*")`.
 
+## Fulfillment (Phase 6)
+
+```
+src/lib/fulfillment/
+  contract.ts  registry.ts        adapter boundary (Kickoff v0.2)
+  types.ts                        badges, issue codes, recovery-action matrix
+  queries.ts                      the five queues + provider cards
+  actions.ts                      submit / track / retry / route manual / resolve
+  product-fulfillment.ts  -types.ts   the Inventory & Fulfillment workspace
+src/components/studio/
+  fulfillment-tabs.tsx  ready-to-ship-card.tsx  supplier-task-card.tsx
+  issue-card.tsx  inventory-fulfillment-panel.tsx
+```
+
+Rules that hold across fulfillment:
+
+- **A paid order is durable truth.** Nothing in `actions.ts` cancels or
+  invalidates a payment; these mutations move *fulfillment* state only.
+  ACTION_REQUIRED is an operational state, and the cards say so on their face.
+- **SUBMITTED is not SHIPPED.** Recording a supplier reference never creates a
+  shipment or notifies the customer. Only tracking entry does, and it is what
+  derives the order's fulfillment status from its groups.
+- **Retry reuses the group's existing `submission_key`**, so repeated clicks
+  cannot create a second provider order. Non-retryable failures refuse outright.
+- **Recovery actions are contextual.** `availableRecoveryActions()` never offers
+  Retry for out-of-stock or broken credentials, and always leaves at least one
+  way forward. Covered by `tests/unit/fulfillment-recovery.test.ts`.
+- **Opening a supplier portal changes no state**, which is why no action for it
+  exists — the link is just a link.
+- **No fake sync data.** Manual and internal providers show no sync timestamp,
+  and provider metrics render "Not enough data" rather than a fabricated rate.
+- **Auto-submit is off by default** and refuses to enable unless the provider is
+  an API provider at `live_automated`.
+- Mode-conditional fields: only STOCKED shows a local quantity; manual suppliers
+  never show API or sync controls.
+
 ## Build phases
 
 Work **one phase at a time**. Write a short plan for the current phase only. Never attempt
@@ -568,7 +604,7 @@ every phase in one uncontrolled pass.
 | 3 | Studio core: shell, dashboard, media library, product/variant/inventory editors, authorization | **Complete** (awaiting an owner account for a visual pass) |
 | 4 | Site Editor: section registry, three-pane editor, autosave, preview, publish integration | **Complete** (awaiting an owner session for a visual pass) |
 | 5 | Orders & customers: accounts, addresses, order history, Studio workspaces | **Complete** (awaiting real orders for an end-to-end pass) |
-| 6 | Fulfillment: Providers, Inventory & Fulfillment panel, Manual Supplier, Action Required recovery | Not started |
+| 6 | Fulfillment: Providers, Inventory & Fulfillment panel, Manual Supplier, Action Required recovery | **Complete** (awaiting real paid orders for an end-to-end pass) |
 | 7 | Returns / refunds / support | Not started |
 | 8 | Publishing / version control | Not started |
 | 9 | Hardening: security headers, MFA, rate limits, observability, a11y, SEO, performance, backups | Not started |

@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -73,5 +74,47 @@ describe("studio reads", () => {
     expect(source).toContain("identity.customerId");
     // The customer id must never be read from user input.
     expect(source).not.toMatch(/formData\.get\(\s*["'`]customerId/);
+  });
+});
+
+describe("storefront never imports fulfillment internals", () => {
+  /**
+   * Supplier cost, provider identity and issue diagnostics live in the
+   * fulfillment and studio modules. Those are Studio-only.
+   *
+   * The component code itself legitimately appears in a client chunk — it is a
+   * Client Component. What must never happen is a STOREFRONT surface importing
+   * it, which would ship provider and cost fields onto a customer's page. This
+   * asserts the import boundary, because the import is the thing that would
+   * actually cause the leak.
+   */
+  const STOREFRONT_ROOTS = [
+    "src/app/(storefront)",
+    "src/components/storefront",
+    "src/components/sections",
+    "src/components/account",
+  ];
+
+  function walk(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) out.push(...walk(full));
+      else if (/\.tsx?$/.test(entry.name)) out.push(full);
+    }
+    return out;
+  }
+
+  it("no storefront file imports a fulfillment or studio module", () => {
+    const offenders: string[] = [];
+    for (const root of STOREFRONT_ROOTS) {
+      for (const file of walk(root)) {
+        const source = readFileSync(file, "utf8");
+        if (/from\s+["\`']@\/lib\/(fulfillment|studio)\//.test(source)) {
+          offenders.push(file);
+        }
+      }
+    }
+    expect(offenders, `storefront files importing internal modules: ${offenders.join(", ")}`).toEqual([]);
   });
 });
