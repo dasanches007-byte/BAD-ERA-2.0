@@ -4,6 +4,15 @@ import { revalidatePath } from "next/cache";
 
 import { requireStudioOwner, StudioAuthorizationError } from "@/lib/auth/studio";
 import { createAdminClient } from "@/lib/db/admin";
+import {
+  commitPagePublish,
+  currentLiveRevisionId,
+  forkRevisionToDraft,
+  markPublishSet,
+  recordPublishSet,
+  validateRevisionForPublish,
+  writePublishAudit,
+} from "@/lib/cms/publish-core";
 import { parseSection } from "@/lib/cms/registry";
 import type { Json } from "@/lib/db/generated.types";
 
@@ -19,12 +28,25 @@ import type { Json } from "@/lib/db/generated.types";
  * revision serving traffic untouched.
  */
 
-export type EditorResult = { ok: true } | { ok: false; message: string };
+export type EditorResult =
+  | { ok: true; version?: number }
+  | { ok: false; message: string; conflict?: true };
 
-async function assertOwner(): Promise<EditorResult> {
+type OwnerCheck =
+  | { ok: true; userId: string }
+  | { ok: false; message: string };
+
+/**
+ * Resolve the acting owner, and hand back their id.
+ *
+ * The id matters: every publishing mutation writes an `audit_events` row, and
+ * an audit trail that cannot name the actor is not an audit trail
+ * (Master Spec §13.4).
+ */
+async function assertOwner(): Promise<OwnerCheck> {
   try {
-    await requireStudioOwner();
-    return { ok: true };
+    const identity = await requireStudioOwner();
+    return { ok: true, userId: identity.userId };
   } catch (error) {
     if (error instanceof StudioAuthorizationError) {
       return { ok: false, message: "Studio authorization required." };
@@ -38,14 +60,25 @@ async function assertOwner(): Promise<EditorResult> {
  *
  * Refuses if the target revision is not a draft — belt and braces alongside the
  * database trigger that already rejects edits to published revisions.
+ *
+ * OPTIMISTIC CONCURRENCY (Master Spec §13.2): the caller passes the `version`
+ * it last read. A trigger increments that counter on every write, so the update
+ * only lands if nobody else has saved since — a stale tab is told its copy is
+ * out of date rather than silently overwriting newer edits.
+ *
+ * A counter rather than `updated_at`: `now()` is transaction start time, so two
+ * writes inside one transaction share a timestamp, and microsecond resolution
+ * makes near-simultaneous writes indistinguishable. Verified against the live
+ * database — the timestamp guard let a stale write through, the counter did not.
  */
 export async function saveSectionAction(input: {
   revisionId: string;
   sectionKey: string;
   payload: unknown;
+  expectedVersion?: number;
 }): Promise<EditorResult> {
   const auth = await assertOwner();
-  if (!auth.ok) return auth;
+  if (!auth.ok) return { ok: false, message: auth.message };
 
   const parsed = parseSection(input.payload);
   if (!parsed.success) {
@@ -85,7 +118,7 @@ export async function saveSectionAction(input: {
   void _sectionId;
   void _type;
 
-  const { error } = await db
+  let update = db
     .from("page_sections")
     // The payload came through the registry schema, so its shape is known and
     // JSON-serialisable; the cast satisfies the generated Json type.
@@ -93,14 +126,34 @@ export async function saveSectionAction(input: {
     .eq("revision_id", input.revisionId)
     .eq("section_key", input.sectionKey);
 
+  // Only apply the version guard when the caller supplied a token, so a first
+  // save from a freshly created draft is not blocked.
+  if (input.expectedVersion !== undefined) {
+    update = update.eq("version", input.expectedVersion);
+  }
+
+  const { data: updated, error } = await update.select("version");
+
   if (error) return { ok: false, message: error.message };
+
+  if (input.expectedVersion !== undefined && (!updated || updated.length === 0)) {
+    // The row moved on. Refusing is the point: silently winning here is how a
+    // stale tab erases someone else's work.
+    return {
+      ok: false,
+      conflict: true,
+      message:
+        "This section changed somewhere else. Reload to get the latest version before editing.",
+    };
+  }
 
   await db
     .from("page_drafts")
     .update({ autosaved_at: new Date().toISOString() })
     .eq("revision_id", input.revisionId);
 
-  return { ok: true };
+  // Hand back the new token so the editor can keep saving without a reload.
+  return { ok: true, version: updated?.[0]?.version };
 }
 
 /** Toggle a section's visibility without deleting it. */
@@ -110,7 +163,7 @@ export async function setSectionEnabledAction(input: {
   enabled: boolean;
 }): Promise<EditorResult> {
   const auth = await assertOwner();
-  if (!auth.ok) return auth;
+  if (!auth.ok) return { ok: false, message: auth.message };
 
   const db = createAdminClient();
   const { error } = await db
@@ -129,7 +182,7 @@ export async function reorderSectionsAction(input: {
   orderedSectionKeys: string[];
 }): Promise<EditorResult> {
   const auth = await assertOwner();
-  if (!auth.ok) return auth;
+  if (!auth.ok) return { ok: false, message: auth.message };
 
   const db = createAdminClient();
 
@@ -146,7 +199,7 @@ export async function reorderSectionsAction(input: {
 }
 
 /**
- * Publish the draft.
+ * Publish one page's draft.
  *
  * Validates every section before touching anything. If validation fails, live
  * stays exactly where it was (Master Spec §11.4.5: "If publish validation or
@@ -158,71 +211,56 @@ export async function publishPageAction(input: {
   note?: string;
 }): Promise<EditorResult> {
   const auth = await assertOwner();
-  if (!auth.ok) return auth;
+  if (!auth.ok) return { ok: false, message: auth.message };
 
-  const db = createAdminClient();
+  const valid = await validateRevisionForPublish(input.revisionId);
+  if (!valid.ok) return valid;
 
-  const { data: sections, error: readError } = await db
-    .from("page_sections")
-    .select("section_key, section_type, schema_version, enabled, payload")
-    .eq("revision_id", input.revisionId);
+  // A single-page publish is still a publish set, of one. Otherwise the Site
+  // Editor's own publish button would leave no entry in publish history, and
+  // the one change the owner most often makes would be the one they cannot see
+  // or roll back.
+  const previousRevisionId = await currentLiveRevisionId(input.pageId);
+  const set = await recordPublishSet({
+    actorUserId: auth.userId,
+    note: input.note ?? null,
+    items: [
+      {
+        pageId: input.pageId,
+        revisionId: input.revisionId,
+        previousRevisionId,
+      },
+    ],
+  });
+  if (!set.ok) return set;
 
-  if (readError) return { ok: false, message: readError.message };
-  if (!sections || sections.length === 0) {
-    return { ok: false, message: "This draft has no sections to publish." };
+  const committed = await commitPagePublish({
+    pageId: input.pageId,
+    revisionId: input.revisionId,
+    note: input.note,
+  });
+  if (!committed.ok) {
+    await markPublishSet(set.publishSetId, "failed");
+    return committed;
   }
 
-  for (const row of sections) {
-    const parsed = parseSection({
-      ...(row.payload as Record<string, unknown>),
-      type: row.section_type,
-      sectionId: row.section_key,
-      enabled: row.enabled,
-      schemaVersion: row.schema_version,
-    });
-    if (!parsed.success) {
-      return {
-        ok: false,
-        message: `Section "${row.section_key}" is not valid, so nothing was published.`,
-      };
-    }
-  }
+  await markPublishSet(set.publishSetId, "published");
 
-  const publishedAt = new Date().toISOString();
-
-  // Flip the draft to published. The immutability trigger only fires on rows
-  // that are ALREADY published, so this transition is allowed exactly once.
-  const { error: stateError } = await db
-    .from("page_revisions")
-    .update({
-      state: "published",
-      published_at: publishedAt,
-      note: input.note?.trim() || null,
-    })
-    .eq("id", input.revisionId);
-
-  if (stateError) return { ok: false, message: stateError.message };
-
-  const { error: pointerError } = await db
-    .from("pages")
-    .update({ published_revision_id: input.revisionId })
-    .eq("id", input.pageId);
-
-  if (pointerError) return { ok: false, message: pointerError.message };
-
-  // Clearing the draft pointer means the next edit starts a fresh revision
-  // rather than mutating the one now serving live traffic.
-  await db.from("page_drafts").delete().eq("page_id", input.pageId);
-
-  await db.from("audit_events").insert({
+  await writePublishAudit({
+    actorUserId: auth.userId,
     action: "page.publish",
-    entity_type: "page",
-    entity_id: input.pageId,
-    metadata: { revision_id: input.revisionId, note: input.note ?? null },
+    entityType: "page",
+    entityId: input.pageId,
+    metadata: {
+      revision_id: input.revisionId,
+      publish_set_id: set.publishSetId,
+      note: input.note ?? null,
+    },
   });
 
   revalidatePath("/", "layout");
   revalidatePath("/studio/site");
+  revalidatePath("/studio/publishing");
 
   return { ok: true };
 }
@@ -239,65 +277,84 @@ export async function rollbackPageAction(input: {
   targetRevisionId: string;
 }): Promise<EditorResult> {
   const auth = await assertOwner();
-  if (!auth.ok) return auth;
+  if (!auth.ok) return { ok: false, message: auth.message };
 
   const db = createAdminClient();
 
-  const { data: last, error: lastError } = await db
+  const { data: target, error: targetError } = await db
     .from("page_revisions")
-    .select("revision_number")
-    .eq("page_id", input.pageId)
-    .order("revision_number", { ascending: false })
-    .limit(1)
+    .select("id, page_id, revision_number")
+    .eq("id", input.targetRevisionId)
     .maybeSingle();
 
-  if (lastError) return { ok: false, message: lastError.message };
-
-  const { data: created, error: createError } = await db
-    .from("page_revisions")
-    .insert({
-      page_id: input.pageId,
-      revision_number: (last?.revision_number ?? 0) + 1,
-      state: "draft",
-      source_revision_id: input.targetRevisionId,
-      note: `Rollback of revision ${input.targetRevisionId}`,
-    })
-    .select("id")
-    .single();
-
-  if (createError) return { ok: false, message: createError.message };
-
-  const { data: source, error: sourceError } = await db
-    .from("page_sections")
-    .select("section_key, section_type, schema_version, position, enabled, payload")
-    .eq("revision_id", input.targetRevisionId)
-    .order("position");
-
-  if (sourceError) return { ok: false, message: sourceError.message };
-  if (!source || source.length === 0) {
-    return { ok: false, message: "That revision has no sections." };
+  if (targetError) return { ok: false, message: targetError.message };
+  if (!target) return { ok: false, message: "That revision no longer exists." };
+  // A revision id from another page would republish the wrong content under
+  // this page's pointer, so the ownership check is not optional.
+  if (target.page_id !== input.pageId) {
+    return { ok: false, message: "That revision does not belong to this page." };
   }
 
-  const { error: copyError } = await db.from("page_sections").insert(
-    source.map((s) => ({
-      revision_id: created.id,
-      section_key: s.section_key,
-      section_type: s.section_type,
-      schema_version: s.schema_version,
-      position: s.position,
-      enabled: s.enabled,
-      payload: s.payload,
-    })),
-  );
+  const note = `Rollback to revision ${target.revision_number}`;
 
-  if (copyError) return { ok: false, message: copyError.message };
+  const forked = await forkRevisionToDraft({
+    pageId: input.pageId,
+    sourceRevisionId: input.targetRevisionId,
+    actorUserId: auth.userId,
+    note,
+  });
+  if (!forked.ok) return forked;
 
-  // Drop any in-flight draft, then publish the restored content.
+  // Drop any in-flight draft, then publish the restored content. The owner's
+  // unpublished edits are not erased — they stay as their own revision in
+  // history, only unpointed.
   await db.from("page_drafts").delete().eq("page_id", input.pageId);
 
-  return publishPageAction({
-    pageId: input.pageId,
-    revisionId: created.id,
-    note: "Rollback",
+  const valid = await validateRevisionForPublish(forked.revisionId);
+  if (!valid.ok) return valid;
+
+  // A rollback changes what the public sees, so it belongs in publish history
+  // like any other publish — and recording the revision it replaced means the
+  // rollback is itself reversible.
+  const previousRevisionId = await currentLiveRevisionId(input.pageId);
+  const set = await recordPublishSet({
+    actorUserId: auth.userId,
+    note,
+    items: [
+      { pageId: input.pageId, revisionId: forked.revisionId, previousRevisionId },
+    ],
   });
+  if (!set.ok) return set;
+
+  const committed = await commitPagePublish({
+    pageId: input.pageId,
+    revisionId: forked.revisionId,
+    note,
+  });
+  if (!committed.ok) {
+    await markPublishSet(set.publishSetId, "failed");
+    return committed;
+  }
+
+  await markPublishSet(set.publishSetId, "published");
+
+  await writePublishAudit({
+    actorUserId: auth.userId,
+    action: "page.rollback",
+    entityType: "page",
+    entityId: input.pageId,
+    metadata: {
+      restored_revision_id: input.targetRevisionId,
+      restored_revision_number: target.revision_number,
+      new_revision_id: forked.revisionId,
+      publish_set_id: set.publishSetId,
+      reason: note,
+    },
+  });
+
+  revalidatePath("/", "layout");
+  revalidatePath("/studio/site");
+  revalidatePath("/studio/publishing");
+
+  return { ok: true };
 }

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getStudioIdentity } from "@/lib/auth/studio";
 import { createAdminClient } from "@/lib/db/admin";
 import { parseSection } from "@/lib/cms/registry";
 import type { Section } from "@/lib/cms/sections";
@@ -39,18 +40,24 @@ export type PageDraft = {
   revisionId: string;
   revisionNumber: number;
   sections: Section[];
-  /** Section keys in order, paired with their database row ids. */
-  sectionRows: { id: string; sectionKey: string; position: number }[];
+  /**
+   * Section keys in order, with their row id and version token.
+   *
+   * `version` is the optimistic-concurrency token: a save carries the value it
+   * read, and the update only lands if the row still holds it, so two open tabs
+   * cannot silently overwrite each other (Master Spec §13.2).
+   *
+   * A monotonic counter rather than `updated_at`, because `now()` is
+   * transaction start time — two writes in one transaction share a timestamp,
+   * and microsecond resolution makes near-simultaneous writes collide.
+   */
+  sectionRows: {
+    id: string;
+    sectionKey: string;
+    position: number;
+    version: number;
+  }[];
   publishedRevisionId: string | null;
-};
-
-export type RevisionSummary = {
-  id: string;
-  revisionNumber: number;
-  state: string;
-  publishedAt: string | null;
-  note: string | null;
-  isLive: boolean;
 };
 
 export async function listPages(): Promise<PageSummary[]> {
@@ -85,19 +92,26 @@ export async function listPages(): Promise<PageSummary[]> {
  */
 async function readRevisionSections(revisionId: string): Promise<{
   sections: Section[];
-  rows: { id: string; sectionKey: string; position: number }[];
+  rows: { id: string; sectionKey: string; position: number; version: number }[];
 }> {
   const db = createAdminClient();
   const { data, error } = await db
     .from("page_sections")
-    .select("id, section_key, section_type, schema_version, position, enabled, payload")
+    .select(
+      "id, section_key, section_type, schema_version, position, enabled, payload, version",
+    )
     .eq("revision_id", revisionId)
     .order("position");
 
   if (error) throw error;
 
   const sections: Section[] = [];
-  const rows: { id: string; sectionKey: string; position: number }[] = [];
+  const rows: {
+    id: string;
+    sectionKey: string;
+    position: number;
+    version: number;
+  }[] = [];
 
   for (const row of data ?? []) {
     const candidate = {
@@ -120,7 +134,12 @@ async function readRevisionSections(revisionId: string): Promise<{
     }
 
     sections.push(parsed.data as Section);
-    rows.push({ id: row.id, sectionKey: row.section_key, position: row.position });
+    rows.push({
+      id: row.id,
+      sectionKey: row.section_key,
+      position: row.position,
+      version: row.version,
+    });
   }
 
   return { sections, rows };
@@ -210,6 +229,10 @@ async function createDraftRevision(
   if (lastError) throw lastError;
   const nextNumber = (last?.revision_number ?? 0) + 1;
 
+  // Authorship is history, not authorization: this route is already owner-gated,
+  // and a null here only costs the revision list a name.
+  const identity = await getStudioIdentity();
+
   const { data: created, error: createError } = await db
     .from("page_revisions")
     .insert({
@@ -217,6 +240,7 @@ async function createDraftRevision(
       revision_number: nextNumber,
       state: "draft",
       source_revision_id: sourceRevisionId,
+      created_by: identity?.userId ?? null,
     })
     .select("id")
     .single();
@@ -255,29 +279,4 @@ async function createDraftRevision(
   if (draftError) throw draftError;
 
   return created.id;
-}
-
-export async function listRevisions(pageId: string): Promise<RevisionSummary[]> {
-  const db = createAdminClient();
-
-  const [{ data: page }, { data, error }] = await Promise.all([
-    db.from("pages").select("published_revision_id").eq("id", pageId).single(),
-    db
-      .from("page_revisions")
-      .select("id, revision_number, state, published_at, note")
-      .eq("page_id", pageId)
-      .order("revision_number", { ascending: false })
-      .limit(25),
-  ]);
-
-  if (error) throw error;
-
-  return (data ?? []).map((r) => ({
-    id: r.id,
-    revisionNumber: r.revision_number,
-    state: r.state,
-    publishedAt: r.published_at,
-    note: r.note,
-    isLive: r.id === page?.published_revision_id,
-  }));
 }

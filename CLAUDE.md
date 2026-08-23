@@ -132,12 +132,12 @@ webhooks and privileged mutations terminate in Route Handlers that call domain s
 
 ## Database — 62 tables
 
-Apply migrations strictly in order `0001 → 0012`. Never hand-recreate the schema in the
+Apply migrations strictly in order `0001 → 0013`. Never hand-recreate the schema in the
 Supabase dashboard. `supabase/seed.sql` is **development data only**.
 
-`0010`, `0011` and `0012` are BAD ERA additions, not part of the delivered Kickoff v0.2 package. Both
-were found by executing the migrations and the acceptance matrix against real PostgreSQL —
-static validation cannot catch either.
+`0010` through `0013` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
+`0010` and `0011` fix defects found by executing the migrations and the acceptance matrix
+against real PostgreSQL — static validation catches neither.
 
 - **`0010`** — `convert_paid_checkout` used `on conflict (external_payment_intent_id)`
   against a **partial** unique index. PostgreSQL only infers a partial index when the
@@ -147,6 +147,12 @@ static validation cannot catch either.
   to `text`) into the `reservation_status` enum column, so every call raised. That is the
   only path that returns reserved stock, so expiry, payment failure and the abandoned-checkout
   sweep all failed: every abandoned checkout stranded its units permanently.
+- **`0012`** — storage buckets: `media-public` (public read) and `media-private`
+  (owner-only), with their `storage.objects` policies.
+- **`0013`** — `page_sections.version`, a trigger-maintained monotonic counter, is the
+  Site Editor's optimistic-concurrency token (§13.2). A live probe showed `updated_at`
+  could not do the job: `now()` is transaction start time, so a stale write slipped
+  through. `inventory_levels.version` already set this precedent.
 
 Migrations `0001-0009` are left byte-identical to the delivered package so their published
 SHA-256 checksums still verify.
@@ -630,6 +636,55 @@ Rules that hold across this layer:
   it has a sane default, because a policy that silently accepts nothing is worse
   than a conservative one.
 
+## Publishing & version control (Phase 8)
+
+```
+supabase/migrations/0013_page_section_version.sql   monotonic concurrency token
+src/lib/cms/
+  publish-core.ts        server-only shared internals (validate, commit, fork, sets, audit)
+  page-actions.ts        single-page publish + rollback
+  publish-set-actions.ts multi-page publish + set rollback
+  publishing.ts  publishing-types.ts   history reads / client-safe shapes
+src/components/studio/
+  publish-queue.tsx      select -> confirm -> publish
+  revision-history.tsx   per-page restore, per-set rollback
+src/app/studio/publishing/page.tsx
+```
+
+Rules that hold across publishing:
+
+- **A `"use server"` module exports nothing that does not authorize.** Every
+  exported async function there is a browser-callable endpoint, so the shared
+  internals (`commitPagePublish`, `forkRevisionToDraft`, `recordPublishSet`,
+  `writePublishAudit`) live in `publish-core.ts` behind `server-only` instead.
+  `tests/unit/publishing.test.ts` sweeps every `"use server"` file in the repo
+  and fails the build on an unguarded export; `auth/actions` and `cart/actions`
+  are the two documented, deliberate exceptions.
+- **Optimistic concurrency uses a monotonic counter, not a timestamp.**
+  `page_sections.version` is bumped by a trigger; a save carries the value it
+  read and lands only if the row still holds it. `updated_at` was tried first
+  and rejected: `now()` is transaction start time, so two writes in one
+  transaction share it. Acceptance case 16 asserts both halves of that.
+- **Every change to live is a publish set**, including a single-page publish
+  from the Site Editor and a rollback. A publish history that omitted the
+  owner's most common action would be a history they cannot trust.
+- **`publish_set_items.previous_revision_id` is what makes a set reversible.**
+  It records where each page pointed *before*, so rollback has a concrete
+  target per page rather than a guess.
+- **A set validates every page before the first pointer moves.** One invalid
+  page publishes nothing. PostgREST offers no cross-page transaction, so if a
+  write still fails mid-set the result names exactly which pages went live and
+  which did not — it never claims a rollback that did not happen.
+- **Set rollback skips pages published again since**, and says which. Silently
+  overwriting newer work would be the worse failure.
+- **Rollback appends.** It forks the old revision forward as a new revision;
+  no CMS module may delete from `page_revisions` or `page_sections`. Clearing
+  `page_drafts` is fine — that table is a pointer, not content. Acceptance
+  case 17 proves history survives a rollback.
+- **The audit trail names the actor.** Publishing writes carry
+  `actor_user_id`, and the console reads only action/entity/metadata — never
+  the `before_state` / `after_state` blobs other subsystems write there.
+
 ## Build phases
 
 Work **one phase at a time**. Write a short plan for the current phase only. Never attempt
@@ -645,7 +700,7 @@ every phase in one uncontrolled pass.
 | 5 | Orders & customers: accounts, addresses, order history, Studio workspaces | **Complete** (awaiting real orders for an end-to-end pass) |
 | 6 | Fulfillment: Providers, Inventory & Fulfillment panel, Manual Supplier, Action Required recovery | **Complete** (awaiting real paid orders for an end-to-end pass) |
 | 7 | Returns / refunds / support | **Complete** (refunds await live Stripe keys to exercise) |
-| 8 | Publishing / version control | Not started |
+| 8 | Publishing / version control: optimistic concurrency, publish sets, revision history, rollback, audit trail | **Complete** |
 | 9 | Hardening: security headers, MFA, rate limits, observability, a11y, SEO, performance, backups | Not started |
 | 10 | Full QA / launch readiness — **stop and report; do not launch publicly** | Not started |
 

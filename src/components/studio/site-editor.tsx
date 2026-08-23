@@ -40,6 +40,7 @@ export function SiteEditor({
   pageKey,
   revisionId,
   initialSections,
+  initialVersions,
   media,
   hasPublished,
 }: {
@@ -47,6 +48,8 @@ export function SiteEditor({
   pageKey: string;
   revisionId: string;
   initialSections: Section[];
+  /** sectionKey -> version, the optimistic-concurrency token per section. */
+  initialVersions: Record<string, number>;
   media: MediaAsset[];
   hasPublished: boolean;
 }) {
@@ -60,6 +63,10 @@ export function SiteEditor({
   const [publishing, startPublish] = useTransition();
   const [publishMessage, setPublishMessage] = useState<string | null>(null);
   const [previewNonce, setPreviewNonce] = useState(0);
+  const [conflict, setConflict] = useState(false);
+  // Version tokens travel with each save so a stale tab is refused rather than
+  // silently overwriting newer edits (Master Spec §13.2).
+  const versions = useRef<Record<string, number>>({ ...initialVersions });
 
   const selected = sections.find((s) => s.sectionId === selectedKey) ?? null;
   const definition = selected ? SECTION_REGISTRY[selected.type] : null;
@@ -88,15 +95,22 @@ export function SiteEditor({
           revisionId,
           sectionKey: section.sectionId,
           payload: section,
+          expectedVersion: versions.current[section.sectionId],
         });
         if (result.ok) {
           setSaveState("saved");
           setSaveError(null);
+          if (result.version !== undefined) {
+            versions.current[section.sectionId] = result.version;
+          }
           // Refresh the preview only once the draft is actually persisted.
           setPreviewNonce((n) => n + 1);
         } else {
           setSaveState("error");
           setSaveError(result.message);
+          // A conflict is not a transient error — editing on is unsafe until
+          // the newer version is loaded, so say so unmistakably.
+          if (result.conflict) setConflict(true);
         }
       }, 700);
 
@@ -149,6 +163,29 @@ export function SiteEditor({
 
   return (
     <div className="grid gap-px border border-line bg-line xl:grid-cols-[16rem_minmax(0,1fr)_20rem]">
+      {conflict ? (
+        <div
+          role="alert"
+          className="border-b border-state-critical/40 bg-surface-overlay px-6 py-4 xl:col-span-3"
+        >
+          <p className="label text-state-critical">
+            This page changed somewhere else
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+            Your last edit was not saved, because saving it would have
+            overwritten a newer version. Reload to continue from the current
+            draft.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="label mt-4 border border-ink/70 px-5 py-2 text-ink transition-colors hover:bg-ink hover:text-inverse-ink"
+          >
+            Reload the draft
+          </button>
+        </div>
+      ) : null}
+
       {/* LEFT — section tree */}
       <aside className="bg-surface-raised">
         <header className="border-b border-line px-5 py-4">

@@ -38,6 +38,9 @@ export default async function StudioPageEditor({
         pageKey={draft.pageKey}
         revisionId={draft.revisionId}
         initialSections={draft.sections}
+        initialVersions={Object.fromEntries(
+          draft.sectionRows.map((row) => [row.sectionKey, row.version]),
+        )}
         media={media}
         hasPublished={Boolean(draft.publishedRevisionId)}
       />
