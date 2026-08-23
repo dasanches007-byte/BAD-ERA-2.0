@@ -52,11 +52,17 @@ const SERVER_ACTION_FILES = SOURCE_FILES.filter((file) =>
  * The guard vocabulary actually in use across the codebase.
  *
  * `requireStudioOwner` / `getAccountIdentity` are the two real boundaries;
- * `assertOwner` / `owner` / `studioOwner` are the local wrappers each action
- * module defines around the first of them.
+ * `assertOwner` / `owner` / `studioOwner` / `ownerId` are the local wrappers
+ * each action module defines around the first of them.
+ *
+ * `getStudioIdentity` counts too: it is the `studio_users` read that
+ * `requireStudioOwner` wraps, and it still refuses anyone who is not an active
+ * owner. The MFA actions call it DIRECTLY and deliberately — going through
+ * `requireStudioOwner` would demand a satisfied second factor from the very
+ * actions whose job is to satisfy it, which is a permanent lockout.
  */
 const GUARD =
-  /\b(requireStudioOwner|getAccountIdentity|assertOwner|studioOwner|owner)\(/;
+  /\b(requireStudioOwner|getStudioIdentity|getAccountIdentity|assertOwner|studioOwner|ownerId|owner)\(/;
 
 /**
  * Action modules whose exports are reachable without a signed-in identity, by

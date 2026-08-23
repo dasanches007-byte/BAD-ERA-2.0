@@ -132,10 +132,10 @@ webhooks and privileged mutations terminate in Route Handlers that call domain s
 
 ## Database — 62 tables
 
-Apply migrations strictly in order `0001 → 0013`. Never hand-recreate the schema in the
+Apply migrations strictly in order `0001 → 0014`. Never hand-recreate the schema in the
 Supabase dashboard. `supabase/seed.sql` is **development data only**.
 
-`0010` through `0013` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
+`0010` through `0014` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
 `0010` and `0011` fix defects found by executing the migrations and the acceptance matrix
 against real PostgreSQL — static validation catches neither.
 
@@ -153,6 +153,11 @@ against real PostgreSQL — static validation catches neither.
   Site Editor's optimistic-concurrency token (§13.2). A live probe showed `updated_at`
   could not do the job: `now()` is transaction start time, so a stale write slipped
   through. `inventory_levels.version` already set this precedent.
+- **`0014`** — Phase 9: a `private.rate_limit_counters` table with the
+  `consume_rate_limit` RPC; `citext` moved out of `public`; and
+  `studio_adjust_inventory` revoked from `authenticated`, which had published it
+  at `/rest/v1/rpc/` for any signed-in customer. Both call sites use the
+  service-role client, so the grant bought nothing.
 
 Migrations `0001-0009` are left byte-identical to the delivered package so their published
 SHA-256 checksums still verify.
@@ -685,6 +690,73 @@ Rules that hold across publishing:
   `actor_user_id`, and the console reads only action/entity/metadata — never
   the `before_state` / `after_state` blobs other subsystems write there.
 
+## Hardening (Phase 9)
+
+```
+supabase/migrations/0014_hardening.sql   rate-limit counter, citext relocation, grant revoke
+middleware.ts                            nonce CSP, HSTS, baseline headers
+src/lib/observability/logger.ts          structured logs with redaction
+src/lib/security/rate-limit.ts           the rule table + DB-backed limiter
+src/lib/auth/mfa.ts  mfa-actions.ts      TOTP status / enrol / challenge
+src/lib/catalog/cache.ts                 the cache that moved off the page
+src/app/robots.ts  sitemap.ts            SEO surface
+src/app/global-error.tsx  (storefront)/error.tsx  studio/error.tsx
+docs/runbooks/backup-and-restore.md
+```
+
+Rules that hold across hardening:
+
+- **A nonce CSP and a prerendered page are incompatible.** A page baked at
+  build time cannot carry a per-request nonce, so every script on it is
+  blocked and it serves unhydrated. Measured: the prerendered homepage
+  rendered 13 script tags with 0 nonces; a dynamic route rendered 11 of 11.
+  So the public pages are `force-dynamic` and the **catalog read** is cached
+  (`unstable_cache`, 60s, tag `catalog`) instead of the page. The database
+  sees the load it saw under ISR; what is given up is the full-page CDN
+  cache. `tests/unit/hardening.test.ts` fails the build if `revalidate`
+  returns to one of those pages.
+- **Unmatched paths render through `(storefront)/[...unmatched]`.** Next's
+  built-in `/_not-found` is always prerendered, so the 404 page had no nonce
+  either. A dynamic catch-all calling `notFound()` resolves the storefront's
+  own `not-found.tsx` inside a dynamic render. Concrete routes still win.
+- **`script-src` never carries `unsafe-inline`.** `style-src` does, knowingly:
+  Next and Tailwind emit inline `<style>` during hydration, and inline style
+  cannot exfiltrate on its own. That trade is taken deliberately, not by
+  omission.
+- **Rate-limit state lives in PostgreSQL, not a module-level Map.** Every
+  serverless instance gets its own Map, so the real limit would be
+  (limit × instances) and a cold start resets it. `consume_rate_limit` is one
+  atomic upsert in a fixed window.
+- **Fail direction is per-bucket.** Auth buckets fail CLOSED — if the limiter
+  is down we refuse rather than leave credential stuffing unmetered. Support
+  and returns fail OPEN — a customer with a real problem must never be blocked
+  by our own outage.
+- **Sign-in is limited per IP *and* per email.** The IP budget alone never
+  sees a distributed attempt against one account.
+- **MFA is enforced when enrolled, never before.** Requiring aal2
+  unconditionally would lock the only owner out of the only interface that can
+  enrol a factor. Enforcement lives in `requireStudioOwner()`, not just the
+  layout — otherwise an unsatisfied session could still drive every Server
+  Action. The MFA actions themselves call `getStudioIdentity()` directly for
+  exactly this reason; routing them through `requireStudioOwner()` would demand
+  a second factor from the code whose job is to satisfy it.
+- **Removing a factor requires aal2.** Otherwise a stolen password would be
+  enough to strip MFA and re-enrol, making it decorative.
+- **Redaction is by key name, not by call site.** The call site is where it
+  gets forgotten. Keys are normalised to lowercase alphanumerics so one entry
+  catches `first_name`, `firstName` and `FirstName` — without that, the snake
+  and camel spellings are different strings and only one is caught. Errors are
+  unwrapped to name/message/stack, because a PostgrestError carries row data on
+  properties nobody remembers.
+- **Uploads are checked by magic bytes.** `file.type` comes from the browser.
+  SVG has no magic number, so it is parsed and refused outright if it carries
+  script, event handlers or embedded content — refused rather than sanitised,
+  because a sanitiser is a thing to get subtly wrong.
+- **`citext` lives in `extensions`.** Safe because nothing casts to it by
+  unqualified name. A future migration must write `extensions.citext`. The
+  local harness drops the extension on reset so `db:reset` stays a true
+  from-scratch replay — without that, 0001 skips and 0002 fails.
+
 ## Build phases
 
 Work **one phase at a time**. Write a short plan for the current phase only. Never attempt
@@ -701,7 +773,7 @@ every phase in one uncontrolled pass.
 | 6 | Fulfillment: Providers, Inventory & Fulfillment panel, Manual Supplier, Action Required recovery | **Complete** (awaiting real paid orders for an end-to-end pass) |
 | 7 | Returns / refunds / support | **Complete** (refunds await live Stripe keys to exercise) |
 | 8 | Publishing / version control: optimistic concurrency, publish sets, revision history, rollback, audit trail | **Complete** |
-| 9 | Hardening: security headers, MFA, rate limits, observability, a11y, SEO, performance, backups | Not started |
+| 9 | Hardening: security headers, MFA, rate limits, observability, a11y, SEO, performance, backups | **Complete** (MFA awaits an owner enrolment; leaked-password protection is an owner dashboard toggle) |
 | 10 | Full QA / launch readiness — **stop and report; do not launch publicly** | Not started |
 
 Keep this table current as phases complete.
@@ -756,6 +828,12 @@ the native internal provider and is always supported.
 
 ## Open items the owner still owes
 
+- Enable **Point-in-Time Recovery** on the Supabase project, and rehearse one
+  restore (`docs/runbooks/backup-and-restore.md`)
+- Turn on **leaked-password protection** (Supabase dashboard → Auth → Passwords);
+  it is a project toggle, not something a migration can set
+- Enrol a **TOTP authenticator** for the Studio owner (Studio → Settings →
+  Security). Until then the MFA gate is inert by design
 - Exact Archive 01 physical counts: Tee S/M/L, Crossbody Black/Red/Blue
 - Final production photography for every slot (see the handoff checklist in master spec §23.1)
 - Flat shipping amount

@@ -1,7 +1,7 @@
 import { renderSections } from "@/components/sections/render";
 import { DEFAULT_HOME_SECTIONS } from "@/lib/cms/default-home";
 import { getPublishedSections } from "@/lib/cms/pages";
-import { listActiveProducts } from "@/lib/catalog/queries";
+import { listActiveProductsCached } from "@/lib/catalog/cache";
 import { safeCatalogRead } from "@/lib/catalog/safe";
 
 /**
@@ -15,19 +15,23 @@ import { safeCatalogRead } from "@/lib/catalog/safe";
  * been seeded, so a fresh environment still renders the approved structure
  * instead of a blank page.
  *
- * Revalidates rather than rendering fully dynamically, so a publish reaches the
- * page without a deploy.
+ * Renders dynamically so the nonce-based CSP applies (Phase 9). A prerendered
+ * page cannot carry a per-request nonce, so every script tag on it would be
+ * blocked — measured: 13 script tags, 0 nonced, before this change.
+ *
+ * The once-a-minute database load that `revalidate` used to provide now lives
+ * in `listActiveProductsCached`, so this costs a render, not a query.
  */
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   // Published content wins. The fallback covers two cases: a database that has
   // never been seeded, and one that is unreachable.
   //
-  // The second matters because `next build` prerenders this page and must stay
-  // hermetic — a build that fails when the database is down is a build that
-  // cannot ship a hotfix. Degrading to the approved structure beats both a
-  // failed build and a blank page, so the failure is logged loudly instead.
+  // The second still matters at request time: the storefront must survive an
+  // unreachable database by degrading to the approved structure rather than
+  // serving a blank page. (The build no longer prerenders this page at all, so
+  // a database outage can no longer fail a build either way.)
   const published = await getPublishedSections("home").catch((error) => {
     console.error("[bad-era] published sections read failed; using defaults", error);
     return null;
@@ -35,7 +39,7 @@ export default async function HomePage() {
   const sections = published ?? DEFAULT_HOME_SECTIONS;
 
   // One catalog read serves every product-backed section on the page.
-  const products = await safeCatalogRead("home", listActiveProducts);
+  const products = await safeCatalogRead("home", listActiveProductsCached);
 
   return <>{renderSections(sections, products)}</>;
 }

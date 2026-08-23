@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { mfaSatisfied } from "@/lib/auth/mfa";
 import type { Enums } from "@/lib/db/generated.types";
 
 /**
@@ -76,7 +77,40 @@ export async function requireStudioOwner(): Promise<StudioIdentity> {
   if (!identity) {
     throw new StudioAuthorizationError();
   }
+
+  /**
+   * MFA gate (Master Spec §17, Phase 9).
+   *
+   * Enforced HERE rather than only in the layout, because the layout is a
+   * convenience and this is the boundary. Without it, a session that never
+   * cleared its second factor could still drive every Studio mutation directly
+   * through a Server Action, and the enrolled factor would be decorative.
+   *
+   * `mfaSatisfied()` returns true when the user has no verified factor, so this
+   * is inert until the owner chooses to enrol — see `mfa.ts` for why enrolment
+   * cannot be mandatory without locking the only owner out.
+   */
+  if (!(await mfaSatisfied())) {
+    throw new StudioMfaRequiredError();
+  }
+
   return identity;
+}
+
+/**
+ * The caller IS the owner but has not cleared their second factor.
+ *
+ * Deliberately distinct from StudioAuthorizationError: the remedy is different
+ * (enter a code, not sign in as someone else), and telling an owner "not
+ * authorized" when they simply need their authenticator is a bad failure.
+ */
+export class StudioMfaRequiredError extends Error {
+  readonly status = 403;
+
+  constructor() {
+    super("Second factor required");
+    this.name = "StudioMfaRequiredError";
+  }
 }
 
 export class StudioAuthorizationError extends Error {

@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 
 import { StudioNav } from "@/components/studio/studio-nav";
 import { StudioTopBar } from "@/components/studio/top-bar";
+import { MfaChallenge } from "@/components/studio/mfa-panel";
 import { getStudioIdentity } from "@/lib/auth/studio";
+import { getMfaStatus } from "@/lib/auth/mfa";
 
 /**
  * Studio is authenticated, per-request, owner-only software. It must never be
@@ -34,8 +36,31 @@ export default async function StudioLayout({
   // convenience: every Studio read and mutation re-verifies authorization.
   if (!identity) redirect("/sign-in?next=/studio");
 
+  /**
+   * Second-factor gate (Master Spec §17).
+   *
+   * Rendering the challenge rather than the shell is presentation only — the
+   * real enforcement is inside `requireStudioOwner()`, so every read and
+   * mutation behind this screen already refuses an unsatisfied session. Showing
+   * it here just means the owner sees a code field instead of a wall of
+   * authorization errors.
+   */
+  const mfa = await getMfaStatus();
+  if (!mfa.satisfied) {
+    const factorId = mfa.factors[0]?.id;
+    // No factor id means the assurance lookup itself failed, which `mfa.ts`
+    // reports as unsatisfied on purpose. There is nothing to challenge against,
+    // so end the session rather than show a form that cannot succeed.
+    if (!factorId) redirect("/sign-in?next=/studio");
+    return <MfaChallenge factorId={factorId} />;
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-surface text-ink lg:flex-row">
+      {/* Studio has a long nav rail; skipping it matters more here, not less. */}
+      <a href="#main-content" className="skip-link label">
+        Skip to content
+      </a>
       <StudioNav />
       <div className="flex min-w-0 flex-1 flex-col">
         <StudioTopBar
@@ -44,7 +69,13 @@ export default async function StudioLayout({
             process.env.NODE_ENV === "production" ? "production" : "development"
           }
         />
-        <main className="flex-1 px-6 py-8 lg:px-10 lg:py-10">{children}</main>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 px-6 py-8 lg:px-10 lg:py-10"
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

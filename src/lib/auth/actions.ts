@@ -5,6 +5,12 @@ import { z } from "zod";
 
 import { createClient } from "@/lib/db/server";
 import { safeRedirectPath } from "@/lib/auth/safe-redirect";
+import { log } from "@/lib/observability/logger";
+import {
+  RATE_LIMITS,
+  checkRateLimit,
+  clientSubject,
+} from "@/lib/security/rate-limit";
 
 /**
  * Email + password authentication.
@@ -36,6 +42,33 @@ export async function signInAction(
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid details" };
   }
 
+  /**
+   * Rate limit BEFORE touching Supabase Auth (Master Spec §17).
+   *
+   * Two budgets, deliberately. Per-IP stops one host walking a password list
+   * against many accounts; per-email stops a distributed attempt at ONE
+   * account, which the IP budget alone would never see. An attacker has to
+   * defeat both.
+   *
+   * The email is hashed inside the limiter, so no address is written to the
+   * counter table.
+   */
+  const [byAddress, byAccount] = await Promise.all([
+    checkRateLimit(RATE_LIMITS.signIn, await clientSubject()),
+    checkRateLimit(RATE_LIMITS.signIn, `email:${parsed.data.email.toLowerCase()}`),
+  ]);
+
+  const limited = !byAddress.allowed
+    ? byAddress
+    : !byAccount.allowed
+      ? byAccount
+      : null;
+
+  if (limited && !limited.allowed) {
+    log.warn("auth.sign_in.rate_limited", {});
+    return { ok: false, message: limited.message };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
@@ -45,7 +78,7 @@ export async function signInAction(
   if (error) {
     // Deliberately generic. Distinguishing "no such account" from "wrong
     // password" turns the form into an account-enumeration oracle.
-    console.warn("[bad-era] sign-in failed", { message: error.message });
+    log.warn("auth.sign_in.failed", { reason: error.message });
     return { ok: false, message: "That email and password do not match." };
   }
 

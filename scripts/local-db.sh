@@ -46,6 +46,13 @@ case "${1:-}" in
     # from-scratch replay — otherwise migration 0012's object policies survive
     # and collide on the next run.
     psql_run -q -c "drop schema if exists storage cascade;" >/dev/null
+    # Migration 0014 relocates citext to the `extensions` schema, which the
+    # drops above do not touch. Left in place, `create extension if not exists`
+    # in 0001 would skip, and 0002 would then fail with "type citext does not
+    # exist" — a replay that is not actually from scratch. Dropping the
+    # extension makes reset match a brand-new Supabase project, where citext is
+    # not installed at all.
+    psql_run -q -c "drop extension if exists citext cascade;" >/dev/null
     # The shim is idempotent; roles survive a schema drop.
     psql_run -q -f "$ROOT/scripts/supabase-shim.sql" >/dev/null
     for f in "$ROOT"/supabase/migrations/[0-9]*.sql; do

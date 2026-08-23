@@ -3627,6 +3627,15 @@ export type Database = {
         };
         Returns: boolean;
       };
+      consume_rate_limit: {
+        Args: {
+          p_bucket: string | null;
+          p_subject: string | null;
+          p_limit: number | null;
+          p_window_seconds: number | null;
+        };
+        Returns: Json;
+      };
       convert_paid_checkout: {
         Args: {
           p_checkout_session_id: string | null;

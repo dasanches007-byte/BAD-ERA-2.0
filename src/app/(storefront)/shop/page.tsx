@@ -1,5 +1,5 @@
 import { ProductCard } from "@/components/storefront/product-card";
-import { listActiveProducts } from "@/lib/catalog/queries";
+import { listActiveProductsCached } from "@/lib/catalog/cache";
 import { safeCatalogRead } from "@/lib/catalog/safe";
 
 export const metadata = {
@@ -7,7 +7,9 @@ export const metadata = {
   description: "Every BAD ERA piece, current and archive.",
 };
 
-export const revalidate = 60;
+// Dynamic so the CSP nonce applies; the catalog read itself stays cached.
+// See src/lib/catalog/cache.ts for why the cache moved off the page.
+export const dynamic = "force-dynamic";
 
 /**
  * Shop All (Master Spec §4).
@@ -19,7 +21,7 @@ export const revalidate = 60;
  * chrome now would be noise.
  */
 export default async function ShopPage() {
-  const products = await safeCatalogRead("shop", listActiveProducts);
+  const products = await safeCatalogRead("shop", listActiveProductsCached);
 
   return (
     <>

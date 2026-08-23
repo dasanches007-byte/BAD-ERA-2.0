@@ -139,6 +139,33 @@ body {
   outline-offset: 3px;
 }
 
+/*
+ * Skip link (Spec §19).
+ *
+ * Visually hidden until focused, then it becomes a real, visible control. A
+ * keyboard or screen-reader user should not have to tab through the whole
+ * header on every page to reach the content.
+ *
+ * Positioned rather than `display: none`, because a hidden element cannot
+ * receive focus at all — which is the mistake that makes most skip links
+ * decorative.
+ */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.75rem 1.25rem;
+  background-color: var(--color-surface-raised);
+  color: var(--color-ink-strong);
+  border: 1px solid var(--color-line-strong);
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+}
+
 ::selection {
   background-color: var(--color-accent);
   color: var(--color-inverse-ink);

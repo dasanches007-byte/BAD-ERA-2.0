@@ -106,3 +106,11 @@ alter table storage.objects enable row level security;
 grant select, insert, update, delete on storage.objects to authenticated;
 grant select on storage.objects to anon;
 grant all on storage.buckets, storage.objects to service_role;
+
+-- Supabase sets this on the `postgres` role, and it is why an extension living
+-- in `extensions` still resolves unqualified in ordinary DDL. Verified against
+-- the live BAD ERA project:
+--   postgres = search_path="$user", public, extensions
+-- Without it the local harness disagrees with the platform about whether
+-- migration 0014's citext relocation is safe.
+alter role postgres set search_path to "$user", public, extensions;

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getAccountIdentity } from "@/lib/account/session";
 import { requireStudioOwner, StudioAuthorizationError } from "@/lib/auth/studio";
 import { createAdminClient } from "@/lib/db/admin";
+import { RATE_LIMITS, checkRateLimit } from "@/lib/security/rate-limit";
 
 /**
  * Support mutations (Master Spec §9.2).
@@ -45,6 +46,20 @@ export async function openSupportCaseAction(
   if (!identity) {
     return { ok: false, message: "Please sign in so we can link this to your orders." };
   }
+
+  /**
+   * Rate limit per customer (Master Spec §17). Keyed on the customer id, not
+   * the IP: this path is already authenticated, so the identity is the honest
+   * subject and a shared office network is not punished for one person.
+   *
+   * This bucket fails OPEN — a customer with a real problem must never be
+   * blocked from reaching the owner because a counter table is unreachable.
+   */
+  const limit = await checkRateLimit(
+    RATE_LIMITS.supportCase,
+    `customer:${identity.customerId}`,
+  );
+  if (!limit.allowed) return { ok: false, message: limit.message };
 
   const parsed = openCaseSchema.safeParse({
     subject: formData.get("subject"),

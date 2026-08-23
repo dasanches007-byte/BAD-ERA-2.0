@@ -4,6 +4,11 @@ import { createCheckout, CheckoutError } from "@/lib/checkout/create-checkout";
 import { MissingSettingError } from "@/lib/settings/store";
 import { CartError } from "@/lib/cart/service";
 import { toErrorResponse } from "@/lib/errors/http";
+import { log, requestId } from "@/lib/observability/logger";
+import {
+  RATE_LIMITS,
+  checkAnonymousRateLimit,
+} from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -15,7 +20,28 @@ export const runtime = "nodejs";
  * Client-supplied prices are never read (Kickoff v0.2 §3).
  */
 export async function POST(request: Request) {
+  const rid = requestId(request.headers);
+
   try {
+    /**
+     * Rate limit before doing any work (Master Spec §17).
+     *
+     * Each checkout writes a durable snapshot and takes an inventory
+     * RESERVATION, so an unmetered loop here does not just burn CPU — it holds
+     * real stock out of the catalogue until the reservations expire. That is
+     * what makes this a sensitive mutation rather than an ordinary read.
+     */
+    const limit = await checkAnonymousRateLimit(RATE_LIMITS.checkout);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "rate_limited", message: limit.message },
+        {
+          status: 429,
+          headers: { "Retry-After": String(limit.retryAfterSeconds) },
+        },
+      );
+    }
+
     let body: unknown;
     try {
       body = await request.json();
@@ -43,7 +69,7 @@ export async function POST(request: Request) {
     if (error instanceof MissingSettingError) {
       // A store misconfiguration, not a customer mistake. Log it loudly and
       // keep the customer-facing text generic.
-      console.error("[bad-era] checkout blocked by missing setting", error.key);
+      log.error("checkout.blocked.missing_setting", { rid, key: error.key });
       return NextResponse.json(
         {
           error: "store_not_configured",

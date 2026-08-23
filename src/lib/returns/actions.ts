@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getAccountIdentity } from "@/lib/account/session";
 import { requireStudioOwner, StudioAuthorizationError } from "@/lib/auth/studio";
 import { createAdminClient } from "@/lib/db/admin";
+import { RATE_LIMITS, checkRateLimit } from "@/lib/security/rate-limit";
 import type { Enums, Json } from "@/lib/db/generated.types";
 import { getReturnWindowDays } from "@/lib/settings/store";
 import {
@@ -78,6 +79,14 @@ const requestSchema = z.object({
 export async function requestReturnAction(input: unknown): Promise<ReturnResult> {
   const identity = await getAccountIdentity();
   if (!identity) return { ok: false, message: "Please sign in again." };
+
+  // Rate limit per customer (Master Spec §17). Fails open: a genuine return
+  // request must not be lost because the counter table is unreachable.
+  const limit = await checkRateLimit(
+    RATE_LIMITS.returnRequest,
+    `customer:${identity.customerId}`,
+  );
+  if (!limit.allowed) return { ok: false, message: limit.message };
 
   const parsed = requestSchema.safeParse(input);
   if (!parsed.success) {
