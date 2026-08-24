@@ -132,10 +132,10 @@ webhooks and privileged mutations terminate in Route Handlers that call domain s
 
 ## Database — 62 tables
 
-Apply migrations strictly in order `0001 → 0014`. Never hand-recreate the schema in the
+Apply migrations strictly in order `0001 → 0015`. Never hand-recreate the schema in the
 Supabase dashboard. `supabase/seed.sql` is **development data only**.
 
-`0010` through `0014` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
+`0010` through `0015` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
 `0010` and `0011` fix defects found by executing the migrations and the acceptance matrix
 against real PostgreSQL — static validation catches neither.
 
@@ -158,6 +158,11 @@ against real PostgreSQL — static validation catches neither.
   `studio_adjust_inventory` revoked from `authenticated`, which had published it
   at `/rest/v1/rpc/` for any signed-in customer. Both call sites use the
   service-role client, so the grant bought nothing.
+- **`0015`** — registers the six information pages (`about`, `privacy`, `terms`,
+  `shipping`, `returns-policy`, `support`) in `pages`. Phase 10 built their
+  routes and linked the footer at them, but only `home` had a row, so the Site
+  Editor listed one page and the owner could never write the content. No
+  revisions or sections are created: publishing is the owner's act.
 
 Migrations `0001-0009` are left byte-identical to the delivered package so their published
 SHA-256 checksums still verify.
@@ -760,7 +765,8 @@ Rules that hold across hardening:
 
 ## QA & launch readiness (Phase 10)
 
-`docs/LAUNCH_READINESS.md` is the assessment and the owner handoff list.
+`docs/LAUNCH_READINESS.md` is the assessment and the owner handoff list;
+`docs/GETTING_STARTED.md` is how the owner runs it and signs in.
 **The site has not been launched.**
 
 QA found the storefront's navigation substantially broken — real defects, not
