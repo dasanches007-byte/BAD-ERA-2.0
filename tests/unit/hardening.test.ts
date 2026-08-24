@@ -256,8 +256,23 @@ describe("SEO", () => {
    */
   it("builds the sitemap from an allowlist", () => {
     const source = code("src/app/sitemap.ts");
-    expect(source).toContain("STATIC_ROUTES");
+    expect(source).toContain("ALWAYS_INDEXED");
+    expect(source).toContain("CONTENT_PAGES");
     expect(source).not.toContain("/studio");
     expect(source).not.toContain("/account");
+  });
+
+  /**
+   * Phase 10 QA caught the sitemap advertising `/about`, `/privacy` and the
+   * rest before those routes existed, pointing crawlers at 404s. The routes
+   * exist now, but an unpublished policy page renders a "not published yet"
+   * placeholder — submitting that as canonical content is the same mistake one
+   * step later. Each information page is listed only once it has published
+   * sections behind it.
+   */
+  it("lists an information page only once it has published content", () => {
+    const source = code("src/app/sitemap.ts");
+    expect(source).toContain("getPublishedSections");
+    expect(source).toMatch(/if \(!published\) continue/);
   });
 });

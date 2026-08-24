@@ -6,6 +6,7 @@ import type {
   CtaField,
   EditorialStoryGridSection,
   HeroEditorialSection,
+  LegalProseSection,
   NewsletterSection,
   TrustStripSection,
 } from "@/lib/cms/sections";
@@ -184,3 +185,47 @@ export function Newsletter({ section }: { section: NewsletterSection }) {
 }
 
 export { Cta };
+
+/**
+ * Long-form policy prose (Master Spec §14).
+ *
+ * Paragraphs are derived by splitting on blank lines. The body is rendered as
+ * TEXT — never `dangerouslySetInnerHTML` — so a policy page cannot become an
+ * injection surface, and the typography stays the locked editorial scale rather
+ * than whatever markup someone pasted in.
+ *
+ * Measure is capped for readability: a terms document at full container width
+ * is unreadable, and this is the one page type people actually have to read.
+ */
+export function LegalProse({ section }: { section: LegalProseSection }) {
+  const paragraphs = section.body
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return (
+    <section className="shell py-14 lg:py-20">
+      <div className="max-w-2xl">
+        <h1 className="font-display text-display-md text-ink-strong">
+          {section.heading}
+        </h1>
+        {section.meta ? (
+          <p className="label mt-5 text-ink-subtle">{section.meta}</p>
+        ) : null}
+
+        {paragraphs.length > 0 ? (
+          <div className="mt-10 space-y-6">
+            {paragraphs.map((paragraph, index) => (
+              <p
+                key={index}
+                className="text-sm leading-relaxed text-ink-muted whitespace-pre-line"
+              >
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}

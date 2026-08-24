@@ -16,11 +16,3 @@ export function toErrorResponse(error: unknown): NextResponse {
   console.error("[bad-era] unhandled route error", error);
   return NextResponse.json({ error: "internal_error" }, { status: 500 });
 }
-
-/** Marker for a route that exists but is not implemented in this phase. */
-export function notImplemented(phase: string): NextResponse {
-  return NextResponse.json(
-    { error: "not_implemented", implementedIn: phase },
-    { status: 501 },
-  );
-}

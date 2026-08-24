@@ -18,17 +18,6 @@ import { z } from "zod";
  * fails loudly there naming exactly what is missing.
  */
 
-/**
- * `.optional()` accepts `undefined`, not `""`. A .env file with `KEY=""`
- * therefore fails an optional check, which is almost never what the author
- * meant. Treat blank as absent everywhere.
- */
-const blankAsUndefined = <T extends z.ZodTypeAny>(schema: T) =>
-  z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-    schema,
-  );
-
 /** Always required: without these nothing can serve a request at all. */
 const baseSchema = z.object({
   NODE_ENV: z
@@ -56,8 +45,6 @@ const baseSchema = z.object({
   /** Canonical public origin, used for Stripe redirect URLs and emails. */
   NEXT_PUBLIC_SITE_URL: z.url().default("http://localhost:3000"),
 
-  /** Signed Site Editor preview access (Phase 4). */
-  PREVIEW_SECRET: blankAsUndefined(z.string().min(16).optional()),
 });
 
 /** Required only on Stripe code paths. */

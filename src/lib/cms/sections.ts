@@ -101,6 +101,22 @@ export type NewsletterSection = SectionBase & {
   placeholder: string;
 };
 
+/**
+ * Long-form policy / editorial prose (Master Spec §14 legal surface).
+ *
+ * `body` is plain text split on blank lines into paragraphs by the renderer.
+ * NOT rich text and NOT HTML: a policy page is exactly where a raw-HTML field
+ * would be most tempting and most dangerous, and the editing guardrail says
+ * Studio edits content, not markup.
+ */
+export type LegalProseSection = SectionBase & {
+  type: "legal.prose";
+  heading: string;
+  /** Optional short line under the heading, e.g. "Last updated March 2026". */
+  meta: string;
+  body: string;
+};
+
 export type Section =
   | HeroEditorialSection
   | TrustStripSection
@@ -108,13 +124,15 @@ export type Section =
   | ProductRailSection
   | EditorialStoryGridSection
   | Archive01FeatureSection
-  | NewsletterSection;
+  | NewsletterSection
+  | LegalProseSection;
 
 export type SectionType = Section["type"];
 
 /** Every section type the v1 registry knows how to render. */
 export const REGISTERED_SECTION_TYPES: readonly SectionType[] = [
   "hero.editorial",
+  "legal.prose",
   "trust.strip",
   "campaign.feature",
   "product.rail",

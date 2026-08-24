@@ -380,7 +380,8 @@ a React renderer, a Zod schema, default data, allowed variants, an inspector def
 migration version.
 
 Registered v1 sections: `hero.editorial` · `trust.strip` · `campaign.feature` ·
-`product.rail` · `editorial.story_grid` · `archive01.feature` · `newsletter` · `footer`.
+`product.rail` · `editorial.story_grid` · `archive01.feature` · `newsletter` ·
+`legal.prose` (Phase 10, for policy pages) · `footer`.
 
 Field types: text (with max-length guidance) · restricted rich text · media (asset id, alt,
 focal X/Y, optional mobile override) · product reference · collection reference · CTA (label,
@@ -757,6 +758,54 @@ Rules that hold across hardening:
   local harness drops the extension on reset so `db:reset` stays a true
   from-scratch replay — without that, 0001 skips and 0002 fails.
 
+## QA & launch readiness (Phase 10)
+
+`docs/LAUNCH_READINESS.md` is the assessment and the owner handoff list.
+**The site has not been launched.**
+
+QA found the storefront's navigation substantially broken — real defects, not
+missing features, now fixed:
+
+- **`/checkout` did not exist.** The cart's Checkout button dead-ended, so
+  purchase was impossible. The page and form are built; the server performs the
+  whole invariant.
+- **`/api/checkout/create` accepted `cartId` from the request body.** A caller
+  could check out someone else's cart, reserving their stock against a shipping
+  address of the caller's choosing. The cart id now comes from the session
+  cookie and anything sent under `cartId` is discarded.
+- **Five footer links 404'd** (`/about`, `/privacy`, `/terms`, `/shipping`,
+  `/returns-policy`). Built as Studio-managed content pages.
+- **`/checkout/success` was a placeholder** — the page a customer lands on
+  after paying. It now reads verified order state and shows an honest "being
+  confirmed" state until the webhook lands. It never asserts payment.
+- **`sitemap.xml` advertised six URLs that did not exist** — introduced in
+  Phase 9. Information pages are now listed only once published.
+
+Rules that came out of this phase:
+
+- **No placeholder legal text, ever.** Privacy, terms, shipping and returns are
+  binding statements about real money and real data. A customer could rely on
+  placeholder wording and BAD ERA would be bound by words nobody wrote. An
+  unpublished policy page says so plainly and routes to support. The
+  `legal.prose` section type exists so the owner writes them in Studio.
+- **A content page returns 200, not 404, when unpublished.** The route is real
+  and linked; the CONTENT is pending. A 404 claims the policy does not exist,
+  which is a different and worse claim.
+- **The success page never echoes the customer's email.** It is reachable by
+  anyone holding the checkout id in the URL, and `CustomerOrder` rightly does
+  not carry the address — printing it would turn a shared link into a
+  disclosure.
+- **`/checkout/cancelled` changes no state.** A browser hitting a URL is not a
+  decision. The reservation is released by the verified `checkout.session.expired`
+  event or the sweep, so a mis-click does not lose the customer their stock.
+- **Dead surface is removed, not left returning 501.** Six API routes
+  superseded by Server Actions, plus `RouteShell`, `notImplemented`,
+  `PREVIEW_SECRET` and the unlinked `/collections` stub.
+
+Accepted, not defects: the 17 "multiple permissive policies" advisories are the
+intended owner + customer pattern on one table; the 92 unindexed-FK and 26
+unused-index notices are meaningless at zero traffic.
+
 ## Build phases
 
 Work **one phase at a time**. Write a short plan for the current phase only. Never attempt
@@ -774,7 +823,7 @@ every phase in one uncontrolled pass.
 | 7 | Returns / refunds / support | **Complete** (refunds await live Stripe keys to exercise) |
 | 8 | Publishing / version control: optimistic concurrency, publish sets, revision history, rollback, audit trail | **Complete** |
 | 9 | Hardening: security headers, MFA, rate limits, observability, a11y, SEO, performance, backups | **Complete** (MFA awaits an owner enrolment; leaked-password protection is an owner dashboard toggle) |
-| 10 | Full QA / launch readiness — **stop and report; do not launch publicly** | Not started |
+| 10 | Full QA / launch readiness — **stop and report; do not launch publicly** | **Complete** — reported in `docs/LAUNCH_READINESS.md`. Not launched. Blocking items are owner-owed credentials and content |
 
 Keep this table current as phases complete.
 
@@ -834,6 +883,8 @@ the native internal provider and is always supported.
   it is a project toggle, not something a migration can set
 - Enrol a **TOTP authenticator** for the Studio owner (Studio → Settings →
   Security). Until then the MFA gate is inert by design
+- **Rotate the Supabase service-role key** — it was pasted into a chat
+  transcript during the build, and it bypasses RLS entirely
 - Exact Archive 01 physical counts: Tee S/M/L, Crossbody Black/Red/Blue
 - Final production photography for every slot (see the handoff checklist in master spec §23.1)
 - Flat shipping amount

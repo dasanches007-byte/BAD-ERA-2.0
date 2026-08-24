@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createCheckout, CheckoutError } from "@/lib/checkout/create-checkout";
 import { MissingSettingError } from "@/lib/settings/store";
 import { CartError } from "@/lib/cart/service";
+import { resolveExistingCartId } from "@/lib/cart/session";
 import { toErrorResponse } from "@/lib/errors/http";
 import { log, requestId } from "@/lib/observability/logger";
 import {
@@ -49,9 +50,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "invalid_json" }, { status: 400 });
     }
 
-    const result = await createCheckout(
-      body as Parameters<typeof createCheckout>[0],
-    );
+    /**
+     * The cart id comes from the SESSION COOKIE, never from the request body.
+     *
+     * The browser knows its own cart through an httpOnly token; it has no
+     * legitimate reason to name a cart id, and accepting one would let a caller
+     * check out a cart that is not theirs — reserving someone else's stock and
+     * snapshotting their basket against a shipping address of the caller's
+     * choosing. Anything the client sends under `cartId` is discarded here.
+     */
+    const cartId = await resolveExistingCartId();
+    if (!cartId) {
+      return NextResponse.json(
+        { error: "cart_not_found", message: "Your cart has expired." },
+        { status: 404 },
+      );
+    }
+
+    const { email, shippingAddress } = (body ?? {}) as {
+      email?: unknown;
+      shippingAddress?: unknown;
+    };
+
+    const result = await createCheckout({
+      cartId,
+      email,
+      shippingAddress,
+    } as Parameters<typeof createCheckout>[0]);
 
     return NextResponse.json({
       checkoutSessionId: result.checkoutSessionId,

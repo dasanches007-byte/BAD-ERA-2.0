@@ -16,3 +16,6 @@ supabase/.branches/
 supabase/.temp/
 playwright-report/
 test-results/
+
+# Phase 10 QA scratch (screenshots, probe scripts, server logs)
+.qa-*

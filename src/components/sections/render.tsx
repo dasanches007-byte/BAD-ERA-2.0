@@ -2,6 +2,7 @@ import {
   CampaignFeature,
   EditorialStoryGrid,
   HeroEditorial,
+  LegalProse,
   Newsletter,
   TrustStrip,
 } from "@/components/sections";
@@ -77,6 +78,9 @@ function renderSection(
 
     case "newsletter":
       return <Newsletter key={section.sectionId} section={section} />;
+
+    case "legal.prose":
+      return <LegalProse key={section.sectionId} section={section} />;
 
     default: {
       const _never: never = section;

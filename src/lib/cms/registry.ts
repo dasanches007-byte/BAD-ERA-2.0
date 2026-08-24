@@ -120,6 +120,16 @@ export const newsletterSchema = z.object({
   placeholder: z.string().max(40),
 });
 
+export const legalProseSchema = z.object({
+  ...baseFields,
+  type: z.literal("legal.prose"),
+  heading: z.string().max(80),
+  meta: z.string().max(120),
+  // Generous, because a returns policy or terms document genuinely is long.
+  // Still a bounded plain-text field: no markup reaches the renderer.
+  body: z.string().max(20000),
+});
+
 export const sectionSchema = z.discriminatedUnion("type", [
   heroEditorialSchema,
   trustStripSchema,
@@ -128,6 +138,7 @@ export const sectionSchema = z.discriminatedUnion("type", [
   editorialStoryGridSchema,
   archive01FeatureSchema,
   newsletterSchema,
+  legalProseSchema,
 ]);
 
 // --- Inspector definitions --------------------------------------------------
@@ -159,6 +170,30 @@ export type SectionDefinition = {
 };
 
 export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
+  "legal.prose": {
+    type: "legal.prose",
+    label: "Policy text",
+    description:
+      "Long-form copy for a policy or information page. Blank lines start a new paragraph.",
+    schemaVersion: 1,
+    fields: [
+      { kind: "text", path: "heading", label: "Heading", maxLength: 80 },
+      {
+        kind: "text",
+        path: "meta",
+        label: "Sub-line",
+        maxLength: 120,
+        hint: "Optional, e.g. \u201cLast updated March 2026\u201d.",
+      },
+      {
+        kind: "textarea",
+        path: "body",
+        label: "Body",
+        maxLength: 20000,
+        hint: "Plain text. Leave a blank line between paragraphs.",
+      },
+    ],
+  },
   "hero.editorial": {
     type: "hero.editorial",
     label: "Hero",
