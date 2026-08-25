@@ -1,0 +1,50 @@
+{
+  "name": "BAD ERA",
+
+  // Base image plus the Node feature, rather than a pinned node image tag.
+  // The feature installs the requested version on top of a stable base, so a
+  // retired image tag cannot break the Codespace months from now.
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
+  },
+
+  // The dev server.
+  //
+  // `openBrowser`, NOT `openPreview`. The preview panel embeds the site in an
+  // iframe served from a different origin than the forwarded port, and the
+  // Phase 9 security headers set `frame-ancestors 'self'` — so the panel would
+  // render blank. A real tab is also the better experience on a phone.
+  //
+  // (The Site Editor's own draft preview is unaffected: that iframe is
+  // same-origin, which `'self'` permits.)
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "BAD ERA — storefront and Studio",
+      "onAutoForward": "openBrowser"
+    }
+  },
+
+  // Runs once, when the Codespace is first created.
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+
+  // Runs every time you open the Codespace, including after it sleeps.
+  "postAttachCommand": "bash .devcontainer/start.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+  "remoteUser": "vscode"
+}

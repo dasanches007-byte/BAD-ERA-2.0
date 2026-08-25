@@ -8,12 +8,15 @@ a developer.
 There are two ways to get one, and for most people the first is the right
 choice:
 
-| | Terminal needed? | You get |
+| | Needs installing? | You get |
 |---|---|---|
-| **A. Deploy to Vercel** | **No** — all point-and-click | A real URL, works on your phone |
-| **B. Run on your computer** | Yes | A local-only address, changes appear instantly |
+| **A. Deploy to Vercel** | No — all point-and-click | A permanent URL, works on your phone |
+| **B. GitHub Codespaces** | No — runs in a browser tab | A temporary URL + a real terminal |
+| **C. Run on your computer** | Yes | A local address, changes appear instantly |
 
-**Start with A.** You only need B if you are editing the code itself.
+**A** if you want the site online. **B** if you want to run or change the code
+without installing anything — it works from a phone or a Chromebook. **C** only
+if you would rather work on your own machine.
 
 ---
 
@@ -95,10 +98,73 @@ Do the same again later if you attach a custom domain: update
 
 ---
 
-## Option B — run it on your own computer
+## Option B — GitHub Codespaces (a computer in a browser tab)
 
-Only worth doing if you want to change the code. For writing content and
-uploading photos, Option A is easier and better.
+Codespaces gives you a real Linux machine with a terminal, running in a browser.
+Nothing is installed on your device. This works from a Chromebook or an iPhone.
+
+Free allowance: **120 core-hours a month** — that is 60 real hours on the
+default 2-core machine — plus 15 GB of storage. Stop the Codespace when you are
+done and it stops consuming hours.
+
+### Step 1 — store your keys, once
+
+The Codespace reads its configuration from GitHub, so there is no hidden file to
+edit on a phone keyboard.
+
+1. Go to **github.com/settings/codespaces**
+2. Under **Codespaces secrets**, click **New secret** and add each of these,
+   with the value from Supabase → **Project Settings** → **API**:
+
+| Secret name | Value |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | The "Project URL" |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | The anon / publishable key |
+| `SUPABASE_SERVICE_ROLE_KEY` | The service_role key — secret |
+
+3. For each one, give it access to the **BAD-ERA-2.0** repository
+
+GitHub stores these encrypted. They are never committed to the repo.
+
+### Step 2 — open the Codespace
+
+1. Go to the repository on GitHub
+2. Switch the branch selector to **`claude/festive-cray-354clx`**
+3. Click the green **Code** button → **Codespaces** tab → **Create codespace on
+   claude/festive-cray-354clx**
+
+The first build takes about three minutes — it installs Node 22 and the project
+dependencies for you. After that, opening it again takes seconds.
+
+### Step 3 — it starts itself
+
+When the Codespace opens, it runs the site automatically and prints the address.
+A browser tab opens once it is ready; if it does not, open the **PORTS** tab,
+find port 3000, and tap the globe icon.
+
+Add `/studio` to that address to reach the editor.
+
+> If you see **"BAD ERA is not configured yet"**, a secret from Step 1 is
+> missing. Add it, then Command Palette (Ctrl+Shift+P) →
+> **Codespaces: Rebuild Container**.
+
+### Stopping and coming back
+
+Close the tab and the Codespace sleeps on its own after 30 minutes. To stop it
+immediately: github.com/codespaces → **⋯** next to it → **Stop codespace**.
+
+Reopening it from github.com/codespaces starts the site again automatically.
+
+> **On an iPhone this works but is cramped** — VS Code's web interface is not
+> built for touch. Fine for a quick change; use Option A if you mainly want to
+> write content and upload photos, since Studio itself is properly mobile-shaped.
+
+---
+
+## Option C — run it on your own computer
+
+Only worth doing if you want the project on your own machine. Options A and
+B need nothing installed.
 
 These are **terminal** commands. They do not run on GitHub and they are not
 typed into a browser address bar. A line starting with `#` is a note to you,
