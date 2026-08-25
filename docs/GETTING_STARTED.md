@@ -3,9 +3,17 @@
 How to run the site, sign in, and start editing. Written for the owner, not for
 a developer.
 
-> **The site is not deployed anywhere yet.** There is no URL to visit. You need
-> to either run it on your own machine (5 minutes) or deploy it (15 minutes).
-> Both are below.
+> **The site is not deployed anywhere yet.** There is no URL to visit.
+
+There are two ways to get one, and for most people the first is the right
+choice:
+
+| | Terminal needed? | You get |
+|---|---|---|
+| **A. Deploy to Vercel** | **No** — all point-and-click | A real URL, works on your phone |
+| **B. Run on your computer** | Yes | A local-only address, changes appear instantly |
+
+**Start with A.** You only need B if you are editing the code itself.
 
 ---
 
@@ -29,9 +37,79 @@ fail to sign in in confusing ways.
 
 ---
 
-## Option A — run it on your machine
+## Option A — deploy to Vercel (no terminal)
 
-**You need:** Node 20.9 or newer (`node -v` to check), and git.
+Everything here happens in a web browser. Nothing is installed on your computer.
+
+### 1. Collect your four keys first
+
+Open the Supabase dashboard → **Project Settings** → **API**, and keep the tab
+open. You will copy four values:
+
+| Value | Where it is on that page |
+|---|---|
+| Project URL | "Project URL" — `https://snkvgpfpnphvbkiafptd.supabase.co` |
+| anon key | The **anon** / **publishable** key. Safe to expose |
+| service_role key | The **service_role** key. **Secret** — never post it anywhere |
+| Site URL | You will not have this until step 3. Use `http://localhost:3000` for now |
+
+### 2. Import the project
+
+1. Go to [vercel.com](https://vercel.com) and sign in **with GitHub**
+2. **Add New** → **Project**
+3. Find `BAD-ERA-2.0` in the list → **Import**
+4. Before deploying, expand **Environment Variables** and add these four:
+
+```
+NEXT_PUBLIC_SUPABASE_URL        https://snkvgpfpnphvbkiafptd.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY   (the anon key)
+SUPABASE_SERVICE_ROLE_KEY       (the service_role key)
+NEXT_PUBLIC_SITE_URL            http://localhost:3000
+```
+
+5. Click **Deploy** and wait a minute or two
+
+Vercel detects Next.js on its own — you do not need to set a build command,
+output directory or framework.
+
+### 3. Point it at the right branch, and fix the site URL
+
+1. **Settings** → **Git** → set **Production Branch** to
+   `claude/festive-cray-354clx` if it is not already
+2. Copy your new Vercel URL (something like `https://bad-era-2-0.vercel.app`)
+3. **Settings** → **Environment Variables** → change `NEXT_PUBLIC_SITE_URL` to
+   that URL
+4. **Deployments** → the newest one → **⋯** → **Redeploy**
+
+> **That last step matters.** Stripe redirect URLs and the sitemap are both
+> built from `NEXT_PUBLIC_SITE_URL`. If it still says localhost, customers get
+> sent to a dead address after paying.
+
+### 4. Sign in
+
+Open your Vercel URL and add `/studio` to the end. It will send you to the
+sign-in page.
+
+Do the same again later if you attach a custom domain: update
+`NEXT_PUBLIC_SITE_URL`, then redeploy.
+
+---
+
+## Option B — run it on your own computer
+
+Only worth doing if you want to change the code. For writing content and
+uploading photos, Option A is easier and better.
+
+These are **terminal** commands — they do not run on GitHub, and they are not
+typed into a browser. Open:
+
+- **Mac** — the **Terminal** app (Cmd+Space, type "Terminal")
+- **Windows** — **PowerShell** (Start menu, type "PowerShell")
+
+**You need first:** [Node.js](https://nodejs.org) 20.9 or newer (check with
+`node -v`) and [git](https://git-scm.com).
+
+A line starting with `#` is a note to you, not a command to type.
 
 ### 1. Get the code
 
@@ -71,30 +149,6 @@ npm run dev
 ```
 
 Open **http://localhost:3000/studio** — it will send you to the sign-in page.
-
----
-
-## Option B — deploy it to Vercel
-
-So you can reach Studio from your phone, and so the site has a real address.
-
-1. Go to [vercel.com](https://vercel.com) → **Add New** → **Project** → import
-   `dasanches007-byte/BAD-ERA-2.0`
-2. Set **Production Branch** to `claude/festive-cray-354clx`
-3. Add the same four environment variables from step 2 above, except set
-   `NEXT_PUBLIC_SITE_URL` to your real Vercel URL (e.g.
-   `https://bad-era.vercel.app`)
-4. Deploy
-
-Framework, build command and output are all detected automatically — Next.js
-needs no extra configuration here.
-
-> **Set `NEXT_PUBLIC_SITE_URL` correctly.** Stripe redirect URLs and the sitemap
-> are both derived from it. If it's wrong, customers get bounced to the wrong
-> place after paying.
-
-Once a custom domain is attached, update `NEXT_PUBLIC_SITE_URL` again and
-redeploy.
 
 ---
 
@@ -221,8 +275,11 @@ set. See above.
 
 ## Useful commands
 
+Only relevant if you set up Option B. Run them in a terminal, inside the
+`BAD-ERA-2.0` folder.
+
 ```sh
-npm run dev        # local dev server
-npm run verify     # lint, typecheck, tests, build — run before committing
+npm run dev        # start the local site at http://localhost:3000
+npm run verify     # lint, typecheck, tests, build — run before committing code
 npm run build      # production build
 ```
