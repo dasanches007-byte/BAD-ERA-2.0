@@ -100,18 +100,99 @@ Do the same again later if you attach a custom domain: update
 Only worth doing if you want to change the code. For writing content and
 uploading photos, Option A is easier and better.
 
-These are **terminal** commands — they do not run on GitHub, and they are not
-typed into a browser. Open:
+These are **terminal** commands. They do not run on GitHub and they are not
+typed into a browser address bar. A line starting with `#` is a note to you,
+not a command.
 
-- **Mac** — the **Terminal** app (Cmd+Space, type "Terminal")
-- **Windows** — **PowerShell** (Start menu, type "PowerShell")
+Jump to your machine:
 
-**You need first:** [Node.js](https://nodejs.org) 20.9 or newer (check with
-`node -v`) and [git](https://git-scm.com).
+- [Chromebook](#chromebook) — needs one extra setup step first
+- [Mac or Windows](#mac-or-windows)
 
-A line starting with `#` is a note to you, not a command to type.
+---
 
-### 1. Get the code
+### Chromebook
+
+ChromeOS has no terminal until you switch one on. This is a built-in ChromeOS
+feature — you are not installing anything unofficial.
+
+> **Check your specs first.** Settings → About ChromeOS. With **4 GB of RAM**
+> the dev server will run but feel slow, and you should close other Chrome tabs
+> while it is running. With 8 GB it is comfortable. You also want **at least
+> 10 GB of free storage**.
+
+#### Step 1 — turn on Linux
+
+1. Open **Settings** (the gear icon)
+2. In the left sidebar, click **Advanced** → **Developers**
+   *(on some versions it is just **Developers**, no Advanced)*
+3. Find **Linux development environment** → click **Turn on**
+4. Username: anything lowercase, e.g. `badera`
+5. Disk size: drag to **at least 15 GB** if it offers a slider
+6. Click **Install** and wait — it downloads a few hundred MB
+
+When it finishes, a black **Terminal** window opens by itself. Right-click its
+icon in the shelf → **Pin** so you can find it again.
+
+> **No "Linux development environment" option?** Your Chromebook is too old or
+> is managed by a school or workplace that has disabled it. In that case use
+> Option A — it works from any browser.
+
+#### Step 2 — install the tools
+
+In that Terminal window, type each block and press Enter. It will ask for your
+password on the first one — this is the Linux password you just created, and
+**nothing appears on screen as you type it**. That is normal.
+
+```sh
+sudo apt update && sudo apt install -y git curl
+```
+
+Now install Node.js. Debian's built-in version is too old for this project, so
+use `nvm`, which installs Node just for your user and needs no admin rights:
+
+```sh
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+```
+
+Close the Terminal window and open it again — this is required, `nvm` is not
+available until you do. Then:
+
+```sh
+nvm install 22
+node -v
+```
+
+That last command must print `v22.something`. If it does, you have what you
+need.
+
+Now continue to [the shared steps](#the-shared-steps) below.
+
+---
+
+### Mac or Windows
+
+Open your terminal:
+
+- **Mac** — press Cmd+Space, type `Terminal`, press Enter
+- **Windows** — Start menu, type `PowerShell`, press Enter
+
+Install [Node.js](https://nodejs.org) (choose the **LTS** version) and
+[git](https://git-scm.com) if you do not have them. Check with:
+
+```sh
+node -v
+```
+
+It must print v20.9 or higher.
+
+---
+
+### The shared steps
+
+Same on every machine from here.
+
+#### 1. Get the code
 
 ```sh
 git clone https://github.com/dasanches007-byte/BAD-ERA-2.0.git
@@ -120,37 +201,70 @@ git checkout claude/festive-cray-354clx
 npm install
 ```
 
-### 2. Create your `.env.local`
+`npm install` takes a few minutes and prints a lot of text. Warnings are fine.
+Only stop if it says **error**.
+
+#### 2. Add your keys
 
 ```sh
 cp .env.example .env.local
+nano .env.local
 ```
 
-Open `.env.local` and fill in **four values**. Everything else can stay empty
-for now.
+`nano` is a text editor inside the terminal. Use the arrow keys — the mouse
+will not work.
 
-Get them from: Supabase dashboard → **Project Settings** → **API**
+Fill in **four values**, from Supabase dashboard →
+**Project Settings** → **API**:
 
-| Variable | Where it comes from |
+| Line to edit | What to paste |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | "Project URL" — `https://snkvgpfpnphvbkiafptd.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | The **anon** / **publishable** key. Safe in a browser |
-| `SUPABASE_SERVICE_ROLE_KEY` | The **service_role** key. **Never** put this anywhere public |
-| `NEXT_PUBLIC_SITE_URL` | Leave as `http://localhost:3000` |
+| `NEXT_PUBLIC_SUPABASE_URL=` | `https://snkvgpfpnphvbkiafptd.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY=` | The **anon** / **publishable** key |
+| `SUPABASE_SERVICE_ROLE_KEY=` | The **service_role** key — secret, never share it |
+| `NEXT_PUBLIC_SITE_URL=` | Leave as `http://localhost:3000` |
 
-**You do not need Stripe or Resend keys to use Studio.** They're only checked
-when something actually needs them — a checkout, or an email. You can edit
-content, upload media and manage products today without either.
+Keep the quotes: `NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbG..."`
 
-### 3. Start it
+To save and quit nano:
+
+1. **Ctrl+O** then **Enter** (writes the file)
+2. **Ctrl+X** (quits)
+
+> **Pasting into the Chromebook terminal:** use **Ctrl+Shift+V**, not Ctrl+V.
+
+You do **not** need Stripe or Resend keys. They are only checked when something
+actually needs them, so Studio works without either.
+
+#### 3. Start it
 
 ```sh
 npm run dev
 ```
 
-Open **http://localhost:3000/studio** — it will send you to the sign-in page.
+Wait for `✓ Ready`. Leave this window open — closing it stops the site.
 
----
+Open a new Chrome tab and go to:
+
+```
+http://localhost:3000/studio
+```
+
+It will send you to the sign-in page.
+
+> **Chromebook note:** `localhost:3000` in Chrome reaches the Linux container
+> directly. If it does not load, try `http://penguin.linux.test:3000` instead.
+
+To stop the site later, click the terminal window and press **Ctrl+C**.
+
+#### Coming back another day
+
+```sh
+cd BAD-ERA-2.0
+npm run dev
+```
+
+That is all — the setup steps are one-time.
 
 ## First five minutes inside Studio
 
@@ -270,6 +384,22 @@ set. See above.
 
 **Build or dev server won't start** — check `node -v` is 20.9+, then delete
 `node_modules` and `.next` and run `npm install` again.
+
+**Chromebook: `nvm: command not found`** — you skipped closing and reopening
+the Terminal after installing nvm. Close the window, open it again, retry.
+
+**Chromebook: `localhost:3000` won't load** — make sure `npm run dev` is still
+running and shows `✓ Ready`. If it is, try `http://penguin.linux.test:3000`.
+
+**Chromebook: everything is very slow** — `next dev` compiles pages on demand
+and wants memory. Close other Chrome tabs. On a 4 GB machine the first load of
+each page can take 10–20 seconds; it is faster afterwards.
+
+**Chromebook: out of disk space** — Settings → Advanced → Developers → Linux →
+**Disk size** → increase it. `node_modules` alone is several hundred MB.
+
+**`npm install` fails with permission errors** — you used `sudo npm`. Don't.
+Delete `node_modules` and run `npm install` without sudo.
 
 ---
 
