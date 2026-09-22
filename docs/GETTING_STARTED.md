@@ -107,57 +107,57 @@ Free allowance: **120 core-hours a month** — that is 60 real hours on the
 default 2-core machine — plus 15 GB of storage. Stop the Codespace when you are
 done and it stops consuming hours.
 
-### Step 1 — store your keys, once
+### Step 1 — have your two keys ready
 
-The Codespace reads its configuration from GitHub, so there is no hidden file to
-edit on a phone keyboard.
+Open **supabase.com/dashboard/project/snkvgpfpnphvbkiafptd/settings/api** in
+another tab. You need:
 
-1. Go to **github.com/settings/codespaces**
-2. Under **Codespaces secrets**, click **New secret** and add each of these,
-   with the value from Supabase → **Project Settings** → **API**:
+- the **anon** / **publishable** key
+- the **service_role** key (secret — never share it)
 
-| Secret name | Value |
+The project URL is already filled in for you.
+
+### Step 2 — create the Codespace
+
+1. Open **codespaces.new/dasanches007-byte/BAD-ERA-2.0**
+   (or tap the **Open in GitHub Codespaces** button on the repo's front page)
+2. Scroll to **Recommended secrets** at the bottom. There is a box for each key:
+
+| Box | Paste |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | The "Project URL" |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | The anon / publishable key |
-| `SUPABASE_SERVICE_ROLE_KEY` | The service_role key — secret |
+| `SUPABASE_SERVICE_ROLE_KEY` | The service_role key |
 
-3. For each one, give it access to the **BAD-ERA-2.0** repository
+3. Tap **Create codespace**
 
-GitHub stores these encrypted. They are never committed to the repo.
+GitHub saves the keys encrypted in your account — they are never committed, which
+matters because this repository is public. You only paste them once.
 
-### Step 2 — open the Codespace
+The first build takes about three minutes: it installs Node 22 and every
+dependency, then starts the site on its own.
 
-1. Go to the repository on GitHub
-2. Switch the branch selector to **`claude/festive-cray-354clx`**
-3. Click the green **Code** button → **Codespaces** tab → **Create codespace on
-   claude/festive-cray-354clx**
+### Step 3 — open the editor
 
-The first build takes about three minutes — it installs Node 22 and the project
-dependencies for you. After that, opening it again takes seconds.
+A browser tab opens when the site is ready. Add `/studio` to the end of its
+address and sign in. If no tab opens, go to the **PORTS** tab, find port 3000,
+and tap the globe icon.
 
-### Step 3 — it starts itself
+The first page takes around 20 seconds while it compiles; after that it is quick.
 
-When the Codespace opens, it runs the site automatically and prints the address.
-A browser tab opens once it is ready; if it does not, open the **PORTS** tab,
-find port 3000, and tap the globe icon.
+> If the terminal says **"BAD ERA can't start yet"**, a key is missing — it
+> names which one and tells you where to add it.
 
-Add `/studio` to that address to reach the editor.
+### Coming back later
 
-> If you see **"BAD ERA is not configured yet"**, a secret from Step 1 is
-> missing. Add it, then Command Palette (Ctrl+Shift+P) →
-> **Codespaces: Rebuild Container**.
+Open **codespaces.new/dasanches007-byte/BAD-ERA-2.0?quickstart=1** and choose
+**Resume**. The site starts again by itself.
 
-### Stopping and coming back
+It sleeps on its own after 30 minutes idle. To stop it immediately:
+**github.com/codespaces** → **⋯** next to it → **Stop codespace**.
 
-Close the tab and the Codespace sleeps on its own after 30 minutes. To stop it
-immediately: github.com/codespaces → **⋯** next to it → **Stop codespace**.
-
-Reopening it from github.com/codespaces starts the site again automatically.
-
-> **On an iPhone this works but is cramped** — VS Code's web interface is not
-> built for touch. Fine for a quick change; use Option A if you mainly want to
-> write content and upload photos, since Studio itself is properly mobile-shaped.
+> **On an iPhone this works but is cramped** — the code editor around the site is
+> not built for touch. Studio itself is properly mobile-shaped, so once the tab
+> with your site is open you can mostly ignore the editor.
 
 ---
 

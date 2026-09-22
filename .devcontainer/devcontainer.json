@@ -28,6 +28,33 @@
     }
   },
 
+  // Not a secret: the project URL is public by nature and never changes. Set
+  // here so it is one fewer thing to paste on a phone.
+  "containerEnv": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://snkvgpfpnphvbkiafptd.supabase.co"
+  },
+
+  // Recommended secrets. GitHub lists these on the "Create codespace" page
+  // (codespaces.new/dasanches007-byte/BAD-ERA-2.0) with a box for each, so the
+  // owner pastes them once while creating the Codespace. GitHub stores them
+  // encrypted as the owner's Codespaces secrets — they are never committed,
+  // which matters because this repository is public.
+  //
+  // Keys are deliberately NOT hard-coded in containerEnv even where they are
+  // public-by-design (the anon key): rotating the project's JWT secret
+  // replaces the anon key too, and a stale committed value would break the
+  // Codespace with an auth error that looks unrelated.
+  "secrets": {
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": {
+      "description": "Supabase anon / publishable key. Supabase dashboard -> Project Settings -> API.",
+      "documentationUrl": "https://supabase.com/dashboard/project/snkvgpfpnphvbkiafptd/settings/api"
+    },
+    "SUPABASE_SERVICE_ROLE_KEY": {
+      "description": "Supabase service_role key (secret, server-only). Same page, under 'service_role'.",
+      "documentationUrl": "https://supabase.com/dashboard/project/snkvgpfpnphvbkiafptd/settings/api"
+    }
+  },
+
   // Runs once, when the Codespace is first created.
   "postCreateCommand": "bash .devcontainer/setup.sh",
 

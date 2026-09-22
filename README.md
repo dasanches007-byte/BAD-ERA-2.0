@@ -3,6 +3,18 @@
 Storefront + BAD ERA Studio. A premium dark-luxury commerce platform built on Next.js,
 Supabase and Stripe.
 
+## Open the editor from any browser
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/dasanches007-byte/BAD-ERA-2.0)
+
+Tap the button, paste your two Supabase keys into the boxes at the bottom of the page,
+then **Create codespace**. It installs everything and starts the site by itself — add
+`/studio` to the address it opens. Works from a phone or a Chromebook.
+
+Coming back later: [resume your Codespace](https://codespaces.new/dasanches007-byte/BAD-ERA-2.0?quickstart=1).
+
+Full walkthrough, including deploying to Vercel: [`docs/GETTING_STARTED.md`](./docs/GETTING_STARTED.md).
+
 **Start with [`CLAUDE.md`](./CLAUDE.md)** — it is the condensed build contract and the first
 thing to read in any session.
 
