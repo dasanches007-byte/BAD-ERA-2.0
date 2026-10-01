@@ -17,16 +17,38 @@ if [ -n "${CODESPACE_NAME:-}" ]; then
 fi
 SITE="${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}"
 
+port_in_use() { (exec 3<>/dev/tcp/127.0.0.1/3000) 2>/dev/null; }
+
+# `--restart` stops a running site first, so code you just pulled — and in
+# particular next.config.ts, which Next only reads at startup — takes effect.
+# Ctrl+C is not on a phone keyboard, so this is the phone-friendly way to stop
+# it. The patterns match Next's own processes and nothing else in a Codespace.
+if [ "${1:-}" = "--restart" ] && port_in_use; then
+  echo "Stopping the running site…"
+  pkill -f "next dev" 2>/dev/null
+  for _ in $(seq 1 20); do port_in_use || break; sleep 0.5; done
+  if port_in_use; then
+    pkill -f "next-server" 2>/dev/null
+    for _ in $(seq 1 10); do port_in_use || break; sleep 0.5; done
+  fi
+  if port_in_use; then
+    echo "${RED}Couldn't stop it. Close every terminal (trash-can icon), open a new one, and run this again.${OFF}"
+    exit 1
+  fi
+fi
+
 # Reopening a Codespace that is still running attaches a second time. Starting
 # another dev server then would make Next hop to port 3001, whose address
 # matches nothing above — so if one is already listening, just say where it is.
-if (exec 3<>/dev/tcp/127.0.0.1/3000) 2>/dev/null; then
+if port_in_use; then
   cat <<BANNER
 
 ${GREEN}${BOLD}BAD ERA is already running.${OFF}
 
   Studio       ${SITE}/studio
   Storefront   ${SITE}
+
+${DIM}Just pulled new code? Run:  bash .devcontainer/start.sh --restart${OFF}
 
 BANNER
   exit 0
