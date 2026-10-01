@@ -565,5 +565,273 @@ begin
   raise notice 'PASS case 17  rollback appends a revision and preserves history';
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- Case 19: Studio stock changes work through the service role, and only for
+--          the owner (migration 0017)
+--
+-- Before 0017 every Studio adjustment raised "studio owner required": the
+-- callers use the service-role client, which carries no user, so the
+-- function's auth.uid() check could never pass. The server now names the
+-- actor it authorized and the database re-checks them.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_owner uuid := gen_random_uuid();
+  v_customer uuid := gen_random_uuid();
+  v_variant uuid := '23000000-0000-0000-0000-000000000013';
+  v_location uuid;
+  v_before integer;
+  v_after jsonb;
+begin
+  insert into auth.users (id, email) values
+    (v_owner, 'owner-19@acceptance.test'),
+    (v_customer, 'customer-19@acceptance.test');
+  insert into public.studio_users (user_id, role, active) values (v_owner, 'owner', true);
+
+  select location_id, on_hand into v_location, v_before
+    from public.inventory_levels where variant_id = v_variant limit 1;
+
+  -- The server names the owner: the change lands and the movement says who.
+  v_after := public.studio_adjust_inventory(v_variant, v_location, 3, 'stock_recount', 'case 19', v_owner);
+  if (v_after->>'on_hand')::integer <> v_before + 3 then
+    raise exception 'case 19: adjustment did not land';
+  end if;
+  if not exists (
+    select 1 from public.inventory_movements
+     where variant_id = v_variant and note = 'case 19' and actor_user_id = v_owner
+  ) then
+    raise exception 'case 19: the movement does not record who made it';
+  end if;
+
+  -- Exactly how hosted Supabase presents the server's call: the service role,
+  -- no user. The named owner is honoured.
+  perform set_config('request.jwt.claim.role', 'service_role', true);
+  perform public.studio_adjust_inventory(v_variant, v_location, -1, 'stock_recount', 'case 19 service', v_owner);
+  perform set_config('request.jwt.claim.role', '', true);
+  if not exists (
+    select 1 from public.inventory_movements
+     where variant_id = v_variant and note = 'case 19 service' and actor_user_id = v_owner
+  ) then
+    raise exception 'case 19: a service-role call naming the owner was refused';
+  end if;
+
+  -- No actor at all — what every Studio call looked like before 0017.
+  begin
+    perform public.studio_adjust_inventory(v_variant, v_location, 1, 'stock_recount', null, null);
+    raise exception 'case 19: an adjustment with no actor was accepted';
+  exception when insufficient_privilege then null;
+  end;
+
+  -- A customer named as the actor.
+  begin
+    perform public.studio_adjust_inventory(v_variant, v_location, 1, 'stock_recount', null, v_customer);
+    raise exception 'case 19: a non-owner actor was accepted';
+  exception when insufficient_privilege then null;
+  end;
+
+  -- A signed-in customer's token naming the owner cannot impersonate them.
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claim.sub', v_customer::text, true);
+  begin
+    perform public.studio_adjust_inventory(v_variant, v_location, 1, 'stock_recount', null, v_owner);
+    raise exception 'case 19: a customer token impersonated the owner';
+  exception when insufficient_privilege then null;
+  end;
+  perform set_config('request.jwt.claim.role', '', true);
+  perform set_config('request.jwt.claim.sub', '', true);
+
+  -- And neither browser role can reach either owner function at all.
+  if has_function_privilege('authenticated',
+       'public.studio_adjust_inventory(uuid,uuid,integer,public.inventory_reason,text,uuid)', 'execute')
+     or has_function_privilege('anon',
+       'public.studio_adjust_inventory(uuid,uuid,integer,public.inventory_reason,text,uuid)', 'execute')
+     or has_function_privilege('authenticated', 'public.studio_create_product(jsonb,uuid)', 'execute')
+     or has_function_privilege('anon', 'public.studio_create_product(jsonb,uuid)', 'execute') then
+    raise exception 'case 19: an owner function is executable from the browser';
+  end if;
+
+  raise notice 'PASS case 19  stock changes work for the owner only, and record who';
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Case 20: a product is created whole or not at all (migration 0017)
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_owner uuid := (select user_id from public.studio_users where role = 'owner' and active limit 1);
+  v_tee uuid;
+  v_set uuid;
+  v_m uuid;
+  v_l uuid;
+  v_count integer;
+begin
+  v_tee := public.studio_create_product(jsonb_build_object(
+    'handle', 'case-20-tee',
+    'title', 'Case 20 Tee',
+    'tags', jsonb_build_array('archive-01'),
+    'kind', 'standard',
+    'options', jsonb_build_array(jsonb_build_object('name', 'Size', 'values', jsonb_build_array('S', 'M', 'L'))),
+    'variants', jsonb_build_array(
+      jsonb_build_object('option_values', jsonb_build_array('S'), 'title', 'S', 'price_cents', 3000, 'starting_stock', 4),
+      jsonb_build_object('option_values', jsonb_build_array('M'), 'title', 'M', 'price_cents', 3000, 'starting_stock', 0),
+      jsonb_build_object('option_values', jsonb_build_array('L'), 'title', 'L', 'price_cents', 3000, 'starting_stock', 7)
+    )
+  ), v_owner);
+
+  if (select status from public.products where id = v_tee) <> 'draft' then
+    raise exception 'case 20: a new product went live without the owner choosing to';
+  end if;
+
+  -- Every variant has its stock row, even at zero, and its option link.
+  select count(*) into v_count
+    from public.product_variants pv
+    join public.inventory_levels il on il.variant_id = pv.id
+    join public.variant_option_values vov on vov.variant_id = pv.id
+   where pv.product_id = v_tee;
+  if v_count <> 3 then
+    raise exception 'case 20: expected 3 stocked, linked variants, found %', v_count;
+  end if;
+
+  if (select sum(il.on_hand) from public.inventory_levels il
+        join public.product_variants pv on pv.id = il.variant_id
+       where pv.product_id = v_tee) <> 11 then
+    raise exception 'case 20: starting stock did not land';
+  end if;
+
+  -- Starting stock is audited: one initial_stock movement per non-zero count.
+  select count(*) into v_count
+    from public.inventory_movements im
+    join public.product_variants pv on pv.id = im.variant_id
+   where pv.product_id = v_tee and im.reason = 'initial_stock' and im.actor_user_id = v_owner;
+  if v_count <> 2 then
+    raise exception 'case 20: expected 2 audited starting-stock movements, found %', v_count;
+  end if;
+
+  if (select count(*) from public.product_variants where product_id = v_tee and is_default) <> 1 then
+    raise exception 'case 20: expected exactly one default variant';
+  end if;
+
+  -- 2XL is refused, and the refusal leaves nothing behind.
+  begin
+    perform public.studio_create_product(jsonb_build_object(
+      'handle', 'case-20-2xl', 'title', 'Too big', 'kind', 'standard',
+      'options', jsonb_build_array(jsonb_build_object('name', 'Size', 'values', jsonb_build_array('L', '2XL'))),
+      'variants', jsonb_build_array(
+        jsonb_build_object('option_values', jsonb_build_array('L'), 'price_cents', 3000),
+        jsonb_build_object('option_values', jsonb_build_array('2XL'), 'price_cents', 3000)
+      )
+    ), v_owner);
+    raise exception 'case 20: a 2XL size was accepted';
+  exception when invalid_parameter_value then null;
+  end;
+  if exists (select 1 from public.products where handle = 'case-20-2xl') then
+    raise exception 'case 20: a refused product left a partial row behind';
+  end if;
+
+  -- A bad second variant undoes the whole product, not just that variant.
+  begin
+    perform public.studio_create_product(jsonb_build_object(
+      'handle', 'case-20-partial', 'title', 'Partial', 'kind', 'standard',
+      'options', jsonb_build_array(jsonb_build_object('name', 'Color', 'values', jsonb_build_array('Black'))),
+      'variants', jsonb_build_array(
+        jsonb_build_object('option_values', jsonb_build_array('Black'), 'price_cents', 2500, 'starting_stock', 5),
+        jsonb_build_object('option_values', jsonb_build_array('Green'), 'price_cents', 2500)
+      )
+    ), v_owner);
+    raise exception 'case 20: a variant with an undeclared choice was accepted';
+  exception when invalid_parameter_value then null;
+  end;
+  if exists (select 1 from public.products where handle = 'case-20-partial') then
+    raise exception 'case 20: a half-valid product was partly written';
+  end if;
+
+  -- The web address is unique.
+  begin
+    perform public.studio_create_product(jsonb_build_object(
+      'handle', 'case-20-tee', 'title', 'Again', 'kind', 'standard',
+      'variants', jsonb_build_array(jsonb_build_object('option_values', '[]'::jsonb, 'price_cents', 100))
+    ), v_owner);
+    raise exception 'case 20: a duplicate web address was accepted';
+  exception when unique_violation then null;
+  end;
+
+  -- A set: made of real variants, holding no stock of its own.
+  select id into v_m from public.product_variants where product_id = v_tee and title = 'M';
+  select id into v_l from public.product_variants where product_id = v_tee and title = 'L';
+
+  v_set := public.studio_create_product(jsonb_build_object(
+    'handle', 'case-20-set', 'title', 'Case 20 Set', 'kind', 'bundle',
+    'options', jsonb_build_array(
+      jsonb_build_object('name', 'Tee Size', 'values', jsonb_build_array('M', 'L')),
+      jsonb_build_object('name', 'Bag Color', 'values', jsonb_build_array('Blue'))
+    ),
+    'variants', jsonb_build_array(
+      jsonb_build_object('option_values', jsonb_build_array('M', 'Blue'), 'price_cents', 4500,
+        'components', jsonb_build_array(
+          jsonb_build_object('variant_id', v_m, 'quantity', 1),
+          jsonb_build_object('variant_id', '23000000-0000-0000-0000-000000000013', 'quantity', 1))),
+      jsonb_build_object('option_values', jsonb_build_array('L', 'Blue'), 'price_cents', 4500,
+        'components', jsonb_build_array(
+          jsonb_build_object('variant_id', v_l, 'quantity', 1),
+          jsonb_build_object('variant_id', '23000000-0000-0000-0000-000000000013', 'quantity', 1)))
+    )
+  ), v_owner);
+
+  if exists (
+    select 1 from public.inventory_levels il
+      join public.product_variants pv on pv.id = il.variant_id
+     where pv.product_id = v_set
+  ) then
+    raise exception 'case 20: a set was given a stock pool of its own';
+  end if;
+
+  select count(*) into v_count
+    from public.bundle_components bc
+    join public.product_variants pv on pv.id = bc.bundle_variant_id
+   where pv.product_id = v_set;
+  if v_count <> 4 then
+    raise exception 'case 20: expected 4 set components, found %', v_count;
+  end if;
+
+  if (select title from public.product_variants where product_id = v_set and position = 1) <> 'L / Blue' then
+    raise exception 'case 20: a set option was not titled from its choices';
+  end if;
+
+  -- A set cannot be made of another set, nor hold stock.
+  begin
+    perform public.studio_create_product(jsonb_build_object(
+      'handle', 'case-20-nested', 'title', 'Nested', 'kind', 'bundle',
+      'variants', jsonb_build_array(jsonb_build_object('option_values', '[]'::jsonb, 'price_cents', 9000,
+        'components', jsonb_build_array(jsonb_build_object(
+          'variant_id', '23000000-0000-0000-0000-000000000021', 'quantity', 1))))
+    ), v_owner);
+    raise exception 'case 20: a set made of a set was accepted';
+  exception when invalid_parameter_value then null;
+  end;
+
+  begin
+    perform public.studio_create_product(jsonb_build_object(
+      'handle', 'case-20-stocked-set', 'title', 'Stocked set', 'kind', 'bundle',
+      'variants', jsonb_build_array(jsonb_build_object('option_values', '[]'::jsonb, 'price_cents', 9000,
+        'starting_stock', 3,
+        'components', jsonb_build_array(jsonb_build_object('variant_id', v_m, 'quantity', 1))))
+    ), v_owner);
+    raise exception 'case 20: a set was given starting stock';
+  exception when invalid_parameter_value then null;
+  end;
+
+  -- Only the owner.
+  begin
+    perform public.studio_create_product(jsonb_build_object(
+      'handle', 'case-20-nobody', 'title', 'Nobody', 'kind', 'standard',
+      'variants', jsonb_build_array(jsonb_build_object('option_values', '[]'::jsonb, 'price_cents', 100))
+    ), gen_random_uuid());
+    raise exception 'case 20: a product was created by a non-owner';
+  exception when insufficient_privilege then null;
+  end;
+
+  raise notice 'PASS case 20  products are created whole, as drafts, by the owner only';
+end $$;
+
 \echo ''
 \echo 'Acceptance matrix complete.'

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProductForm } from "@/components/studio/product-form";
+import { ProductLiveBar } from "@/components/studio/product-live-bar";
 import { ProductTabs } from "@/components/studio/product-tabs";
 import {
   PageHeader,
@@ -9,6 +10,7 @@ import {
   StatusChip,
   formatMoney,
 } from "@/components/studio/primitives";
+import { getProductPhotos } from "@/lib/studio/product-photos";
 import {
   INVENTORY_MODE_LABEL,
   getStudioProduct,
@@ -36,6 +38,10 @@ export default async function StudioProductPage({
   const { productId } = await params;
   const product = await getStudioProduct(productId);
   if (!product) notFound();
+  // Only steers the go-live hint; a failed read must not take the editor down.
+  const photoCount = await getProductPhotos(product.id)
+    .then((photos) => photos.length)
+    .catch(() => 0);
 
   return (
     <div className="space-y-10">
@@ -61,6 +67,13 @@ export default async function StudioProductPage({
       />
 
       <ProductTabs productId={product.id} active="general" />
+
+      <ProductLiveBar
+        productId={product.id}
+        status={product.status}
+        photoCount={photoCount}
+        handle={product.handle}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-6">

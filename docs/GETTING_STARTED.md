@@ -400,8 +400,10 @@ fault.
 | Write the about / privacy / terms / shipping / returns / support pages | Open that page on your site → **Edit this page** → **Start writing this page** → tap the text → **Publish** |
 | See every field of a page in one list | **Site** → **All fields** |
 | Upload photography | Click any photo on the page → **Upload a photo**. Or **Media** to manage the whole library |
-| Add the Archive 01 products | **Products** → new product → add variants |
-| Enter how many you physically have | **Inventory** |
+| Add a product (Archive 01 is one tap each) | **Products** → **+ New product** — see [Adding your products](#adding-your-products) |
+| Add photos to a product | **Products** → the product → **Photos** |
+| Put a product on the store | The product → **Make it live** |
+| Change how many you physically have | **Inventory** → **Adjust** |
 | Push changes live | **Publish** in the editor's top bar (or **Publishing** for several pages at once) |
 | Undo a publish | **Publishing** → Publish history → Roll back |
 
@@ -450,6 +452,46 @@ ever opens a field the page was designed to have.
 
 ---
 
+## Adding your products
+
+The store starts empty. Archive 01 takes about five minutes:
+
+1. Studio → **Products** → **+ New product**.
+2. Under **Start from Archive 01**, tap **Archive 01 Tee**. The name, price
+   ($30) and sizes (S / M / L) fill in for you. Type how many of each size you
+   have on the shelf, then **Create product**. Leave a box empty for none.
+3. You land on the tee's **Photos** tab. Tap **Upload photos** and pick
+   several at once from your camera roll, or **Choose from library** for ones
+   you already uploaded. The first photo is the main one, shown on every
+   card. Use the arrows to change the order. Tap **Edit** on a photo to
+   describe it, and tap the photo itself to mark the part that must never be
+   cropped off.
+4. Tap **Make it live**. It is now on the store and in the homepage's
+   **From the archive** section.
+5. Do the same with **Archive 01 Crossbody** ($25, Black / Red / Blue). On
+   each colour's photo, set **Shown for** to that colour. A customer who picks
+   Blue then sees the blue bag first.
+6. Tap **Original Era Set** last. It only becomes available once the Tee and
+   the Crossbody exist, because it is made of them. It has no stock of its
+   own: each set sold takes one tee and one bag from the same counts.
+
+Some things are deliberate:
+
+- **A new product is always hidden at first.** Nothing half-finished reaches
+  customers. **Make it live** is the step that shows it, and **Hide from the
+  store** takes it back off without deleting anything.
+- **Sizes are S, M, L and XL only.** There is no 2XL button.
+- **Starting counts are recorded** in the stock history, the same as every
+  later change under **Inventory**.
+- If something is wrong (a web address already in use, a missing price), the
+  form says what to fix and **nothing is saved**. You never end up with half a
+  product.
+
+Your own products work the same way: **A single product**, or **A set of
+other products**.
+
+---
+
 ## Before you can take money
 
 Checkout will refuse to run until these exist. That's intentional — the
@@ -460,7 +502,8 @@ alternative is quoting a shipping price nobody decided on.
 - [ ] `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, with a webhook endpoint
       pointed at `https://your-domain/api/webhooks/stripe`
 - [ ] `RESEND_API_KEY` + verified sending domain, for order emails
-- [ ] Real product records and physical inventory counts
+- [ ] Real product records and physical inventory counts — see
+      [Adding your products](#adding-your-products)
 
 Then run the 8-step test purchase in `docs/LAUNCH_READINESS.md` before going
 live. Nothing in this build has ever taken a payment.

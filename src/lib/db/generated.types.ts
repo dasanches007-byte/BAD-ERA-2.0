@@ -3704,8 +3704,16 @@ export type Database = {
           p_delta_on_hand: number | null;
           p_reason: Database["public"]["Enums"]["inventory_reason"] | null;
           p_note?: string | null;
+          p_actor?: string | null;
         };
         Returns: Json;
+      };
+      studio_create_product: {
+        Args: {
+          p_product: Json | null;
+          p_actor?: string | null;
+        };
+        Returns: string;
       };
     };
     Enums: {

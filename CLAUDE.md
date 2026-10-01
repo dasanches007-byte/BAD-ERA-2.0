@@ -132,10 +132,10 @@ webhooks and privileged mutations terminate in Route Handlers that call domain s
 
 ## Database — 62 tables
 
-Apply migrations strictly in order `0001 → 0016`. Never hand-recreate the schema in the
+Apply migrations strictly in order `0001 → 0017`. Never hand-recreate the schema in the
 Supabase dashboard. `supabase/seed.sql` is **development data only**.
 
-`0010` through `0016` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
+`0010` through `0017` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
 `0010` and `0011` fix defects found by executing the migrations and the acceptance matrix
 against real PostgreSQL — static validation catches neither.
 
@@ -169,6 +169,15 @@ against real PostgreSQL — static validation catches neither.
   read the one-to-one `page_drafts` embed as an array, believed no draft
   existed, forked a rival revision and died on `page_drafts_pkey` inside the
   preview frame. Acceptance case 18 races two callers and asserts one draft.
+- **`0017`** — Studio products. `studio_adjust_inventory` checked `auth.uid()`,
+  but both callers use the service-role client, which carries no user, so
+  **every Studio stock change raised "studio owner required"** and the
+  movement never recorded who made it. It now takes `p_actor`, which
+  `private.resolve_studio_owner` honours only for the service role (an
+  end-user token can act only as itself) and re-checks against `studio_users`.
+  Plus `studio_create_product`: product, options, variants, stock rows,
+  starting-stock movements and set components in ONE transaction, always a
+  draft, sizes S/M/L/XL only, a set never holds stock. Acceptance cases 19, 20.
 
 Migrations `0001-0009` are left byte-identical to the delivered package so their published
 SHA-256 checksums still verify.
@@ -188,7 +197,8 @@ snapshots.
 | `release_checkout_inventory` | Releases exactly once on expiry / failure / cancellation |
 | `release_expired_checkout_inventory` | Recovery sweep for abandoned checkouts |
 | `convert_paid_checkout` | One transaction: order + item snapshots + inventory conversion + payment + fulfillment groups |
-| `studio_adjust_inventory` | Owner-only audited adjustment; blocks system-only reasons |
+| `studio_adjust_inventory` | Owner-only audited adjustment; blocks system-only reasons. Takes `p_actor` (0017) |
+| `studio_create_product` | (0017) Whole product or nothing; draft; S/M/L/XL; sets hold no stock |
 
 Helpers: `private.is_studio_owner()`, `private.current_customer_id()`.
 Stripe event claiming: `claim_stripe_event()` / `finish_stripe_event()`.
@@ -502,7 +512,10 @@ Rules that hold across Studio:
   the owner never acts on a fabricated "0 orders" that is really a broken query.
 - **Quantity is never a form field.** Product and variant forms edit labels,
   price and policy; stock changes only through `studio_adjust_inventory`, which
-  re-verifies ownership in PostgreSQL and writes an append-only movement.
+  re-verifies ownership in PostgreSQL and writes an append-only movement. The
+  one place a count is typed outside Inventory is **New product**'s starting
+  stock, and it is written the same way: an audited `initial_stock` movement
+  inside `studio_create_product`, never a bare number.
 - **Authorization is checked twice**: `requireStudioOwner()` in the action for a
   clean message, and again inside the RPC as the real boundary.
 - **Archive over delete.** Media archiving is refused while an asset is still
@@ -647,6 +660,58 @@ Rules that hold across the light:
   the three Archive 01 products are active.
 
 `tests/unit/ambient-light.test.tsx` holds all of the above.
+
+## Products & product photos
+
+The owner's way to stock the store: Studio → Products → **+ New product**
+(Archive 01 is one tap per piece), then the product's **Photos** tab, then
+**Make it live**.
+
+```
+supabase/migrations/0017_studio_products.sql   create product; actor-checked stock adjust
+src/lib/studio/
+  new-product-types.ts   PURE: answers -> options/variants/payload, set expansion, starters
+  new-product.ts         set-piece candidates, taken handles
+  product-actions.ts     createProductAction, setProductStatusAction (+ existing edits)
+  product-photos.ts  product-photo-types.ts  product-photo-actions.ts
+src/lib/catalog/
+  photos.ts              mainPhoto / galleryFor / photoSlot (pure)
+  variant-choice.ts      option picking (pure)
+  invalidate.ts          expire the catalog cache from a Server Action
+src/components/studio/  new-product-form.tsx  product-photos-editor.tsx  product-live-bar.tsx
+src/components/storefront/  product-detail.tsx (gallery + picker share the chosen variant)
+```
+
+Rules that hold here:
+
+- **A product is created whole or not at all, and always as a draft.** The
+  database writes every row in one transaction; going live is a separate,
+  deliberate **Make it live**. A refused product leaves nothing behind.
+- **A set's variant ids are read on the server.** The browser names the piece
+  products only; the action expands them to real variants itself, and the
+  database refuses set pieces that are inactive, archived or sets themselves.
+- **Starters invent no stock.** Names, prices and choices come from the locked
+  Archive 01 contract; counts are always the owner's. Their handles match the
+  homepage's `archive01.feature` `productHandles` — a test holds that.
+- **Sizes are S / M / L / XL**, enforced by the size chips, the action's schema
+  and the database.
+- **A product photo is a `product_media` link.** The first is the main photo
+  (every card). A photo may belong to one variant; the product page shows the
+  chosen variant's photos first and never another variant's. Removing a photo
+  removes the link only; archiving the asset is refused while a product shows it.
+- **Never disable a control while a save is in flight if the click that
+  triggered the save is that control.** Typing a description then tapping the
+  photo blurs the field (saving it) on the same tap; a disabled photo
+  swallowed the tap. Found by driving the editor.
+- **Option picking changes one option and keeps the others.** The old picker
+  mapped every value to the first variant carrying it, so on the Era Set
+  "M / Blue" was unreachable. `variant-choice.ts`, covered by
+  `tests/unit/products-and-photos.test.ts`.
+- **Every product change expires the `catalog` cache tag** (`updateTag`).
+  Revalidating page paths alone left the 60-second data cache in place.
+- Action ids are validated with `z.uuid()` (RFC 4122). The dev seed's
+  hand-written ids (`11000000-0000-…`) fail it; live ids are
+  `gen_random_uuid()`. Test Studio mutations against generated ids.
 
 ## Orders & customers (Phase 5)
 
@@ -1006,7 +1071,8 @@ the native internal provider and is always supported.
   Security). Until then the MFA gate is inert by design
 - **Rotate the Supabase service-role key** — it was pasted into a chat
   transcript during the build, and it bypasses RLS entirely
-- Exact Archive 01 physical counts: Tee S/M/L, Crossbody Black/Red/Blue
+- Archive 01 products and exact physical counts: Tee S/M/L, Crossbody
+  Black/Red/Blue — Studio → Products → **+ New product** (starters)
 - Final production photography for every slot (see the handoff checklist in master spec §23.1)
 - Flat shipping amount
 - Stripe live keys + webhook endpoint; Supabase production project; Resend verified domain

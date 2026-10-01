@@ -35,13 +35,15 @@ export default async function StudioProductsPage() {
         eyebrow="Catalog"
         title="Products"
         description="Products render from the shared editorial template. Editing one never requires a deploy."
+        actions={<NewProductLink />}
       />
 
       <Panel>
         {products.length === 0 ? (
           <EmptyState
             title="No products yet"
-            body="Create your first product to start building the catalog. Archive 01 lives here too — the Tee, the Crossbody and the Original Era Set."
+            body="Create your first product to start building the catalog. Archive 01 is one tap each — the Tee, the Crossbody and the Original Era Set."
+            action={<NewProductLink />}
           />
         ) : (
           <ul className="divide-y divide-line">
@@ -76,6 +78,17 @@ export default async function StudioProductsPage() {
         )}
       </Panel>
     </div>
+  );
+}
+
+function NewProductLink() {
+  return (
+    <Link
+      href="/studio/products/new"
+      className="label inline-flex min-h-11 items-center border border-ink/70 px-5 text-ink transition-colors hover:bg-ink hover:text-inverse-ink"
+    >
+      + New product
+    </Link>
   );
 }
 

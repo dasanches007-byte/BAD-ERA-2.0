@@ -402,6 +402,9 @@ export async function restockReturnItemAction(input: {
     p_delta_on_hand: item.quantity,
     p_reason: "return_restock",
     p_note: `Restocked from return ${ret.id}`,
+    // The service-role client carries no user; the database re-checks this
+    // owner against studio_users and records them on the movement (0017).
+    p_actor: auth.userId,
   });
 
   if (rpcError) {

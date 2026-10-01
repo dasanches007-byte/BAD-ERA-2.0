@@ -46,6 +46,17 @@ defects, not missing features, and they are fixed:
 | `/collections/[handle]` stub, not in the v1 IA and linked from nowhere | Cleanup | Removed |
 | `PREVIEW_SECRET`, `notImplemented`, `RouteShell` left dead | Cleanup | Removed |
 
+### Found afterwards, while mapping the site for the owner
+
+| Finding | Severity | Status |
+|---|---|---|
+| **Every Studio stock change failed.** `studio_adjust_inventory` checked `auth.uid()`, but both callers use the service-role client, which carries no user — so it raised "studio owner required" every time. No count could be entered and no return could be restocked | Blocker | Fixed in migration `0017`: the server names the owner it authorized, the database re-checks them against `studio_users` and records them on the movement. Acceptance case 19 |
+| **Studio could not create a product.** Edit only; the live store has none | Blocker | Fixed: Products → **+ New product**, with one-tap Archive 01 starters. One transaction (`studio_create_product`, acceptance case 20) — whole or nothing, always a draft |
+| **Product photos could not be added.** `product_media` existed, nothing wrote or read it; every card and product page showed a placeholder | Blocker | Fixed: a **Photos** tab per product; cards, Archive cards and the product page show them; the gallery follows the chosen option |
+| On a two-option product (the Original Era Set) most combinations could not be selected — every value jumped to the first variant carrying it | Major | Fixed: a tap changes one option and keeps the other (`lib/catalog/variant-choice.ts`) |
+| A photo used by a product could be archived from the Media Library, silently removing it from the store | Major | Fixed: refused while a product shows it |
+| Product edits took up to a minute to appear: the 60-second catalog cache was never expired | Minor | Fixed: every product change expires the `catalog` tag |
+
 ### Deliberately NOT fixed by inventing content
 
 The five information pages render from the CMS and show an honest "not published
@@ -122,9 +133,11 @@ and update the Vercel environment variable.
 
 ### 4. Content
 
-- [ ] Archive 01 physical counts: Tee S/M/L, Crossbody Black/Red/Blue. Enter in
-      Studio → Inventory. The seed contains test quantities and is marked
-      `DEVELOPMENT SEED ONLY` — do not load it into production
+- [ ] Archive 01 products and their physical counts: Tee S/M/L, Crossbody
+      Black/Red/Blue. Studio → Products → **+ New product** → the Archive 01
+      starters fill in names, prices and choices; you type the counts. The
+      seed contains test quantities and is marked `DEVELOPMENT SEED ONLY` — do
+      not load it into production
 - [ ] Product copy: descriptions, materials, care, fit
 - [ ] Policy wording for `/privacy`, `/terms`, `/shipping`, `/returns-policy`,
       and the `/about` page

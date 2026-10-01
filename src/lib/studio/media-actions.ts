@@ -261,6 +261,25 @@ export async function archiveMediaAction(
     };
   }
 
+  // Product photos link to the asset directly. Archiving one would silently
+  // take it off the product's page and every card.
+  const { data: productPhotos, error: productError } = await db
+    .from("product_media")
+    .select("products(title)")
+    .eq("media_asset_id", assetId);
+
+  if (productError) return { ok: false, message: productError.message };
+
+  if ((productPhotos ?? []).length > 0) {
+    const titles = [
+      ...new Set((productPhotos ?? []).map((row) => row.products?.title).filter(Boolean)),
+    ];
+    return {
+      ok: false,
+      message: `This photo is on ${titles.join(", ") || "a product"}. Remove it from the product's Photos first.`,
+    };
+  }
+
   const { error } = await db
     .from("media_assets")
     .update({ archived_at: new Date().toISOString(), status: "archived" })

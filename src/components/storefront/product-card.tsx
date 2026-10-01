@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { MediaSlot } from "@/components/ui/media-slot";
-import { emptyMedia } from "@/lib/cms/sections";
+import { mainPhoto, photoSlot } from "@/lib/catalog/photos";
 import { STOCK_STATE_LABEL } from "@/lib/inventory/availability";
 import type { CatalogProduct } from "@/lib/catalog/queries";
 
@@ -42,7 +42,7 @@ export function ProductCard({
     <article className="group">
       <Link href={`/products/${product.handle}`} className="block">
         <MediaSlot
-          media={emptyMedia(product.title, product.title)}
+          media={photoSlot(mainPhoto(product.photos), product.title)}
           sizes={sizes}
           className="aspect-[4/5] w-full"
         />

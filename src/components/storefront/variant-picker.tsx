@@ -1,46 +1,49 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { addToCartAction } from "@/lib/cart/actions";
 import { formatPrice } from "@/components/storefront/product-card";
 import { STOCK_STATE_LABEL } from "@/lib/inventory/availability";
 import type { CatalogProduct, CatalogVariant } from "@/lib/catalog/queries";
+import { chooseValue, optionNamesOf, valueStates } from "@/lib/catalog/variant-choice";
 
 /**
  * Variant selection and add-to-cart.
  *
- * A Client Component because it is genuinely interactive; everything around it
- * on the PDP stays a Server Component (Master Spec §16.1).
+ * Controlled by the product page, which also moves the gallery to the photos
+ * of the chosen variant. Each option row changes that option and keeps the
+ * others (`lib/catalog/variant-choice.ts`), so every combination of a
+ * two-option product — Tee Size × Bag Color — can be reached.
  *
- * A sold-out variant is DISABLED BUT STILL LEGIBLE (Master Spec §5.1) — never
- * hidden, so the customer can see the size existed and simply is not available.
+ * A sold-out value is DISABLED BUT STILL LEGIBLE (Master Spec §5.1) — never
+ * hidden, so the customer can see it existed. A value that is only sold out
+ * in combination with the current choice stays tappable and moves the other
+ * choice to one that can be bought.
  *
  * Availability shown here is server-derived. It is display truth, not the
  * oversell guarantee: that is enforced atomically at reservation time.
  */
-export function VariantPicker({ product }: { product: CatalogProduct }) {
-  const optionNames = useMemo(() => {
-    const names: string[] = [];
-    for (const variant of product.variants) {
-      for (const name of Object.keys(variant.options)) {
-        if (!names.includes(name)) names.push(name);
-      }
-    }
-    return names;
-  }, [product.variants]);
-
-  const firstAvailable =
-    product.variants.find((v) => v.purchasable) ?? product.variants[0];
-
-  const [selectedId, setSelectedId] = useState<string | undefined>(
-    firstAvailable?.id,
-  );
+export function VariantPicker({
+  product,
+  selected,
+  onSelect,
+}: {
+  product: CatalogProduct;
+  selected: CatalogVariant | undefined;
+  onSelect: (variant: CatalogVariant) => void;
+}) {
+  const optionNames = optionNamesOf(product.variants);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
-  const selected = product.variants.find((v) => v.id === selectedId);
+  function select(variant: CatalogVariant | undefined) {
+    if (!variant) return;
+    setAdded(false);
+    setMessage(null);
+    onSelect(variant);
+  }
 
   function handleAdd() {
     if (!selected) return;
@@ -59,9 +62,7 @@ export function VariantPicker({ product }: { product: CatalogProduct }) {
   }
 
   if (product.variants.length === 0) {
-    return (
-      <p className="label text-state-critical">Unavailable</p>
-    );
+    return <p className="label text-state-critical">Unavailable</p>;
   }
 
   // Single-variant products need no picker, just a price and a button.
@@ -75,13 +76,44 @@ export function VariantPicker({ product }: { product: CatalogProduct }) {
 
       {showPicker
         ? optionNames.map((optionName) => (
-            <OptionRow
-              key={optionName}
-              optionName={optionName}
-              variants={product.variants}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
+            <fieldset key={optionName} className="mt-8">
+              <legend className="label text-ink-subtle">
+                {optionName}
+                {selected?.options[optionName] ? (
+                  <span className="ml-3 text-ink">{selected.options[optionName]}</span>
+                ) : null}
+              </legend>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {valueStates(product.variants, selected, optionName).map((state) => (
+                  <button
+                    key={state.value}
+                    type="button"
+                    onClick={() => select(chooseValue(product.variants, selected, optionName, state.value))}
+                    disabled={!state.available}
+                    aria-pressed={state.selected}
+                    aria-label={
+                      state.available
+                        ? state.value
+                        : `${state.value}, sold out`
+                    }
+                    className={[
+                      "label min-h-11 min-w-14 border px-5 py-3 transition-colors duration-[var(--animate-duration-fast)]",
+                      state.selected
+                        ? "border-ink bg-ink text-inverse-ink"
+                        : state.availableWithCurrent
+                          ? "border-line-strong text-ink hover:border-ink"
+                          : "border-line-strong text-ink-muted hover:border-ink",
+                      // Sold out everywhere stays readable: dimmed and struck, never removed.
+                      !state.available
+                        ? "cursor-not-allowed border-line text-ink-disabled line-through hover:border-line"
+                        : "",
+                    ].join(" ")}
+                  >
+                    {state.value}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
           ))
         : null}
 
@@ -118,60 +150,5 @@ export function VariantPicker({ product }: { product: CatalogProduct }) {
         ) : null}
       </p>
     </div>
-  );
-}
-
-function OptionRow({
-  optionName,
-  variants,
-  selectedId,
-  onSelect,
-}: {
-  optionName: string;
-  variants: CatalogVariant[];
-  selectedId: string | undefined;
-  onSelect: (id: string) => void;
-}) {
-  // Distinct values for this option, in variant order.
-  const values: { value: string; variant: CatalogVariant }[] = [];
-  for (const variant of variants) {
-    const value = variant.options[optionName];
-    if (!value) continue;
-    if (values.some((v) => v.value === value)) continue;
-    values.push({ value, variant });
-  }
-
-  if (values.length === 0) return null;
-
-  return (
-    <fieldset className="mt-8">
-      <legend className="label text-ink-subtle">{optionName}</legend>
-      <div className="mt-4 flex flex-wrap gap-3">
-        {values.map(({ value, variant }) => {
-          const isSelected = variant.id === selectedId;
-          return (
-            <button
-              key={value}
-              type="button"
-              onClick={() => onSelect(variant.id)}
-              disabled={!variant.purchasable}
-              aria-pressed={isSelected}
-              className={[
-                "label min-w-14 border px-5 py-3 transition-colors duration-[var(--animate-duration-fast)]",
-                isSelected
-                  ? "border-ink bg-ink text-inverse-ink"
-                  : "border-line-strong text-ink hover:border-ink",
-                // Sold out stays readable: dimmed and struck, never removed.
-                !variant.purchasable
-                  ? "cursor-not-allowed border-line text-ink-disabled line-through hover:border-line"
-                  : "",
-              ].join(" ")}
-            >
-              {value}
-            </button>
-          );
-        })}
-      </div>
-    </fieldset>
   );
 }

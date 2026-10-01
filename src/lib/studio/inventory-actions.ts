@@ -13,7 +13,7 @@ import type { Enums } from "@/lib/db/generated.types";
  * Defence in depth, deliberately doubled:
  *   1. `requireStudioOwner()` re-verifies authorization server-side. A hidden
  *      or disabled button is never authorization (Master Spec §16.1).
- *   2. `studio_adjust_inventory` re-verifies ownership again inside PostgreSQL,
+ *   2. `studio_adjust_inventory` re-verifies the named owner inside PostgreSQL,
  *      rejects system-only reasons, takes a row lock, and writes the
  *      append-only movement record in the same transaction.
  *
@@ -42,8 +42,9 @@ export async function adjustInventoryAction(
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid adjustment" };
   }
 
+  let actor: string;
   try {
-    await requireStudioOwner();
+    actor = (await requireStudioOwner()).userId;
   } catch (error) {
     if (error instanceof StudioAuthorizationError) {
       return { ok: false, message: "Studio authorization required." };
@@ -60,6 +61,10 @@ export async function adjustInventoryAction(
     p_delta_on_hand: delta,
     p_reason: reason as Enums<"inventory_reason">,
     p_note: note?.trim() ? note.trim() : undefined,
+    // The service-role client carries no user, so the owner is named here and
+    // re-checked against studio_users inside the function (migration 0017).
+    // Before that, auth.uid() was always null and every adjustment failed.
+    p_actor: actor,
   });
 
   if (error) {

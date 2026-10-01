@@ -11,10 +11,11 @@ export function ProductTabs({
   active,
 }: {
   productId: string;
-  active: "general" | "variants" | "fulfillment";
+  active: "general" | "photos" | "variants" | "fulfillment";
 }) {
   const tabs = [
     { key: "general", label: "General", href: `/studio/products/${productId}` },
+    { key: "photos", label: "Photos", href: `/studio/products/${productId}/photos` },
     {
       key: "variants",
       label: "Variants",

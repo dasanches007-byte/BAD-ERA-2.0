@@ -5,6 +5,7 @@ import type { Enums } from "@/lib/db/generated.types";
 import { stockState, type StockState } from "@/lib/inventory/availability";
 import { resolveSellableQuantities } from "@/lib/catalog/availability-lookup";
 import { getStockThresholds } from "@/lib/settings/store";
+import { PUBLIC_BUCKET } from "@/lib/studio/media-types";
 
 /**
  * Storefront catalog reads.
@@ -38,6 +39,17 @@ export type CatalogVariant = {
   options: Record<string, string>;
 };
 
+/**
+ * A product photo, as the storefront needs it: where it is, what it shows,
+ * where to crop, and the one variant it belongs to (null: every variant).
+ */
+export type CatalogPhoto = {
+  url: string;
+  alt: string;
+  focal: { x: number; y: number };
+  variantId: string | null;
+};
+
 /** Customer-safe product projection. */
 export type CatalogProduct = {
   id: string;
@@ -52,6 +64,8 @@ export type CatalogProduct = {
   seoTitle: string | null;
   seoDescription: string | null;
   variants: CatalogVariant[];
+  /** In the owner's order; the first is the main photo. Empty: placeholder. */
+  photos: CatalogPhoto[];
   /** True when no variant can currently be bought. */
   soldOut: boolean;
 };
@@ -126,6 +140,57 @@ async function resolveOptions(
   return byVariant;
 }
 
+/**
+ * Photos for each product, in order.
+ *
+ * Only what the storefront can show: public, unarchived images. The asset's
+ * description is the alt text, falling back to the product's title so no
+ * product image is ever announced as nothing.
+ */
+async function resolvePhotos(
+  products: { id: string; title: string }[],
+): Promise<Map<string, CatalogPhoto[]>> {
+  const byProduct = new Map<string, CatalogPhoto[]>();
+  if (products.length === 0) return byProduct;
+
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("product_media")
+    .select(
+      "product_id, variant_id, position, focal_x, focal_y, created_at, media_assets(bucket, storage_path, alt_text, kind, archived_at)",
+    )
+    .in(
+      "product_id",
+      products.map((p) => p.id),
+    )
+    .order("position")
+    .order("created_at");
+  if (error) throw error;
+
+  const titles = new Map(products.map((p) => [p.id, p.title]));
+  for (const row of data ?? []) {
+    const asset = row.media_assets;
+    if (!asset || asset.bucket !== PUBLIC_BUCKET || asset.archived_at || asset.kind !== "image") {
+      continue;
+    }
+    const list = byProduct.get(row.product_id) ?? [];
+    list.push({
+      url: db.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl,
+      alt: asset.alt_text?.trim() || titles.get(row.product_id) || "",
+      focal: { x: unit(row.focal_x), y: unit(row.focal_y) },
+      variantId: row.variant_id,
+    });
+    byProduct.set(row.product_id, list);
+  }
+  return byProduct;
+}
+
+/** A stored 0..1 focal coordinate, centred when unset. */
+function unit(value: number | null): number {
+  const n = Number(value);
+  return value === null || !Number.isFinite(n) ? 0.5 : Math.min(1, Math.max(0, n));
+}
+
 async function buildVariants(rows: VariantRow[]): Promise<CatalogVariant[]> {
   const active = rows.filter((r) => r.active);
   const [availability, options, thresholds] = await Promise.all([
@@ -179,7 +244,10 @@ export async function getProductByHandle(
     .eq("product_id", product.id);
   if (variantError) throw variantError;
 
-  const variants = await buildVariants((variantRows ?? []) as VariantRow[]);
+  const [variants, photos] = await Promise.all([
+    buildVariants((variantRows ?? []) as VariantRow[]),
+    resolvePhotos([product]),
+  ]);
   const isBundle = product.kind === "bundle";
 
   return {
@@ -195,6 +263,7 @@ export async function getProductByHandle(
     seoTitle: product.seo_title,
     seoDescription: product.seo_description,
     variants: variants.map((v) => ({ ...v, isBundle })),
+    photos: photos.get(product.id) ?? [],
     soldOut: variants.length > 0 && variants.every((v) => !v.purchasable),
   };
 }
@@ -220,7 +289,10 @@ export async function listActiveProducts(): Promise<CatalogProduct[]> {
     );
   if (variantError) throw variantError;
 
-  const allVariants = await buildVariants((variantRows ?? []) as VariantRow[]);
+  const [allVariants, photos] = await Promise.all([
+    buildVariants((variantRows ?? []) as VariantRow[]),
+    resolvePhotos(products),
+  ]);
   const byProduct = new Map<string, CatalogVariant[]>();
   for (const row of (variantRows ?? []) as VariantRow[]) {
     const built = allVariants.find((v) => v.id === row.id);
@@ -248,6 +320,7 @@ export async function listActiveProducts(): Promise<CatalogProduct[]> {
       seoTitle: product.seo_title,
       seoDescription: product.seo_description,
       variants,
+      photos: photos.get(product.id) ?? [],
       soldOut: variants.length > 0 && variants.every((v) => !v.purchasable),
     };
   });

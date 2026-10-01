@@ -3,8 +3,8 @@ import Link from "next/link";
 import { ProductCard, formatPrice } from "@/components/storefront/product-card";
 import { MediaSlot } from "@/components/ui/media-slot";
 import { Cta } from "@/components/sections";
+import { mainPhoto, photoSlot } from "@/lib/catalog/photos";
 import { editAttrs } from "@/lib/cms/edit-targets";
-import { emptyMedia } from "@/lib/cms/sections";
 import type {
   Archive01FeatureSection,
   ProductRailSection,
@@ -145,7 +145,7 @@ function ArchiveCard({ product }: { product: CatalogProduct }) {
     <article className="glow-shelf hairline group flex flex-col bg-surface-raised">
       <div className="relative">
         <MediaSlot
-          media={emptyMedia(product.title, product.title)}
+          media={photoSlot(mainPhoto(product.photos), product.title)}
           sizes="(min-width: 768px) 33vw, 100vw"
           className="aspect-square w-full"
         />

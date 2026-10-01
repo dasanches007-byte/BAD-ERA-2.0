@@ -21,7 +21,7 @@ export async function listMedia(): Promise<MediaAsset[]> {
   const { data, error } = await db
     .from("media_assets")
     .select(
-      "id, bucket, storage_path, original_filename, mime_type, byte_size, width, height, alt_text, status, kind, created_at, media_asset_usages(id)",
+      "id, bucket, storage_path, original_filename, mime_type, byte_size, width, height, alt_text, status, kind, created_at, media_asset_usages(id), product_media(id)",
     )
     .is("archived_at", null)
     .order("created_at", { ascending: false });
@@ -29,7 +29,9 @@ export async function listMedia(): Promise<MediaAsset[]> {
   if (error) throw error;
 
   return (data ?? []).map((m) => {
-    const usages = (m.media_asset_usages ?? []) as { id: string }[];
+    // Product photos link straight to the asset rather than through
+    // media_asset_usages, so both count as "in use".
+    const usages = [...(m.media_asset_usages ?? []), ...(m.product_media ?? [])];
     return {
       id: m.id,
       bucket: m.bucket,
