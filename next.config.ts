@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import type { NextConfig } from "next";
 
 /**
@@ -47,10 +49,62 @@ function supabaseImagePattern() {
  * A wildcard like `*.app.github.dev` would let ANY Codespace on GitHub post
  * Server Actions to this one.
  */
+/**
+ * GitHub writes every Codespace's default variables to this file. It is the
+ * fallback for when the process that started `next dev` did not inherit them.
+ */
+const CODESPACES_ENV_FILE =
+  "/workspaces/.codespaces/shared/environment-variables.json";
+
+function readCodespaceVars(): { name: string; domain: string } {
+  let name = process.env.CODESPACE_NAME ?? "";
+  let domain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN ?? "";
+
+  if (!name || !domain) {
+    try {
+      const vars = JSON.parse(readFileSync(CODESPACES_ENV_FILE, "utf8")) as Record<
+        string,
+        unknown
+      >;
+      if (!name && typeof vars.CODESPACE_NAME === "string") {
+        name = vars.CODESPACE_NAME;
+      }
+      if (!domain && typeof vars.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN === "string") {
+        domain = vars.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN;
+      }
+    } catch {
+      // No file: not a Codespace, or not one that writes it. Nothing to add.
+    }
+  }
+
+  return { name, domain };
+}
+
+/**
+ * Resolution order, each step only filling what the previous left empty:
+ *
+ *   1. the process environment
+ *   2. GitHub's environment-variables.json inside the Codespace
+ *   3. for the DOMAIN only, GitHub's current forwarding domain
+ *
+ * Found the hard way: in a real Codespace the first version, which required
+ * both variables from the environment, allowed nothing — sign-in still failed
+ * with E80 — while a simulated Codespace with both variables set passed. The
+ * startup script printed a correct-looking address throughout because it
+ * already defaulted the domain; this function did not.
+ *
+ * The domain default only ever applies once a Codespace NAME has been found,
+ * so production and local builds still resolve to nothing.
+ */
 function codespaceOrigins(): string[] {
-  const name = process.env.CODESPACE_NAME;
-  const domain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN;
-  if (!name || !domain) return [];
+  const { name, domain: rawDomain } = readCodespaceVars();
+  if (!name) return [];
+  const domain = rawDomain || "app.github.dev";
+
+  // Exact host only. Anything that is not a plain DNS name is refused rather
+  // than passed to Next's matcher, where `*` would become a wildcard.
+  if (!/^[a-z0-9-]+$/i.test(name) || !/^[a-z0-9.-]+$/i.test(domain)) return [];
+
   return [`${name}-3000.${domain}`];
 }
 

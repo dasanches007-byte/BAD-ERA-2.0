@@ -9,13 +9,45 @@ set -uo pipefail
 
 BOLD=$'\033[1m'; DIM=$'\033[2m'; RED=$'\033[31m'; GREEN=$'\033[32m'; OFF=$'\033[0m'
 
+# Resolve this Codespace's name and forwarding domain the same way
+# next.config.ts does: environment first, then the file GitHub writes into
+# every Codespace, then (domain only) GitHub's standard forwarding domain.
+# The results are exported so `next dev` inherits them explicitly instead of
+# depending on whatever environment this script happened to be started with.
+CS_FILE=/workspaces/.codespaces/shared/environment-variables.json
+cs_var() {
+  local value="${!1:-}"
+  if [ -z "$value" ] && [ -r "$CS_FILE" ]; then
+    value=$(node -e "const v=require('$CS_FILE')['$1'];process.stdout.write(typeof v==='string'?v:'')" 2>/dev/null)
+  fi
+  printf '%s' "$value"
+}
+CS_NAME="$(cs_var CODESPACE_NAME)"
+CS_DOMAIN="$(cs_var GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN)"
+IN_CODESPACE=""
+if [ -n "${CODESPACES:-}" ] || [ -e "$CS_FILE" ] || [ -n "$CS_NAME" ]; then IN_CODESPACE=1; fi
+
 # Codespaces reaches the dev server through a forwarded address, not localhost.
 # Sign-in redirects and Stripe return URLs are built from NEXT_PUBLIC_SITE_URL,
 # so it must be that forwarded address or they land on a dead page.
-if [ -n "${CODESPACE_NAME:-}" ]; then
-  export NEXT_PUBLIC_SITE_URL="https://${CODESPACE_NAME}-3000.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}"
+if [ -n "$CS_NAME" ]; then
+  CS_DOMAIN="${CS_DOMAIN:-app.github.dev}"
+  export CODESPACE_NAME="$CS_NAME"
+  export GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN="$CS_DOMAIN"
+  export NEXT_PUBLIC_SITE_URL="https://${CS_NAME}-3000.${CS_DOMAIN}"
 fi
 SITE="${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}"
+
+# One line that says exactly which address sign-in will accept, so a mismatch
+# is visible on screen instead of surfacing later as an opaque E80.
+if [ -n "$CS_NAME" ]; then
+  SIGNIN_LINE="${DIM}Sign-in accepted from  ${CS_NAME}-3000.${CS_DOMAIN}${OFF}"
+elif [ -n "$IN_CODESPACE" ]; then
+  SIGNIN_LINE="${RED}${BOLD}Couldn't find this Codespace's name, so sign-in will be refused.${OFF}
+${RED}Take a screenshot of this message and send it to Claude.${OFF}"
+else
+  SIGNIN_LINE=""
+fi
 
 port_in_use() { (exec 3<>/dev/tcp/127.0.0.1/3000) 2>/dev/null; }
 
@@ -47,6 +79,7 @@ ${GREEN}${BOLD}BAD ERA is already running.${OFF}
 
   Studio       ${SITE}/studio
   Storefront   ${SITE}
+${SIGNIN_LINE}
 
 ${DIM}Just pulled new code? Run:  bash .devcontainer/start.sh --restart${OFF}
 
@@ -88,6 +121,7 @@ ${GREEN}${BOLD}Starting BAD ERA…${OFF}  ${DIM}(first page load compiles, give 
 
   Studio       ${SITE}/studio
   Storefront   ${SITE}
+${SIGNIN_LINE}
 
 ${DIM}A browser tab opens by itself once it is ready. If it does not, open the
 PORTS tab, find port 3000, and tap the globe icon.
