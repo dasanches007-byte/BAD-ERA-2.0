@@ -292,7 +292,9 @@ function PhotoRow({
 
   return (
     <li className="px-4 py-4 sm:px-6">
-      <div className="flex items-center gap-4">
+      {/* Phone: photo and words on one line, the controls on the next, so the
+          words are never squeezed into a sliver. Wider screens: one line. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="relative aspect-[4/5] w-20 shrink-0 overflow-hidden bg-surface-inset sm:w-24">
           <Image
             src={photo.url}
@@ -303,27 +305,27 @@ function PhotoRow({
             style={{ objectPosition: `${focal.x * 100}% ${focal.y * 100}%` }}
           />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-40">
           <p className="label text-ink">{index === 0 ? "Main photo" : `Photo ${index + 1}`}</p>
-          <p className="mt-1 truncate text-xs text-ink-subtle">Shown for: {shownFor}</p>
+          <p className="mt-1 text-xs text-ink-subtle">Shown for: {shownFor}</p>
           {!photo.alt ? <p className="mt-1 text-xs text-state-warning">No description yet</p> : null}
         </div>
-        <div className="flex shrink-0 flex-col gap-1 sm:flex-row">
+        <div className="flex w-full shrink-0 gap-2 sm:w-auto">
           <IconButton label="Move earlier" disabled={busy || index === 0} onClick={() => onMove(-1)}>
             ↑
           </IconButton>
           <IconButton label="Move later" disabled={busy || index === count - 1} onClick={() => onMove(1)}>
             ↓
           </IconButton>
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={onToggle}
+            className="label min-h-11 flex-1 border border-line-strong px-4 text-ink-muted transition-colors hover:border-ink hover:text-ink sm:flex-none"
+          >
+            {open ? "Done" : "Edit"}
+          </button>
         </div>
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={onToggle}
-          className="label min-h-11 shrink-0 border border-line-strong px-4 text-ink-muted transition-colors hover:border-ink hover:text-ink"
-        >
-          {open ? "Done" : "Edit"}
-        </button>
       </div>
 
       {open ? (
