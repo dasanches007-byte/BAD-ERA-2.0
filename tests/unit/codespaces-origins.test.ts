@@ -3,17 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * GitHub Codespaces origin allowance (next.config.ts).
  *
- * Inside a Codespace the browser's Origin is `<name>-3000.app.github.dev` while
- * Next sees `x-forwarded-host: localhost:3000`. Without an allowance, Next's
- * Server Actions CSRF check aborts every action — sign-in included — with
- * E80 "Invalid Server Actions request".
+ * Behind the Codespaces port-forwarding proxy, Next's Server Actions CSRF check
+ * sees an Origin that does not match `x-forwarded-host`, and aborts every
+ * action — sign-in included — with E80 "Invalid Server Actions request".
  *
- * The first version required BOTH variables from the process environment. A
- * simulated Codespace with both set passed; the owner's real Codespace still
- * failed with E80. These tests pin the resolution order that replaced it —
- * environment, then GitHub's environment-variables.json, then the standard
- * domain — and keep the two properties that must never regress: exactly this
- * Codespace's address, and nothing at all outside a Codespace.
+ * It took three attempts. The first two allowed the Codespace's own address as
+ * an Origin, which is what a simulated proxy sent. A real Codespace rewrites
+ * Origin to `localhost:3000` and forwards the Codespace address as
+ * `x-forwarded-host`, so the owner's sign-in kept failing on a fresh Codespace.
+ * These tests pin the allowance that matches the real proxy, and the
+ * properties that must never regress: nothing at all outside a Codespace, and
+ * never a wildcard.
  */
 
 const CODESPACES_ENV_FILE = "/workspaces/.codespaces/shared/environment-variables.json";
@@ -40,7 +40,7 @@ type Config = {
   experimental?: { serverActions?: { allowedOrigins?: string[] } };
 };
 
-const ENV_KEYS = ["CODESPACE_NAME", "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"];
+const ENV_KEYS = ["CODESPACES", "CODESPACE_NAME", "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"];
 const saved: Record<string, string | undefined> = {};
 
 async function loadConfig(): Promise<Config> {
@@ -79,26 +79,55 @@ describe("outside a Codespace", () => {
     process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN = "app.github.dev";
     expect(allowed(await loadConfig())).toEqual([]);
   });
+
+  it("never accepts a localhost Origin in production or a local build", async () => {
+    process.env.CODESPACES = "false";
+    fsState.file = JSON.stringify({ CODESPACES: "false" });
+    expect(allowed(await loadConfig())).not.toContain("localhost:3000");
+  });
 });
 
 describe("inside a Codespace", () => {
-  it("uses both variables from the environment when present", async () => {
+  /**
+   * The case that broke sign-in for real, on two fresh Codespaces: Next logged
+   * "`x-forwarded-host` header with value `<name>-3000.app.github.dev` does
+   * not match `origin` header with value `localhost:3000`".
+   */
+  it("accepts the localhost Origin the Codespaces proxy substitutes", async () => {
+    process.env.CODESPACES = "true";
+    process.env.CODESPACE_NAME = "solid-space-abc123";
+    process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN = "app.github.dev";
+    expect(allowed(await loadConfig())).toContain("localhost:3000");
+  });
+
+  it("does not need the Codespace name to accept the proxy's Origin", async () => {
+    process.env.CODESPACES = "true";
+    const config = await loadConfig();
+    expect(allowed(config)).toEqual(["localhost:3000"]);
+    // Nothing to list for dev resources without an address; localhost is
+    // always allowed by Next itself.
+    expect(config.allowedDevOrigins).toEqual([]);
+  });
+
+  it("recognises a Codespace from GitHub's variables file alone", async () => {
+    fsState.file = JSON.stringify({ CODESPACES: "true" });
+    expect(allowed(await loadConfig())).toEqual(["localhost:3000"]);
+  });
+
+  it("also keeps this Codespace's own address, for a proxy that passes Origin through", async () => {
     process.env.CODESPACE_NAME = "fuzzy-space";
     process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN = "app.github.dev";
     const config = await loadConfig();
 
-    expect(allowed(config)).toEqual(["fuzzy-space-3000.app.github.dev"]);
+    expect(allowed(config)).toEqual(["fuzzy-space-3000.app.github.dev", "localhost:3000"]);
     expect(config.allowedDevOrigins).toEqual(["fuzzy-space-3000.app.github.dev"]);
   });
 
-  /**
-   * The case that broke sign-in for real: the name reached `next dev` but the
-   * forwarding domain did not. The old code required both and allowed nothing.
-   */
-  it("still allows this Codespace when only the name reached the environment", async () => {
+  it("defaults the domain when only the name reached the environment", async () => {
     process.env.CODESPACE_NAME = "ominous-train-5vgpv44qpjrgf74pv";
     expect(allowed(await loadConfig())).toEqual([
       "ominous-train-5vgpv44qpjrgf74pv-3000.app.github.dev",
+      "localhost:3000",
     ]);
   });
 
@@ -109,20 +138,21 @@ describe("inside a Codespace", () => {
     });
     expect(allowed(await loadConfig())).toEqual([
       "ominous-train-5vgpv44qpjrgf74pv-3000.app.github.dev",
+      "localhost:3000",
     ]);
   });
 
   it("takes the domain from the file when only the name is in the environment", async () => {
     process.env.CODESPACE_NAME = "fuzzy-space";
     fsState.file = JSON.stringify({ GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN: "example.dev" });
-    expect(allowed(await loadConfig())).toEqual(["fuzzy-space-3000.example.dev"]);
+    expect(allowed(await loadConfig())).toEqual(["fuzzy-space-3000.example.dev", "localhost:3000"]);
   });
 
   it("prefers the environment over the file", async () => {
     process.env.CODESPACE_NAME = "from-env";
     process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN = "app.github.dev";
     fsState.file = JSON.stringify({ CODESPACE_NAME: "from-file" });
-    expect(allowed(await loadConfig())).toEqual(["from-env-3000.app.github.dev"]);
+    expect(allowed(await loadConfig())).toEqual(["from-env-3000.app.github.dev", "localhost:3000"]);
   });
 
   it("ignores a corrupt variables file instead of crashing the server", async () => {
@@ -135,7 +165,9 @@ describe("never a wildcard", () => {
   it.each(["*", "**", "a*b", "evil.example", "x/y", "name space"])(
     "refuses a malformed Codespace name: %j",
     async (name) => {
+      process.env.CODESPACES = "true";
       process.env.CODESPACE_NAME = name;
+      // Not what a Codespace looks like: allow nothing rather than guess.
       expect(allowed(await loadConfig())).toEqual([]);
     },
   );
@@ -147,6 +179,7 @@ describe("never a wildcard", () => {
   });
 
   it("never emits a `*` in any resolved origin", async () => {
+    process.env.CODESPACES = "true";
     process.env.CODESPACE_NAME = "fuzzy-space";
     const config = await loadConfig();
     for (const origin of [...(config.allowedDevOrigins ?? []), ...(allowed(config) ?? [])]) {

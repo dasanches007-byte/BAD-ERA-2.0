@@ -25,7 +25,11 @@ cs_var() {
 CS_NAME="$(cs_var CODESPACE_NAME)"
 CS_DOMAIN="$(cs_var GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN)"
 IN_CODESPACE=""
-if [ -n "${CODESPACES:-}" ] || [ -e "$CS_FILE" ] || [ -n "$CS_NAME" ]; then IN_CODESPACE=1; fi
+if [ "${CODESPACES:-}" = "true" ] || [ -e "$CS_FILE" ] || [ -n "$CS_NAME" ]; then IN_CODESPACE=1; fi
+
+# next.config.ts recognises a Codespace by CODESPACES=true. Exporting it keeps
+# the two in agreement even when only the variables file gave us away.
+if [ -n "$IN_CODESPACE" ]; then export CODESPACES=true; fi
 
 # Codespaces reaches the dev server through a forwarded address, not localhost.
 # Sign-in redirects and Stripe return URLs are built from NEXT_PUBLIC_SITE_URL,
@@ -38,13 +42,15 @@ if [ -n "$CS_NAME" ]; then
 fi
 SITE="${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}"
 
-# One line that says exactly which address sign-in will accept, so a mismatch
-# is visible on screen instead of surfacing later as an opaque E80.
+# One line that says which origins sign-in will accept, so a mismatch is
+# visible on screen instead of surfacing later as an opaque E80. The proxy
+# rewrites the browser's Origin to localhost:3000, which is the one that
+# matters; the Codespace's own address is accepted too.
 if [ -n "$CS_NAME" ]; then
-  SIGNIN_LINE="${DIM}Sign-in accepted from  ${CS_NAME}-3000.${CS_DOMAIN}${OFF}"
+  SIGNIN_LINE="${DIM}Sign-in accepted from  localhost:3000 (the Codespaces proxy) and ${CS_NAME}-3000.${CS_DOMAIN}${OFF}"
 elif [ -n "$IN_CODESPACE" ]; then
-  SIGNIN_LINE="${RED}${BOLD}Couldn't find this Codespace's name, so sign-in will be refused.${OFF}
-${RED}Take a screenshot of this message and send it to Claude.${OFF}"
+  SIGNIN_LINE="${DIM}Sign-in accepted from  localhost:3000 (the Codespaces proxy)${OFF}
+${DIM}Couldn't find this Codespace's name, so links in emails may point at localhost.${OFF}"
 else
   SIGNIN_LINE=""
 fi

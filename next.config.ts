@@ -30,25 +30,33 @@ function supabaseImagePattern() {
 }
 
 /**
- * The public address of this dev server when it runs inside GitHub Codespaces,
- * or nothing anywhere else.
+ * Server Actions inside GitHub Codespaces.
  *
- * Codespaces reaches the dev server through a port-forwarding proxy, so the
- * browser's Origin is `<codespace>-3000.app.github.dev` while the request Next
- * sees carries `x-forwarded-host: localhost:3000`. Two Next.js guards treat
- * that mismatch as an attack:
+ * Codespaces reaches the dev server through a port-forwarding proxy, and Next's
+ * Server Actions CSRF check compares the request's Origin with its
+ * `x-forwarded-host`. Behind that proxy they never agree, so every action —
+ * sign-in included — aborts with a bare "Invalid Server Actions request" (E80).
  *
- *   - the Server Actions CSRF check aborts every action — sign-in included —
- *     with a bare "Invalid Server Actions request" (reproduced: HTTP 500)
- *   - the dev server's cross-site block refuses the live-reload connection
+ * Which way round they disagree is the part that went wrong twice. The first
+ * two fixes assumed the browser's Origin (`<codespace>-3000.app.github.dev`)
+ * arrived intact with `x-forwarded-host: localhost:3000`, and allowed the
+ * Codespace address. A real Codespace sends the reverse: the proxy rewrites
+ * Origin to `localhost:3000` and forwards the Codespace address as
+ * `x-forwarded-host`. Next logs exactly that, and reproducing it here returned
+ * HTTP 500 while the simulated direction passed. So the fix that matters is
+ * accepting `localhost:3000` as an Origin — inside a Codespace only.
  *
- * Both are right to be strict, so the allowance is as narrow as it can be:
- * exactly this one Codespace's address, read from variables GitHub sets inside
- * the Codespace. Outside a Codespace the list is empty, which means production
- * and local builds keep Next's default same-origin-only behaviour untouched.
- * A wildcard like `*.app.github.dev` would let ANY Codespace on GitHub post
+ * Why that is safe there, and only there: production never runs inside a
+ * Codespace, so outside one this list is empty and Next keeps its default
+ * same-origin-only check. Inside one, the forwarded port is private to the
+ * owner's GitHub login, and the Supabase session cookie is SameSite=Lax, so a
+ * cross-site POST carries no session to act with. The Codespace's own address
+ * stays on the list for a proxy that does pass Origin through.
+ *
+ * Never a wildcard: `*.app.github.dev` would let ANY Codespace on GitHub post
  * Server Actions to this one.
  */
+
 /**
  * GitHub writes every Codespace's default variables to this file. It is the
  * fallback for when the process that started `next dev` did not inherit them.
@@ -56,11 +64,28 @@ function supabaseImagePattern() {
 const CODESPACES_ENV_FILE =
   "/workspaces/.codespaces/shared/environment-variables.json";
 
-function readCodespaceVars(): { name: string; domain: string } {
+/** The port `.devcontainer` forwards and `next dev` listens on. */
+const DEV_PORT = 3000;
+
+type CodespaceVars = { inCodespace: boolean; name: string; domain: string };
+
+/**
+ * Resolution order, each step only filling what the previous left empty:
+ *
+ *   1. the process environment
+ *   2. GitHub's environment-variables.json inside the Codespace
+ *   3. for the DOMAIN only, GitHub's current forwarding domain
+ *
+ * `CODESPACES=true` alone is enough to know we are in one: the localhost
+ * allowance does not need the name, so sign-in no longer depends on the name
+ * reaching `next dev` at all.
+ */
+function readCodespaceVars(): CodespaceVars {
   let name = process.env.CODESPACE_NAME ?? "";
   let domain = process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN ?? "";
+  let flagged = process.env.CODESPACES === "true";
 
-  if (!name || !domain) {
+  if (!name || !domain || !flagged) {
     try {
       const vars = JSON.parse(readFileSync(CODESPACES_ENV_FILE, "utf8")) as Record<
         string,
@@ -72,51 +97,53 @@ function readCodespaceVars(): { name: string; domain: string } {
       if (!domain && typeof vars.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN === "string") {
         domain = vars.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN;
       }
+      if (vars.CODESPACES === "true") flagged = true;
     } catch {
       // No file: not a Codespace, or not one that writes it. Nothing to add.
     }
   }
 
-  return { name, domain };
+  return { inCodespace: flagged || name !== "", name, domain };
 }
 
 /**
- * Resolution order, each step only filling what the previous left empty:
- *
- *   1. the process environment
- *   2. GitHub's environment-variables.json inside the Codespace
- *   3. for the DOMAIN only, GitHub's current forwarding domain
- *
- * Found the hard way: in a real Codespace the first version, which required
- * both variables from the environment, allowed nothing — sign-in still failed
- * with E80 — while a simulated Codespace with both variables set passed. The
- * startup script printed a correct-looking address throughout because it
- * already defaulted the domain; this function did not.
- *
- * The domain default only ever applies once a Codespace NAME has been found,
- * so production and local builds still resolve to nothing.
+ * This Codespace's own public host, or null. Exact host only: anything that is
+ * not a plain DNS name is refused rather than passed to Next's matcher, where
+ * `*` would become a wildcard.
  */
-function codespaceOrigins(): string[] {
-  const { name, domain: rawDomain } = readCodespaceVars();
-  if (!name) return [];
-  const domain = rawDomain || "app.github.dev";
-
-  // Exact host only. Anything that is not a plain DNS name is refused rather
-  // than passed to Next's matcher, where `*` would become a wildcard.
-  if (!/^[a-z0-9-]+$/i.test(name) || !/^[a-z0-9.-]+$/i.test(domain)) return [];
-
-  return [`${name}-3000.${domain}`];
+function codespaceHost({ name, domain }: CodespaceVars): string | null | "malformed" {
+  if (!name) return null;
+  const resolved = domain || "app.github.dev";
+  if (!/^[a-z0-9-]+$/i.test(name) || !/^[a-z0-9.-]+$/i.test(resolved)) return "malformed";
+  return `${name}-${DEV_PORT}.${resolved}`;
 }
+
+const codespace = readCodespaceVars();
+const host = codespaceHost(codespace);
+// A malformed name or domain means the environment is not what we think it is:
+// allow nothing rather than guess.
+const trusted = codespace.inCodespace && host !== "malformed";
+
+/** Origins whose Server Actions are accepted despite a host mismatch. */
+const serverActionOrigins: string[] = trusted
+  ? [...(host ? [host] : []), `localhost:${DEV_PORT}`]
+  : [];
+
+/**
+ * Dev-only resources (`/_next`, live reload) requested from the Codespace
+ * address. localhost is always allowed by Next, so only the host is listed.
+ */
+const devOrigins: string[] = trusted && host ? [host] : [];
 
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: supabaseImagePattern(),
   },
-  // Empty outside GitHub Codespaces — see codespaceOrigins().
-  allowedDevOrigins: codespaceOrigins(),
+  // Both empty outside GitHub Codespaces — see readCodespaceVars().
+  allowedDevOrigins: devOrigins,
   experimental: {
     serverActions: {
-      allowedOrigins: codespaceOrigins(),
+      allowedOrigins: serverActionOrigins,
     },
   },
 };

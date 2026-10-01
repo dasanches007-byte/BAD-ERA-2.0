@@ -451,6 +451,17 @@ vague so it can't be used to discover which emails have accounts.
 **"Too many sign-in attempts"** — the rate limit is 5 attempts per 5 minutes.
 Wait it out.
 
+**Codespace: "Invalid Server Actions request" or "Something went wrong… E80"
+when you sign in** — the Codespace is running code from before the fix. In the
+Codespace, open a new terminal (**☰ → Terminal → New Terminal**) and run:
+
+```
+git checkout -- . && git pull && bash .devcontainer/start.sh --restart
+```
+
+Then reload the sign-in tab. If it still fails, screenshot the terminal: the
+line containing "does not match `origin` header" says exactly what to change.
+
 **A page says "Could not load…"** — that's a real read failure, not an empty
 result. Check that your Supabase keys are right and the project isn't paused.
 Studio deliberately never shows "0" when the truth is "the query failed".
