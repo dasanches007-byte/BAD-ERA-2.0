@@ -178,6 +178,13 @@ against real PostgreSQL — static validation catches neither.
   Plus `studio_create_product`: product, options, variants, stock rows,
   starting-stock movements and set components in ONE transaction, always a
   draft, sizes S/M/L/XL only, a set never holds stock. Acceptance cases 19, 20.
+  **Live:** applied as `0017a/b/c` (function bodies verified identical by
+  md5). The repo's `drop` of the 0008 five-argument `studio_adjust_inventory`
+  needs the owner's confirmation in the Supabase tool, so on the live project
+  that old, unusable version still exists beside the new one. Every caller
+  passes `p_actor`, so PostgREST resolves to the new one. When the owner can
+  confirm, run: `drop function if exists public.studio_adjust_inventory(uuid,
+  uuid, integer, public.inventory_reason, text);`
 
 Migrations `0001-0009` are left byte-identical to the delivered package so their published
 SHA-256 checksums still verify.
