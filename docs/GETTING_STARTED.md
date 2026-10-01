@@ -28,15 +28,24 @@ if you would rather work on your own machine.
 | Password | The one set when the account was created in Supabase |
 | Studio URL | `/studio` (redirects you to `/sign-in` first) |
 
-You have **never signed in** — the account shows no sign-in history. If you
-don't remember the password, reset it:
+### Forgot your password?
 
-> Supabase dashboard → **Authentication** → **Users** → click your email →
-> **Reset password** (or send a magic link)
+Set a new one from your Codespace's terminal — no email needed:
 
-Do this through the dashboard, not by editing the database. Supabase's auth
-service owns password hashing, and hand-written auth rows create accounts that
-fail to sign in in confusing ways.
+```
+git pull && npm run owner:password
+```
+
+Type the new password, press Enter, then type it again. It shows as dots while
+you type. Then sign in with your email and the new password.
+
+> **Don't use "Send password recovery" in the Supabase dashboard yet.** That
+> email links to `localhost`, which a phone can't open, and the site has no
+> "choose a new password" page. The command above avoids email entirely.
+
+The command only works where your keys are set — your Codespace — and only
+changes a Studio owner's password. It goes through Supabase's own password
+system; never edit the `auth.users` table directly.
 
 ---
 
@@ -434,9 +443,10 @@ live. Nothing in this build has ever taken a payment.
 marked as an owner. Run `scripts/grant-studio-owner.sql` in the Supabase SQL
 editor with your email.
 
-**Sign-in says the email and password don't match** — reset the password from
-the Supabase dashboard. The message is deliberately vague so it can't be used to
-discover which emails have accounts.
+**Sign-in says the email and password don't match** — set a new password with
+`npm run owner:password` in your Codespace terminal (see
+[Forgot your password?](#forgot-your-password)). The message is deliberately
+vague so it can't be used to discover which emails have accounts.
 
 **"Too many sign-in attempts"** — the rate limit is 5 attempts per 5 minutes.
 Wait it out.

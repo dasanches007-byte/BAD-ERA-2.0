@@ -804,6 +804,13 @@ Rules that came out of this phase:
 - **`/checkout/cancelled` changes no state.** A browser hitting a URL is not a
   decision. The reservation is released by the verified `checkout.session.expired`
   event or the sweep, so a mis-click does not lose the customer their stock.
+- **An owner locked out uses `npm run owner:password`, not a recovery email.**
+  The recovery email links to the Site URL (localhost by default) and the app
+  has no set-new-password page; widening Auth's redirect allow-list to every
+  Codespace address would let a stranger's Codespace receive a recovery code.
+  The script runs where the service-role key already is, offers only active
+  `studio_users` owners, and calls the Auth admin API — never a hand-written
+  UPDATE on `auth.users`.
 - **Dead surface is removed, not left returning 501.** Six API routes
   superseded by Server Actions, plus `RouteShell`, `notImplemented`,
   `PREVIEW_SECRET` and the unlinked `/collections` stub.
