@@ -13,6 +13,7 @@ import {
   validateRevisionForPublish,
   writePublishAudit,
 } from "@/lib/cms/publish-core";
+import { CONTENT_TEMPLATE } from "@/lib/cms/edit-targets";
 import { parseSection } from "@/lib/cms/registry";
 import type { Json } from "@/lib/db/generated.types";
 
@@ -154,6 +155,81 @@ export async function saveSectionAction(input: {
 
   // Hand back the new token so the editor can keep saving without a reload.
   return { ok: true, version: updated?.[0]?.version };
+}
+
+/**
+ * Give an empty information page its one prose section, so there is
+ * something to write in.
+ *
+ * About, Privacy, Terms, Shipping, Returns and Support were registered with no
+ * sections (migration 0015), and the editors had no way to add one — so those
+ * pages could never actually be written. This adds exactly one `legal.prose`
+ * section to the DRAFT, headed with the page's own title and with an EMPTY
+ * body: Studio never supplies policy wording (no placeholder legal text). The
+ * page stays unpublished until the owner writes it and presses Publish.
+ *
+ * Idempotent: a draft that already has a section is left alone.
+ */
+export async function startPageContentAction(input: {
+  pageId: string;
+  revisionId: string;
+}): Promise<EditorResult> {
+  const auth = await assertOwner();
+  if (!auth.ok) return { ok: false, message: auth.message };
+
+  const db = createAdminClient();
+  const { data: page, error: pageError } = await db
+    .from("pages")
+    .select("id, page_key, title, template_key")
+    .eq("id", input.pageId)
+    .maybeSingle();
+  if (pageError) return { ok: false, message: pageError.message };
+  if (!page) return { ok: false, message: "That page no longer exists." };
+  if (page.template_key !== CONTENT_TEMPLATE) {
+    return { ok: false, message: "This page's sections are fixed by its design." };
+  }
+
+  const { data: revision, error: revError } = await db
+    .from("page_revisions")
+    .select("id, page_id, state")
+    .eq("id", input.revisionId)
+    .maybeSingle();
+  if (revError) return { ok: false, message: revError.message };
+  if (!revision || revision.page_id !== page.id || revision.state !== "draft") {
+    return { ok: false, message: "That draft cannot be edited. Reload to continue." };
+  }
+
+  const { count, error: countError } = await db
+    .from("page_sections")
+    .select("id", { count: "exact", head: true })
+    .eq("revision_id", revision.id);
+  if (countError) return { ok: false, message: countError.message };
+  if ((count ?? 0) > 0) return { ok: true };
+
+  const parsed = parseSection({
+    type: "legal.prose",
+    sectionId: `${page.page_key}-content`,
+    enabled: true,
+    schemaVersion: 1,
+    heading: page.title,
+    meta: "",
+    body: "",
+  });
+  if (!parsed.success) return { ok: false, message: "Could not start this page." };
+
+  const { error } = await db.from("page_sections").insert({
+    revision_id: revision.id,
+    section_key: parsed.data.sectionId,
+    section_type: parsed.data.type,
+    schema_version: parsed.data.schemaVersion,
+    position: 0,
+    enabled: true,
+    payload: { heading: page.title, meta: "", body: "" },
+  });
+  // A second tab starting the same page at the same moment is not an error.
+  if (error && error.code !== "23505") return { ok: false, message: error.message };
+
+  return { ok: true };
 }
 
 /** Toggle a section's visibility without deleting it. */

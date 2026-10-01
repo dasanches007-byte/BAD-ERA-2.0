@@ -34,7 +34,7 @@ export default async function StudioSitePage() {
       <PageHeader
         eyebrow="Site"
         title="Site Editor"
-        description="Edit content within the approved design. Typography, colour and layout are locked by the template."
+        description="Open a page and click any words or photo to change them. Typography, colour and layout stay locked to the brand."
       />
 
       <Panel>
@@ -46,31 +46,42 @@ export default async function StudioSitePage() {
         ) : (
           <ul className="divide-y divide-line">
             {pages.map((page) => (
-              <li key={page.id}>
-                <Link
-                  href={`/studio/site/${page.pageKey}`}
-                  className="flex flex-col gap-3 px-6 py-5 transition-colors hover:bg-surface-overlay sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm text-ink">{page.title}</p>
-                    <p className="mt-1 truncate text-xs text-ink-subtle">
-                      {page.route ?? page.pageKey}
-                      {page.draftUpdatedAt
-                        ? ` · draft saved ${formatDateTime(page.draftUpdatedAt)}`
-                        : ""}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3 sm:shrink-0">
+              <li
+                key={page.id}
+                className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-ink">{page.title}</p>
+                  <p className="mt-1 truncate text-xs text-ink-subtle">
+                    {page.route ?? page.pageKey}
+                    {page.draftUpdatedAt
+                      ? ` · draft saved ${formatDateTime(page.draftUpdatedAt)}`
+                      : ""}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     {page.hasDraft ? (
                       <StatusChip tone="warning">Unpublished draft</StatusChip>
                     ) : null}
-                    <StatusChip
-                      tone={page.publishedRevisionId ? "success" : "neutral"}
-                    >
+                    <StatusChip tone={page.publishedRevisionId ? "success" : "neutral"}>
                       {page.publishedRevisionId ? "Live" : "Not published"}
                     </StatusChip>
                   </div>
-                </Link>
+                </div>
+                <div className="flex flex-wrap gap-2 sm:shrink-0">
+                  {/* The easy way first: the page itself, click to change. */}
+                  <Link
+                    href={`/studio/edit/${page.pageKey}`}
+                    className="label inline-flex min-h-11 items-center bg-ink px-5 text-inverse-ink transition-opacity hover:opacity-90"
+                  >
+                    Edit on the page
+                  </Link>
+                  <Link
+                    href={`/studio/site/${page.pageKey}`}
+                    className="label inline-flex min-h-11 items-center border border-line-strong px-5 text-ink transition-colors hover:border-ink"
+                  >
+                    All fields
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>

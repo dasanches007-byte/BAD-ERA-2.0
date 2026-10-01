@@ -20,12 +20,15 @@ export function MediaSlot({
   sizes = "100vw",
   priority = false,
   overlay = "none",
+  edit,
 }: {
   media: MediaSlotData;
   className?: string;
   sizes?: string;
   priority?: boolean;
   overlay?: "none" | "hero" | "card";
+  /** Edit-target attributes, present only while an owner is editing. */
+  edit?: Record<string, string>;
 }) {
   const overlayClass =
     overlay === "hero"
@@ -36,6 +39,7 @@ export function MediaSlot({
 
   return (
     <div
+      {...edit}
       className={`relative overflow-hidden bg-surface-inset ${overlayClass} ${className ?? ""}`}
     >
       {media.url ? (
@@ -45,17 +49,26 @@ export function MediaSlot({
           fill
           sizes={sizes}
           priority={priority}
-          // Preserve crop intent: never stretch, honour the focal point.
-          className="object-cover"
-          style={{
-            objectPosition: `${media.focalDesktop.x * 100}% ${media.focalDesktop.y * 100}%`,
-          }}
+          // Preserve crop intent: never stretch, honour the focal point. Phones
+          // and desktops crop independently, so each gets its own point; the
+          // mobile one was stored but unused until the on-page editor shipped.
+          className="object-cover [object-position:var(--focal-mobile)] md:[object-position:var(--focal-desktop)]"
+          style={
+            {
+              "--focal-desktop": focalPosition(media.focalDesktop),
+              "--focal-mobile": focalPosition(media.focalMobile ?? media.focalDesktop),
+            } as React.CSSProperties
+          }
         />
       ) : (
         <Placeholder label={media.placeholderLabel} />
       )}
     </div>
   );
+}
+
+function focalPosition(point: { x: number; y: number }): string {
+  return `${point.x * 100}% ${point.y * 100}%`;
 }
 
 function Placeholder({ label }: { label: string }) {

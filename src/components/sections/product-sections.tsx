@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ProductCard, formatPrice } from "@/components/storefront/product-card";
 import { MediaSlot } from "@/components/ui/media-slot";
 import { Cta } from "@/components/sections";
+import { editAttrs } from "@/lib/cms/edit-targets";
 import { emptyMedia } from "@/lib/cms/sections";
 import type {
   Archive01FeatureSection,
@@ -21,21 +22,41 @@ import type { CatalogProduct } from "@/lib/catalog/queries";
 export function ProductRail({
   section,
   products,
+  editing,
 }: {
   section: ProductRailSection;
   products: CatalogProduct[];
+  editing?: boolean;
 }) {
   // An empty rail renders nothing rather than an empty heading with a void
-  // under it.
-  if (products.length === 0) return null;
+  // under it. While editing it says why it is missing, so the owner is not
+  // left wondering where a section went.
+  if (products.length === 0) {
+    return editing ? (
+      <EditOnlyNotice
+        title={section.heading || "Product rail"}
+        body="Hidden on the live site until there are active products to show."
+        edit={editAttrs(editing, section, "productHandles")}
+      />
+    ) : null;
+  }
 
   return (
     <section className="shell py-section">
       <div className="flex items-baseline justify-between gap-6">
-        <h2 className="label text-ink">{section.heading}</h2>
-        <Cta cta={section.viewAll} variant="underline" />
+        <h2 {...editAttrs(editing, section, "heading")} className="label text-ink">
+          {section.heading}
+        </h2>
+        <Cta
+          cta={section.viewAll}
+          variant="underline"
+          edit={editAttrs(editing, section, "viewAll")}
+        />
       </div>
-      <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4">
+      <div
+        {...editAttrs(editing, section, "productHandles")}
+        className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4"
+      >
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
@@ -58,32 +79,55 @@ export function ProductRail({
 export function Archive01Feature({
   section,
   products,
+  editing,
 }: {
   section: Archive01FeatureSection;
   products: CatalogProduct[];
+  editing?: boolean;
 }) {
-  if (products.length === 0) return null;
+  if (products.length === 0) {
+    return editing ? (
+      <EditOnlyNotice
+        title={section.headline || "From the archive"}
+        body="Hidden on the live site until its Archive 01 products are active."
+        edit={editAttrs(editing, section, "productHandles")}
+      />
+    ) : null;
+  }
 
   return (
     <section className="border-y border-line bg-void py-section">
       <div className="shell">
         <header className="text-center">
-          <h2 className="font-display text-display-md uppercase text-ink-strong">
+          <h2
+            {...editAttrs(editing, section, "headline")}
+            className="font-display text-display-md uppercase text-ink-strong"
+          >
             {section.headline}
           </h2>
-          <p className="label mt-5 text-ink-muted">{section.supportingLine}</p>
+          <p
+            {...editAttrs(editing, section, "supportingLine")}
+            className="label mt-5 text-ink-muted"
+          >
+            {section.supportingLine}
+          </p>
           <Divider />
         </header>
 
-        <div className="mt-14 grid gap-4 md:grid-cols-3">
+        <div
+          {...editAttrs(editing, section, "productHandles")}
+          className="mt-14 grid gap-4 md:grid-cols-3"
+        >
           {products.map((product) => (
             <ArchiveCard key={product.id} product={product} />
           ))}
         </div>
 
         <footer className="mt-14 flex flex-col items-center gap-7 border-t border-line-faint pt-12">
-          <p className="label text-ink-muted">{section.footnote}</p>
-          <Cta cta={section.cta} />
+          <p {...editAttrs(editing, section, "footnote")} className="label text-ink-muted">
+            {section.footnote}
+          </p>
+          <Cta cta={section.cta} edit={editAttrs(editing, section, "cta")} />
         </footer>
       </div>
     </section>
@@ -130,6 +174,29 @@ function ArchiveCard({ product }: { product: CatalogProduct }) {
         </div>
       </div>
     </article>
+  );
+}
+
+/**
+ * What an editor sees where a product section would be, when it has nothing
+ * to show yet. Never rendered for customers.
+ */
+function EditOnlyNotice({
+  title,
+  body,
+  edit,
+}: {
+  title: string;
+  body: string;
+  edit: Record<string, string>;
+}) {
+  return (
+    <section data-be-empty="" className="shell py-12">
+      <div {...edit} className="border border-dashed border-line-strong px-6 py-8 text-center">
+        <p className="label text-ink-muted">{title}</p>
+        <p className="mt-3 text-sm text-ink-subtle">{body}</p>
+      </div>
+    </section>
   );
 }
 

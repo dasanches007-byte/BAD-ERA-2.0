@@ -13,10 +13,12 @@ function supabaseImagePattern() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!url) return [];
   try {
-    const { hostname } = new URL(url);
+    const { hostname, protocol } = new URL(url);
     return [
       {
-        protocol: "https" as const,
+        // https for every hosted project; http only ever for a local stack
+        // (`supabase start` serves on http://127.0.0.1:54321).
+        protocol: (protocol === "http:" ? "http" : "https") as "http" | "https",
         hostname,
         // Public storefront media only. The private bucket is never served
         // through the image optimiser.
@@ -26,6 +28,25 @@ function supabaseImagePattern() {
   } catch {
     // A malformed URL is caught by env validation; do not break the build here.
     return [];
+  }
+}
+
+/**
+ * True only when Supabase itself is running on this machine.
+ *
+ * Next refuses to optimise images whose host resolves to a private address,
+ * as SSRF protection. A local Supabase stack is exactly that, so photos would
+ * never render in local development. The exemption is tied to the configured
+ * Supabase URL being loopback — a hosted project never qualifies — and
+ * `remotePatterns` still limits the optimiser to that one host's public
+ * storage path.
+ */
+function supabaseIsLocal(): boolean {
+  try {
+    const { hostname } = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
+    return hostname === "127.0.0.1" || hostname === "localhost";
+  } catch {
+    return false;
   }
 }
 
@@ -138,12 +159,18 @@ const devOrigins: string[] = trusted && host ? [host] : [];
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: supabaseImagePattern(),
+    dangerouslyAllowLocalIP: supabaseIsLocal(),
   },
   // Both empty outside GitHub Codespaces — see readCodespaceVars().
   allowedDevOrigins: devOrigins,
   experimental: {
     serverActions: {
       allowedOrigins: serverActionOrigins,
+      // Photo uploads go through a Server Action (media-actions.ts), and the
+      // default 1 MB cap refused an ordinary phone photo. Matches the 25 MB
+      // limit the action and the storage bucket already enforce. Vercel caps
+      // a function request at 4.5 MB on its own — see LAUNCH_READINESS.md.
+      bodySizeLimit: "26mb",
     },
   },
 };

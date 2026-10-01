@@ -3,6 +3,7 @@ import "server-only";
 import { getStudioIdentity } from "@/lib/auth/studio";
 import { createAdminClient } from "@/lib/db/admin";
 import { parseSection } from "@/lib/cms/registry";
+import { PUBLIC_BUCKET } from "@/lib/studio/media-types";
 import type { Section } from "@/lib/cms/sections";
 
 /**
@@ -37,6 +38,8 @@ export type PageDraft = {
   pageKey: string;
   title: string;
   route: string | null;
+  /** `storefront.content` pages can be started from empty; see startPageContentAction. */
+  templateKey: string;
   revisionId: string;
   revisionNumber: number;
   sections: Section[];
@@ -144,7 +147,67 @@ async function readRevisionSections(revisionId: string): Promise<{
     });
   }
 
+  await attachMediaUrls(sections);
   return { sections, rows };
+}
+
+/**
+ * Give every media slot the URL of the asset it points at.
+ *
+ * Payloads store only `mediaAssetId`; the renderer needs `url`. Nothing filled
+ * that in until the on-page editor work found it: an owner could pick a photo
+ * for the hero, publish, and still see the placeholder, because `url` was
+ * always undefined. Final photography could never have appeared.
+ *
+ * Resolution rules, deliberately narrow:
+ *   - only the public bucket — the private bucket is never served to a page
+ *   - archived assets resolve to nothing, so the slot shows its placeholder
+ *     rather than an image the owner has retired
+ *   - one query for the whole page, however many slots it has
+ *
+ * A failure here degrades to placeholders and is logged loudly; the page
+ * still renders, because a missing photo is better than a missing page.
+ */
+async function attachMediaUrls(sections: Section[]): Promise<void> {
+  const slots: { mediaAssetId: string | null; url?: string | null }[] = [];
+  const visit = (value: unknown) => {
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+    } else if (value && typeof value === "object") {
+      const record = value as Record<string, unknown>;
+      if ("mediaAssetId" in record && "placeholderLabel" in record) {
+        slots.push(record as { mediaAssetId: string | null; url?: string | null });
+      }
+      Object.values(record).forEach(visit);
+    }
+  };
+  sections.forEach(visit);
+
+  const ids = [...new Set(slots.map((s) => s.mediaAssetId).filter((id): id is string => Boolean(id)))];
+  if (ids.length === 0) return;
+
+  const db = createAdminClient();
+  const { data, error } = await db
+    .from("media_assets")
+    .select("id, bucket, storage_path")
+    .in("id", ids)
+    .eq("bucket", PUBLIC_BUCKET)
+    .is("archived_at", null);
+
+  if (error) {
+    console.error("[bad-era] media lookup failed; rendering placeholders", error);
+    return;
+  }
+
+  const urls = new Map(
+    (data ?? []).map((asset) => [
+      asset.id,
+      db.storage.from(asset.bucket).getPublicUrl(asset.storage_path).data.publicUrl,
+    ]),
+  );
+  for (const slot of slots) {
+    slot.url = slot.mediaAssetId ? (urls.get(slot.mediaAssetId) ?? null) : null;
+  }
 }
 
 /** The sections the PUBLIC site renders. Null when the page has never published. */
@@ -169,7 +232,7 @@ async function readPageRow(pageKey: string) {
   const db = createAdminClient();
   const { data, error } = await db
     .from("pages")
-    .select("id, page_key, title, route, published_revision_id, page_drafts(revision_id)")
+    .select("id, page_key, title, route, template_key, published_revision_id, page_drafts(revision_id)")
     .eq("page_key", pageKey)
     .maybeSingle();
 
@@ -211,6 +274,7 @@ async function assembleDraft(page: PageRow, revisionId: string): Promise<PageDra
     pageKey: page.page_key,
     title: page.title,
     route: page.route,
+    templateKey: page.template_key,
     revisionId,
     revisionNumber: revision.revision_number,
     sections,

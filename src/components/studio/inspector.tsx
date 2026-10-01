@@ -1,7 +1,8 @@
 "use client";
 
-import { MEDIA_PICKER_NONE } from "@/components/studio/editor-types";
+import { MediaField } from "@/components/studio/media-field";
 import type { InspectorField } from "@/lib/cms/registry";
+import type { MediaSlot } from "@/lib/cms/sections";
 import type { MediaAsset } from "@/lib/studio/media-types";
 
 /**
@@ -14,43 +15,62 @@ import type { MediaAsset } from "@/lib/studio/media-types";
  * The field kinds are a closed set: text, textarea, media, cta, product list,
  * repeater. There is no colour, font, size, spacing, CSS or HTML field, and
  * that absence is the guardrail (Master Spec §11.4.4).
+ *
+ * Every field is wrapped in `data-field-path` — `headline`, or `tiles.1.media`
+ * inside a repeater — the same paths the page's click targets use, so a click
+ * in the preview can scroll straight to the matching control.
  */
 export function Inspector({
   fields,
   value,
   media,
   onChange,
+  onMediaUploaded,
 }: {
   fields: InspectorField[];
   value: Record<string, unknown>;
   media: MediaAsset[];
   onChange: (path: string, next: unknown) => void;
+  onMediaUploaded?: () => void;
 }) {
   return (
     <div className="space-y-7">
       {fields.map((field) => (
-        <FieldRenderer
-          key={field.path}
-          field={field}
-          value={value[field.path]}
-          media={media}
-          onChange={(next) => onChange(field.path, next)}
-        />
+        <div key={field.path} data-field-path={field.path} className="scroll-mt-6">
+          <InspectorFieldControl
+            field={field}
+            path={field.path}
+            value={value[field.path]}
+            media={media}
+            onChange={(next) => onChange(field.path, next)}
+            onMediaUploaded={onMediaUploaded}
+          />
+        </div>
       ))}
     </div>
   );
 }
 
-function FieldRenderer({
+/**
+ * One field's control. Exported so the on-page editor shows exactly the same
+ * control for a field as the Site Editor does — one implementation of each of
+ * the six kinds, wherever it is edited.
+ */
+export function InspectorFieldControl({
   field,
+  path,
   value,
   media,
   onChange,
+  onMediaUploaded,
 }: {
   field: InspectorField;
+  /** Full path of this field, for repeater children's anchors. */
+  path: string;
   value: unknown;
   media: MediaAsset[];
   onChange: (next: unknown) => void;
+  onMediaUploaded?: () => void;
 }) {
   switch (field.kind) {
     case "text":
@@ -87,12 +107,18 @@ function FieldRenderer({
 
     case "media":
       return (
-        <MediaInput
-          label={field.label}
-          value={value as MediaValue}
-          media={media}
-          onChange={onChange}
-        />
+        <fieldset className="border border-line p-4">
+          <legend className="label px-2 text-ink-muted">{field.label}</legend>
+          <div className="mt-1">
+            <MediaField
+              label={field.label}
+              value={value as MediaSlot | undefined}
+              media={media}
+              onChange={onChange}
+              onUploaded={onMediaUploaded}
+            />
+          </div>
+        </fieldset>
       );
 
     case "productList":
@@ -110,10 +136,12 @@ function FieldRenderer({
       return (
         <Repeater
           label={field.label}
+          path={path}
           fields={field.fields}
           value={(value as Record<string, unknown>[]) ?? []}
           media={media}
           onChange={onChange}
+          onMediaUploaded={onMediaUploaded}
         />
       );
   }
@@ -223,129 +251,6 @@ function CtaInput({
   );
 }
 
-type MediaValue = {
-  mediaAssetId: string | null;
-  alt: string;
-  focalDesktop: { x: number; y: number };
-  focalMobile: { x: number; y: number };
-  placeholderLabel: string;
-};
-
-function MediaInput({
-  label,
-  value,
-  media,
-  onChange,
-}: {
-  label: string;
-  value: MediaValue | undefined;
-  media: MediaAsset[];
-  onChange: (next: unknown) => void;
-}) {
-  const slot: MediaValue = value ?? {
-    mediaAssetId: null,
-    alt: "",
-    focalDesktop: { x: 0.5, y: 0.5 },
-    focalMobile: { x: 0.5, y: 0.5 },
-    placeholderLabel: label,
-  };
-  const set = (patch: Partial<MediaValue>) => onChange({ ...slot, ...patch });
-
-  return (
-    <fieldset className="border border-line p-4">
-      <legend className="label px-2 text-ink-muted">{label}</legend>
-
-      <div className="mt-1">
-        <label className="label block text-ink-subtle">Image</label>
-        <select
-          value={slot.mediaAssetId ?? MEDIA_PICKER_NONE}
-          onChange={(e) =>
-            set({
-              mediaAssetId:
-                e.target.value === MEDIA_PICKER_NONE ? null : e.target.value,
-            })
-          }
-          className="mt-1.5 w-full border border-line-strong bg-surface px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
-        >
-          <option value={MEDIA_PICKER_NONE}>
-            No image — shows a placeholder
-          </option>
-          {media.map((asset) => (
-            <option key={asset.id} value={asset.id}>
-              {asset.originalFilename ?? asset.storagePath}
-            </option>
-          ))}
-        </select>
-        {media.length === 0 ? (
-          <p className="mt-1.5 text-xs text-ink-subtle">
-            Upload photography in Media first.
-          </p>
-        ) : null}
-      </div>
-
-      <div className="mt-4">
-        <label className="label block text-ink-subtle">Alt text</label>
-        <input
-          type="text"
-          maxLength={300}
-          value={slot.alt}
-          onChange={(e) => set({ alt: e.target.value })}
-          className="mt-1.5 w-full border border-line-strong bg-transparent px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
-        />
-      </div>
-
-      {/* Desktop and mobile crop independently (Master Spec §3.2). */}
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <FocalControl
-          heading="Desktop focus"
-          value={slot.focalDesktop}
-          onChange={(focalDesktop) => set({ focalDesktop })}
-        />
-        <FocalControl
-          heading="Mobile focus"
-          value={slot.focalMobile}
-          onChange={(focalMobile) => set({ focalMobile })}
-        />
-      </div>
-    </fieldset>
-  );
-}
-
-function FocalControl({
-  heading,
-  value,
-  onChange,
-}: {
-  heading: string;
-  value: { x: number; y: number };
-  onChange: (next: { x: number; y: number }) => void;
-}) {
-  return (
-    <div>
-      <p className="label text-ink-subtle">{heading}</p>
-      <div className="mt-2 space-y-2">
-        {(["x", "y"] as const).map((axis) => (
-          <label key={axis} className="flex items-center gap-3">
-            <span className="label w-3 text-ink-disabled">{axis}</span>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={value[axis]}
-              onChange={(e) => onChange({ ...value, [axis]: Number(e.target.value) })}
-              className="w-full accent-[var(--color-accent)]"
-            />
-            <span className="label w-8 text-right text-ink-subtle">
-              {Math.round(value[axis] * 100)}
-            </span>
-          </label>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function ProductListInput({
   label,
   hint,
@@ -402,16 +307,20 @@ function ProductListInput({
 
 function Repeater({
   label,
+  path,
   fields,
   value,
   media,
   onChange,
+  onMediaUploaded,
 }: {
   label: string;
+  path: string;
   fields: InspectorField[];
   value: Record<string, unknown>[];
   media: MediaAsset[];
   onChange: (next: unknown) => void;
+  onMediaUploaded?: () => void;
 }) {
   return (
     <div>
@@ -424,17 +333,24 @@ function Repeater({
             </legend>
             <div className="mt-1 space-y-5">
               {fields.map((field) => (
-                <FieldRenderer
+                <div
                   key={field.path}
-                  field={field}
-                  value={item[field.path]}
-                  media={media}
-                  onChange={(next) => {
-                    const updated = [...value];
-                    updated[index] = { ...item, [field.path]: next };
-                    onChange(updated);
-                  }}
-                />
+                  data-field-path={`${path}.${index}.${field.path}`}
+                  className="scroll-mt-6"
+                >
+                  <InspectorFieldControl
+                    field={field}
+                    path={`${path}.${index}.${field.path}`}
+                    value={item[field.path]}
+                    media={media}
+                    onChange={(next) => {
+                      const updated = [...value];
+                      updated[index] = { ...item, [field.path]: next };
+                      onChange(updated);
+                    }}
+                    onMediaUploaded={onMediaUploaded}
+                  />
+                </div>
               ))}
             </div>
           </fieldset>

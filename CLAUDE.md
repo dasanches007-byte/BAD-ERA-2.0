@@ -344,7 +344,7 @@ disabled. Product history is never deleted.
 `/orders/[id]`, `/profile`, `/addresses`) · `/support` · `/returns` · `/about` · `/privacy` ·
 `/terms` · `/shipping` · `/returns-policy`
 
-**Studio:** `/studio` · `/site` (+ `/[page]`) · `/products` (+ `/[id]`) · `/inventory` ·
+**Studio:** `/studio` · `/site` (+ `/[page]`) · `/edit/[page]` (on-page editor) · `/products` (+ `/[id]`) · `/inventory` ·
 `/orders` (+ `/[id]`) · `/customers` (+ `/[id]`) · `/fulfillment` (Overview · Ready to Ship ·
 Supplier Orders · Providers · Action Required · Shipments · History) · `/returns` ·
 `/support` · `/media` · `/publishing` · `/settings`
@@ -544,10 +544,10 @@ Rules that hold across the editor:
   public cache.
 - **The preview is a read and has no Studio chrome.** Studio is split into route
   groups: `studio/layout.tsx` is the gate only (sign-in, MFA), `(workspace)/`
-  draws the nav rail and top bar, and `(preview)/site/[page]/preview` sits
-  outside it. A nested layout cannot remove what a parent draws, which is why
-  the earlier "bare" preview layout still showed Studio inside the frame. The
-  preview calls `getExistingDraft`, never `getOrCreateDraft`.
+  draws the nav rail and top bar, and `(fullscreen)/` holds the editors and the
+  preview, outside it. A nested layout cannot remove what a parent draws, which
+  is why the earlier "bare" preview layout still showed Studio inside the frame.
+  The preview calls `getExistingDraft`, never `getOrCreateDraft`.
 - **One-to-one embeds are objects, not arrays.** `page_drafts`,
   `variant_financials`, `supplier_tasks` and the other relations whose FK is a
   primary or unique key come back from PostgREST as a single object or null.
@@ -558,6 +558,63 @@ Rules that hold across the editor:
 - **The homepage falls back to `DEFAULT_HOME_SECTIONS` when the published read
   fails.** `next build` prerenders that page, and a build that fails when the
   database is down cannot ship a hotfix. The failure is logged loudly.
+
+## Click-to-edit (on-page editor + clickable Site Editor preview)
+
+The owner's way in is the page itself: "Edit this page" on the live site, or
+Studio → Site → Edit on the page. Computer: type in place. Phone: tap, edit in
+a bottom sheet. The Site Editor ("All fields") is the same engine beside the
+full field list, with a preview you can click.
+
+```
+src/lib/cms/
+  edit-targets.ts      data-be-edit targets, registry resolution, change count
+  edit-messages.ts     Site Editor <-> preview postMessage protocol (validated)
+src/components/studio/
+  on-page/on-page-editor.tsx  inline-text-editor.tsx  field-sheet.tsx
+  media-field.tsx      photo field: upload, library, tap-to-set focal point
+  preview-bridge.tsx   the preview frame's half of click-to-select
+  edit-surface.ts      what is under the pointer (shared)
+  use-section-autosave.ts    versioned, debounced saves (shared)
+src/components/storefront/owner-edit-link.tsx
+src/app/studio/(fullscreen)/edit/[page]/page.tsx
+```
+
+Rules that hold across click-to-edit:
+
+- **A click can only reach a registry field.** Renderers mark elements with
+  `data-be-edit="<sectionKey>::<path>"` via `editAttrs()`, which resolves the
+  path against `SECTION_REGISTRY` and emits nothing for a path it does not
+  declare. `applyFieldEdit` refuses any other key. The six field kinds remain
+  the whole surface; the server still re-validates every save with Zod.
+  `tests/unit/click-to-edit.test.tsx` renders every section and checks every
+  mark resolves.
+- **Customers never get the marks.** Only `{ editing: true }` adds them, and
+  only the two owner-gated `(fullscreen)` routes pass it — the test sweeps the
+  source tree and fails if a third caller appears.
+- **What the owner edits is the server render.** Each save re-renders the page
+  through `renderSections`; the client never imitates the page. In-place typing
+  lays a text box over the element using its computed typography (copied,
+  never chosen) and hides the element — never `contentEditable` on
+  React-owned DOM, which breaks the next refresh. The box leaves only once the
+  saved text is in the new render.
+- **Words are hit only where the words are.** A headline is a full-width
+  block; `editableAt` checks the text's line boxes, so a click beside it
+  reaches the photo underneath. Found by driving the editor.
+- **postMessage is checked both ways**: expected window AND origin, and only the
+  exact message shapes in `edit-messages.ts`. A message can select a field or
+  ask the preview to re-fetch; nothing in one is executed or rendered.
+- **Photos render because `readRevisionSections` resolves them.** Payloads hold
+  only `mediaAssetId`; `attachMediaUrls` fills `url` (public bucket, not
+  archived, one query). Before this nothing did, so a chosen photo never
+  appeared. Mobile and desktop focal points are now both honoured.
+- **An information page is started by the owner, empty.**
+  `startPageContentAction` adds one `legal.prose` section headed with the
+  page title and an empty body — never placeholder policy text. Before it the
+  editors had no way to add a section, so those pages could not be written.
+- **Uploads allow 25 MB** (`serverActions.bodySizeLimit`); the 1 MB default
+  refused phone photos. Vercel's 4.5 MB request cap still applies there — see
+  `docs/LAUNCH_READINESS.md`.
 
 ## Orders & customers (Phase 5)
 

@@ -129,7 +129,17 @@ and update the Vercel environment variable.
 - [ ] Policy wording for `/privacy`, `/terms`, `/shipping`, `/returns-policy`,
       and the `/about` page
 - [ ] Final photography for every media slot. Replacing a placeholder requires
-      zero code changes — upload in Studio → Media and assign the slot
+      zero code changes — click the photo on the page in the editor and
+      **Upload a photo**. (Until the on-page editor work, a chosen photo never
+      actually rendered: nothing turned its asset id into a URL. Fixed, and
+      covered by `tests/unit/editor-server.test.ts`.)
+- [ ] **Large photos on Vercel.** Uploads go through a Server Action, allowed
+      up to 25 MB in `next.config.ts`. Codespaces honours that; Vercel caps any
+      function request at 4.5 MB regardless, so a full-size camera photo would
+      be refused there. Before relying on Vercel for uploads, either export
+      photos under 4.5 MB or move uploads to a signed direct-to-Storage URL
+      (the server issues the URL, verifies the bytes after) — a contained
+      change to `media-actions.ts` and `media-field.tsx`.
 - [ ] Social links (the footer does not invent handles)
 - [ ] Newsletter configuration — the footer field currently reads "SOON"
 

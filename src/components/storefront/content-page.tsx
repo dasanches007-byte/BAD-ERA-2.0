@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { renderSections } from "@/components/sections/render";
+import { OwnerEditLink } from "@/components/storefront/owner-edit-link";
 import { getPublishedSections } from "@/lib/cms/pages";
 
 /**
@@ -38,7 +39,12 @@ export async function ContentPage({
   if (sections && sections.length > 0) {
     // Information pages carry no product surfaces, so no catalog read is
     // needed — the renderer only consults it for rails.
-    return <>{renderSections(sections, [])}</>;
+    return (
+      <>
+        {renderSections(sections, [])}
+        <OwnerEditLink pageKey={pageKey} />
+      </>
+    );
   }
 
   return (
@@ -60,6 +66,7 @@ export async function ContentPage({
           Contact support
         </Link>
       </div>
+      <OwnerEditLink pageKey={pageKey} />
     </section>
   );
 }

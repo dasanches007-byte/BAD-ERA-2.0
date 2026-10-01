@@ -167,7 +167,7 @@ const code = (path: string) =>
   read(path)
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "");
-const PREVIEW = "src/app/studio/(preview)/site/[page]/preview/page.tsx";
+const PREVIEW = "src/app/studio/(fullscreen)/site/[page]/preview/page.tsx";
 
 describe("draft preview", () => {
   it("is a read: it never creates a draft", () => {
@@ -185,7 +185,7 @@ describe("draft preview", () => {
     // The chrome lives in the workspace group, which the preview is not in.
     expect(read("src/app/studio/(workspace)/layout.tsx")).toMatch(/StudioNav/);
     expect(PREVIEW).not.toContain("(workspace)");
-    expect(existsSync(join(ROOT, "src/app/studio/(preview)/layout.tsx"))).toBe(false);
+    expect(existsSync(join(ROOT, "src/app/studio/(fullscreen)/layout.tsx"))).toBe(false);
   });
 
   it("keeps the Studio gate: the preview re-checks identity itself", () => {
@@ -196,7 +196,7 @@ describe("draft preview", () => {
 
   it("is framed at the same URL the editor points at", () => {
     expect(read("src/components/studio/site-editor.tsx")).toContain(
-      "src={`/studio/site/${pageKey}/preview?v=${previewNonce}`}",
+      "src={`/studio/site/${pageKey}/preview`}",
     );
   });
 });

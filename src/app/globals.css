@@ -207,3 +207,80 @@ body {
     padding-inline: var(--spacing-gutter-lg);
   }
 }
+
+/*
+ * Click-to-edit (owner-only Studio routes).
+ *
+ * Renderers add `data-be-edit` only when an owner is editing; these rules do
+ * nothing on the public site, where no element carries the attributes. The
+ * hover/selected attributes are set by the editor's script rather than :hover,
+ * because the text sitting over a photo would otherwise steal the photo's
+ * hover state.
+ */
+[data-be-hidden] {
+  visibility: hidden;
+}
+
+.be-editable [data-be-edit] {
+  cursor: pointer;
+}
+
+.be-editable [data-be-hover] {
+  outline: 1px dashed var(--color-accent-muted);
+  outline-offset: 4px;
+}
+
+.be-editable [data-be-selected] {
+  outline: 1px solid var(--color-accent-strong);
+  outline-offset: 4px;
+}
+
+/* A full-bleed photo's outline would sit outside the viewport; draw it inside. */
+.be-editable [data-be-kind="media"][data-be-hover],
+.be-editable [data-be-kind="media"][data-be-selected] {
+  outline-offset: -10px;
+}
+
+/* On a touch screen there is no hover, so editable areas are revealed briefly
+   on arrival and whenever the owner taps something that is not editable. */
+.be-editable.be-reveal [data-be-edit] {
+  outline: 1px dashed rgb(200 194 182 / 0.55);
+  outline-offset: 3px;
+}
+
+.be-editable.be-reveal [data-be-kind="media"] {
+  outline-offset: -8px;
+}
+
+/* What is being edited stays clearly selected, reveal or not. */
+.be-editable.be-reveal [data-be-selected] {
+  outline: 1px solid var(--color-accent-strong);
+}
+
+/* "Preview" hides the stand-ins for empty fields and hidden buttons, so the
+   owner sees exactly what a customer will. */
+.be-previewing [data-be-empty] {
+  display: none !important;
+}
+
+.be-previewing [data-be-edit] {
+  cursor: auto;
+}
+
+/* The site header is sticky; inside the editor it sticks below the edit bar. */
+.be-canvas header.sticky {
+  top: var(--be-bar-height, 0px);
+}
+
+@keyframes be-flash {
+  from {
+    background-color: rgb(200 194 182 / 0.14);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+[data-be-flash] {
+  animation: be-flash 1.4s var(--ease-bad-era) both;
+}

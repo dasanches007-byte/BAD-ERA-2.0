@@ -396,19 +396,47 @@ fault.
 
 | I want to… | Go to |
 |---|---|
-| Change homepage words and images | **Site Editor** → home |
-| Write the privacy / terms / shipping / returns / about pages | **Site Editor** → pick the page → add a **Policy text** section → **Publishing** → publish |
-| Upload photography | **Media** → upload, then assign it to a slot in the Site Editor |
+| Change words or a photo on the homepage | Open your site, press **Edit this page** (bottom right — only you see it), then click the thing you want to change |
+| Write the about / privacy / terms / shipping / returns / support pages | Open that page on your site → **Edit this page** → **Start writing this page** → tap the text → **Publish** |
+| See every field of a page in one list | **Site** → **All fields** |
+| Upload photography | Click any photo on the page → **Upload a photo**. Or **Media** to manage the whole library |
 | Add the Archive 01 products | **Products** → new product → add variants |
 | Enter how many you physically have | **Inventory** |
-| Push changes live | **Publishing** → review → publish |
+| Push changes live | **Publish** in the editor's top bar (or **Publishing** for several pages at once) |
 | Undo a publish | **Publishing** → Publish history → Roll back |
 
 ### How editing works
 
+**On the page itself** — the easy way, on a computer or a phone:
+
+1. Open your site while signed in and press **Edit this page** at the bottom
+   right. (Or Studio → **Site** → **Edit on the page**.)
+2. **On a computer:** hover to see what can change, then click a headline and
+   type straight onto the page, in the real typeface. **Enter** saves, **Esc**
+   cancels. Click a photo, a button or a product row and a panel opens on the
+   right.
+3. **On a phone:** tap the words or photo you want to change. A panel slides
+   up from the bottom; the page above updates as you type. Editable things are
+   outlined for a moment when you arrive, and again if you tap somewhere empty.
+4. **Photos:** tap **Upload a photo** to add one straight from your camera
+   roll, or pick one you uploaded before. Then tap the part of the photo that
+   must never be cropped off — separately for computer and phone, because the
+   same photo is cut differently on each.
+5. **Undo** (the arrow, or Ctrl+Z) takes back the last change. **Preview**
+   shows the page exactly as customers will see it.
+6. Press **Publish** when you're happy. Until then, nothing you do is visible
+   to customers.
+
+**All fields** (Studio → **Site** → **All fields**) shows the same page beside a
+list of every field. Click anything in the preview and the list jumps to it.
+Use it to hide or show a whole section, or when you would rather work from a
+form.
+
+Either way:
+
 - Your edits save automatically into a **draft**. The live site does not change.
-- The middle pane shows the draft exactly as it will look — same renderer as the
-  real page.
+- What you see while editing is the real page, drawn by the same code
+  customers get — not an imitation.
 - Nothing reaches the public site until you press **Publish**.
 - Every publish is recorded and can be rolled back. Nothing is ever deleted.
 
@@ -416,7 +444,9 @@ fault.
 
 The editor deliberately has no font, colour, size, spacing or HTML controls. You
 change words, images and which sections show. The design stays locked, so the
-site can't drift away from the brand no matter what you type.
+site can't drift away from the brand no matter what you type — even "BAD ERA"
+typed in the hero keeps exactly its assigned typeface and size. Clicking only
+ever opens a field the page was designed to have.
 
 ---
 

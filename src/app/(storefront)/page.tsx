@@ -1,4 +1,5 @@
 import { renderSections } from "@/components/sections/render";
+import { OwnerEditLink } from "@/components/storefront/owner-edit-link";
 import { DEFAULT_HOME_SECTIONS } from "@/lib/cms/default-home";
 import { getPublishedSections } from "@/lib/cms/pages";
 import { listActiveProductsCached } from "@/lib/catalog/cache";
@@ -41,5 +42,10 @@ export default async function HomePage() {
   // One catalog read serves every product-backed section on the page.
   const products = await safeCatalogRead("home", listActiveProductsCached);
 
-  return <>{renderSections(sections, products)}</>;
+  return (
+    <>
+      {renderSections(sections, products)}
+      <OwnerEditLink pageKey="home" />
+    </>
+  );
 }
