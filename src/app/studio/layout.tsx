@@ -2,10 +2,8 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { StudioNav } from "@/components/studio/studio-nav";
-import { StudioTopBar } from "@/components/studio/top-bar";
 import { MfaChallenge } from "@/components/studio/mfa-panel";
-import { getStudioIdentity } from "@/lib/auth/studio";
+import { getStudioIdentityForRender } from "@/lib/auth/studio";
 import { getMfaStatus } from "@/lib/auth/mfa";
 
 /**
@@ -22,16 +20,23 @@ export const metadata: Metadata = {
 };
 
 /**
- * Studio shell.
+ * Studio gate: sign-in and second factor, and nothing visual.
  *
- * This layout gate is a convenience, not the authorization boundary: every
- * Studio read and mutation re-verifies authorization server-side. Layout checks
- * alone are never sufficient (Master Spec §10.3.10, §16.1).
+ * The navigation rail and top bar live one level down in `(workspace)`, not
+ * here, because the Site Editor's draft preview must sit behind this same gate
+ * while rendering the STOREFRONT. A nested layout cannot remove what a parent
+ * layout draws: the preview used to declare a "bare" layout of its own, and
+ * Studio's chrome still appeared inside the preview frame. Route groups keep
+ * the URL `/studio/site/<page>/preview` while giving it a different parent.
+ *
+ * This gate is a convenience, not the authorization boundary: every Studio read
+ * and mutation re-verifies authorization server-side. Layout checks alone are
+ * never sufficient (Master Spec §10.3.10, §16.1).
  */
-export default async function StudioLayout({
+export default async function StudioGateLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
-  const identity = await getStudioIdentity();
+  const identity = await getStudioIdentityForRender();
   // Send them somewhere they can act, not to the storefront. This gate is a
   // convenience: every Studio read and mutation re-verifies authorization.
   if (!identity) redirect("/sign-in?next=/studio");
@@ -55,28 +60,5 @@ export default async function StudioLayout({
     return <MfaChallenge factorId={factorId} />;
   }
 
-  return (
-    <div className="flex min-h-screen flex-col bg-surface text-ink lg:flex-row">
-      {/* Studio has a long nav rail; skipping it matters more here, not less. */}
-      <a href="#main-content" className="skip-link label">
-        Skip to content
-      </a>
-      <StudioNav />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <StudioTopBar
-          displayName={identity.displayName}
-          environment={
-            process.env.NODE_ENV === "production" ? "production" : "development"
-          }
-        />
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="flex-1 px-6 py-8 lg:px-10 lg:py-10"
-        >
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+  return children;
 }

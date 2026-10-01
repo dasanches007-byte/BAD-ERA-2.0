@@ -132,10 +132,10 @@ webhooks and privileged mutations terminate in Route Handlers that call domain s
 
 ## Database — 62 tables
 
-Apply migrations strictly in order `0001 → 0015`. Never hand-recreate the schema in the
+Apply migrations strictly in order `0001 → 0016`. Never hand-recreate the schema in the
 Supabase dashboard. `supabase/seed.sql` is **development data only**.
 
-`0010` through `0015` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
+`0010` through `0016` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
 `0010` and `0011` fix defects found by executing the migrations and the acceptance matrix
 against real PostgreSQL — static validation catches neither.
 
@@ -163,6 +163,12 @@ against real PostgreSQL — static validation catches neither.
   routes and linked the footer at them, but only `home` had a row, so the Site
   Editor listed one page and the owner could never write the content. No
   revisions or sections are created: publishing is the owner's act.
+- **`0016`** — `ensure_page_draft`, the ONE way a draft revision is created.
+  One transaction behind a row lock on the page, re-checking for a draft under
+  the lock. The owner's first Site Editor session showed why: the TypeScript
+  read the one-to-one `page_drafts` embed as an array, believed no draft
+  existed, forked a rival revision and died on `page_drafts_pkey` inside the
+  preview frame. Acceptance case 18 races two callers and asserts one draft.
 
 Migrations `0001-0009` are left byte-identical to the delivered package so their published
 SHA-256 checksums still verify.
@@ -536,6 +542,19 @@ Rules that hold across the editor:
   page uses.** A preview that renders through a different path is a preview that
   lies. It is owner-gated and `force-dynamic` so draft content never reaches the
   public cache.
+- **The preview is a read and has no Studio chrome.** Studio is split into route
+  groups: `studio/layout.tsx` is the gate only (sign-in, MFA), `(workspace)/`
+  draws the nav rail and top bar, and `(preview)/site/[page]/preview` sits
+  outside it. A nested layout cannot remove what a parent draws, which is why
+  the earlier "bare" preview layout still showed Studio inside the frame. The
+  preview calls `getExistingDraft`, never `getOrCreateDraft`.
+- **One-to-one embeds are objects, not arrays.** `page_drafts`,
+  `variant_financials`, `supplier_tasks` and the other relations whose FK is a
+  primary or unique key come back from PostgREST as a single object or null.
+  `scripts/gen-types.mjs` once marked every relation one-to-many, so indexing
+  `page_drafts[0]` typechecked and was always undefined; it now matches the
+  official generator. Do not cast embedded results to hand-written shapes —
+  the cast is what hid it.
 - **The homepage falls back to `DEFAULT_HOME_SECTIONS` when the published read
   fails.** `next build` prerenders that page, and a build that fails when the
   database is down cannot ship a hotfix. The failure is logged loudly.

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { mfaSatisfied } from "@/lib/auth/mfa";
@@ -121,3 +123,14 @@ export class StudioAuthorizationError extends Error {
     this.name = "StudioAuthorizationError";
   }
 }
+
+/**
+ * `getStudioIdentity`, deduplicated for the length of one render.
+ *
+ * Studio's gate layout and the workspace layout around it both need the
+ * identity; without this each Studio page would revalidate the session with
+ * Supabase Auth twice. For layouts and pages only — Server Actions keep calling
+ * `getStudioIdentity` / `requireStudioOwner` directly, so a mutation always
+ * sees the session as it is at that moment.
+ */
+export const getStudioIdentityForRender = cache(getStudioIdentity);

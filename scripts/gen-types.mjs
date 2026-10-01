@@ -113,7 +113,19 @@ const foreignKeys = query(`
            (select array_agg(att.attname order by k.ord)
               from unnest(con.confkey) with ordinality k(attnum, ord)
               join pg_attribute att on att.attrelid = con.confrelid and att.attnum = k.attnum
-           ) as foreign_columns
+           ) as foreign_columns,
+           -- One-to-one when the FK columns are exactly a primary key or unique
+           -- constraint on the same table. PostgREST then embeds the relation
+           -- as a single object, not an array, and the official generator
+           -- marks it so. Hard-coding false here once let code index an
+           -- embedded object as an array and typecheck cleanly.
+           exists (
+             select 1 from pg_constraint u
+              where u.conrelid = con.conrelid
+                and u.contype in ('p', 'u')
+                and (select array_agg(x order by x) from unnest(u.conkey) x)
+                  = (select array_agg(x order by x) from unnest(con.conkey) x)
+           ) as is_one_to_one
     from pg_constraint con
     join pg_class src on src.oid = con.conrelid
     join pg_class tgt on tgt.oid = con.confrelid
@@ -176,7 +188,7 @@ function renderRelationships(table) {
         "        {",
         `          foreignKeyName: "${fk.constraint_name}";`,
         `          columns: [${cols}];`,
-        `          isOneToOne: false;`,
+        `          isOneToOne: ${fk.is_one_to_one ? "true" : "false"};`,
         `          referencedRelation: "${fk.foreign_table_name}";`,
         `          referencedColumns: [${fcols}];`,
         "        }",

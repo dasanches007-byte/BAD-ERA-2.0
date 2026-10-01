@@ -70,15 +70,17 @@ export async function listPages(): Promise<PageSummary[]> {
   if (error) throw error;
 
   return (data ?? []).map((p) => {
-    const draft = (p.page_drafts ?? []) as { revision_id: string; autosaved_at: string }[];
+    // One-to-one (page_drafts.page_id is its primary key), so PostgREST embeds
+    // a single object or null — never an array. See currentDraftId().
+    const draft = p.page_drafts;
     return {
       id: p.id,
       pageKey: p.page_key,
       route: p.route,
       title: p.title,
       publishedRevisionId: p.published_revision_id,
-      hasDraft: draft.length > 0,
-      draftUpdatedAt: draft[0]?.autosaved_at ?? null,
+      hasDraft: draft !== null,
+      draftUpdatedAt: draft?.autosaved_at ?? null,
     };
   });
 }
@@ -163,31 +165,37 @@ export async function getPublishedSections(
   return sections;
 }
 
-/**
- * Get the working draft, creating one if none exists.
- *
- * A new draft is copied from the live revision so editing starts from what is
- * actually published, not from defaults.
- */
-export async function getOrCreateDraft(pageKey: string): Promise<PageDraft | null> {
+async function readPageRow(pageKey: string) {
   const db = createAdminClient();
-
-  const { data: page, error: pageError } = await db
+  const { data, error } = await db
     .from("pages")
     .select("id, page_key, title, route, published_revision_id, page_drafts(revision_id)")
     .eq("page_key", pageKey)
     .maybeSingle();
 
-  if (pageError) throw pageError;
-  if (!page) return null;
+  if (error) throw error;
+  return data;
+}
 
-  const existingDraft = (page.page_drafts ?? []) as { revision_id: string }[];
-  let revisionId = existingDraft[0]?.revision_id ?? null;
+type PageRow = NonNullable<Awaited<ReturnType<typeof readPageRow>>>;
 
-  if (!revisionId) {
-    revisionId = await createDraftRevision(page.id, page.published_revision_id);
-  }
+/**
+ * The page's current draft revision, or null.
+ *
+ * `page_drafts` is one-to-one with `pages`, so PostgREST embeds it as a single
+ * object. This used to be read as `page_drafts[0]`, which is always undefined
+ * on an object: after the first draft existed, every load concluded there was
+ * none and forked another, and the database refused the second pointer. The
+ * owner saw it as the preview failing on their first session. The local type
+ * generator hard-coded every relation as one-to-many, which is why the
+ * typecheck did not catch it; it now matches Supabase's.
+ */
+function currentDraftId(page: PageRow): string | null {
+  return page.page_drafts?.revision_id ?? null;
+}
 
+async function assembleDraft(page: PageRow, revisionId: string): Promise<PageDraft> {
+  const db = createAdminClient();
   const { data: revision, error: revError } = await db
     .from("page_revisions")
     .select("id, revision_number")
@@ -211,72 +219,54 @@ export async function getOrCreateDraft(pageKey: string): Promise<PageDraft | nul
   };
 }
 
-/** Create a fresh draft revision, copying sections from `sourceRevisionId`. */
-async function createDraftRevision(
-  pageId: string,
-  sourceRevisionId: string | null,
-): Promise<string> {
-  const db = createAdminClient();
+/**
+ * Get the working draft, creating one if none exists.
+ *
+ * A new draft is copied from the live revision so editing starts from what is
+ * actually published, not from defaults.
+ *
+ * Creation is `ensure_page_draft` (migration 0016): one transaction behind a
+ * row lock on the page, which re-checks for a draft under the lock and returns
+ * it if one exists. It used to be four separate calls from here, so any caller
+ * that wrongly believed there was no draft — the misread in currentDraftId(),
+ * or two tabs opening a page at once — forked a rival revision and then died
+ * on `page_drafts_pkey`, leaving the revision orphaned. Now the database is
+ * the one place that decides, and it cannot be talked into a second draft.
+ */
+export async function getOrCreateDraft(pageKey: string): Promise<PageDraft | null> {
+  const page = await readPageRow(pageKey);
+  if (!page) return null;
 
-  const { data: last, error: lastError } = await db
-    .from("page_revisions")
-    .select("revision_number")
-    .eq("page_id", pageId)
-    .order("revision_number", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  let revisionId = currentDraftId(page);
 
-  if (lastError) throw lastError;
-  const nextNumber = (last?.revision_number ?? 0) + 1;
-
-  // Authorship is history, not authorization: this route is already owner-gated,
-  // and a null here only costs the revision list a name.
-  const identity = await getStudioIdentity();
-
-  const { data: created, error: createError } = await db
-    .from("page_revisions")
-    .insert({
-      page_id: pageId,
-      revision_number: nextNumber,
-      state: "draft",
-      source_revision_id: sourceRevisionId,
-      created_by: identity?.userId ?? null,
-    })
-    .select("id")
-    .single();
-
-  if (createError) throw createError;
-
-  if (sourceRevisionId) {
-    const { data: source, error: sourceError } = await db
-      .from("page_sections")
-      .select("section_key, section_type, schema_version, position, enabled, payload")
-      .eq("revision_id", sourceRevisionId)
-      .order("position");
-
-    if (sourceError) throw sourceError;
-
-    if (source && source.length > 0) {
-      const { error: copyError } = await db.from("page_sections").insert(
-        source.map((s) => ({
-          revision_id: created.id,
-          section_key: s.section_key,
-          section_type: s.section_type,
-          schema_version: s.schema_version,
-          position: s.position,
-          enabled: s.enabled,
-          payload: s.payload,
-        })),
-      );
-      if (copyError) throw copyError;
-    }
+  if (!revisionId) {
+    // Authorship is history, not authorization: this route is already
+    // owner-gated, and a null here only costs the revision list a name.
+    const identity = await getStudioIdentity();
+    const { data, error } = await createAdminClient().rpc("ensure_page_draft", {
+      p_page_id: page.id,
+      p_actor: identity?.userId ?? null,
+    });
+    if (error) throw error;
+    revisionId = data;
   }
 
-  const { error: draftError } = await db
-    .from("page_drafts")
-    .insert({ page_id: pageId, revision_id: created.id });
+  return assembleDraft(page, revisionId);
+}
 
-  if (draftError) throw draftError;
+/**
+ * The working draft if one exists, or null. Never writes.
+ *
+ * For the preview frame. A preview is a read: it must not create revisions as
+ * a side effect, and it is loaded by the editor page that has already ensured
+ * the draft exists.
+ */
+export async function getExistingDraft(pageKey: string): Promise<PageDraft | null> {
+  const page = await readPageRow(pageKey);
+  if (!page) return null;
 
-  return created.id;
+  const revisionId = currentDraftId(page);
+  if (!revisionId) return null;
+
+  return assembleDraft(page, revisionId);
 }

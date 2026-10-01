@@ -90,6 +90,8 @@ case "${1:-}" in
     # Case 1 needs two concurrent connections, so it runs separately.
     "$0" reset >/dev/null
     "$ROOT/tests/integration/sql/concurrency_last_unit.sh"
+    # Case 18: two editors forking the same page's first draft at once.
+    "$ROOT/tests/integration/sql/concurrency_page_draft.sh"
     ;;
 
   *)

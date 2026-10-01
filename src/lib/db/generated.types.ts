@@ -749,7 +749,7 @@ export type Database = {
         {
           foreignKeyName: "customers_auth_user_id_fkey";
           columns: ["auth_user_id"];
-          isOneToOne: false;
+          isOneToOne: true;
           referencedRelation: "users";
           referencedColumns: ["id"];
         }
@@ -2017,7 +2017,7 @@ export type Database = {
         {
           foreignKeyName: "orders_cart_id_fkey";
           columns: ["cart_id"];
-          isOneToOne: false;
+          isOneToOne: true;
           referencedRelation: "carts";
           referencedColumns: ["id"];
         },
@@ -2063,14 +2063,14 @@ export type Database = {
         {
           foreignKeyName: "page_drafts_page_id_fkey";
           columns: ["page_id"];
-          isOneToOne: false;
+          isOneToOne: true;
           referencedRelation: "pages";
           referencedColumns: ["id"];
         },
         {
           foreignKeyName: "page_drafts_revision_id_fkey";
           columns: ["revision_id"];
-          isOneToOne: false;
+          isOneToOne: true;
           referencedRelation: "page_revisions";
           referencedColumns: ["id"];
         }
@@ -2697,7 +2697,7 @@ export type Database = {
         {
           foreignKeyName: "provider_variant_availability_mapping_id_fkey";
           columns: ["mapping_id"];
-          isOneToOne: false;
+          isOneToOne: true;
           referencedRelation: "provider_variant_mappings";
           referencedColumns: ["id"];
         }
@@ -3311,7 +3311,7 @@ export type Database = {
         {
           foreignKeyName: "studio_users_user_id_fkey";
           columns: ["user_id"];
-          isOneToOne: false;
+          isOneToOne: true;
           referencedRelation: "users";
           referencedColumns: ["id"];
         }
@@ -3377,7 +3377,7 @@ export type Database = {
         {
           foreignKeyName: "supplier_tasks_fulfillment_group_id_fkey";
           columns: ["fulfillment_group_id"];
-          isOneToOne: false;
+          isOneToOne: true;
           referencedRelation: "fulfillment_groups";
           referencedColumns: ["id"];
         },
@@ -3564,7 +3564,7 @@ export type Database = {
         {
           foreignKeyName: "variant_financials_variant_id_fkey";
           columns: ["variant_id"];
-          isOneToOne: false;
+          isOneToOne: true;
           referencedRelation: "product_variants";
           referencedColumns: ["id"];
         }
@@ -3642,6 +3642,13 @@ export type Database = {
           p_stripe_checkout_session_id: string | null;
           p_stripe_payment_intent_id: string | null;
           p_paid_at?: string | null;
+        };
+        Returns: string;
+      };
+      ensure_page_draft: {
+        Args: {
+          p_page_id: string | null;
+          p_actor?: string | null;
         };
         Returns: string;
       };
