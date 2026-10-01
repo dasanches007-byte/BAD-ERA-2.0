@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { HeroSpotlight } from "@/components/sections/hero-spotlight";
 import { MediaSlot } from "@/components/ui/media-slot";
 import { editAttrs } from "@/lib/cms/edit-targets";
 import type {
@@ -124,6 +125,8 @@ export function HeroEditorial({
         className="h-[78vh] min-h-[520px] w-full lg:h-[86vh]"
         edit={editAttrs(editing, section, "media")}
       />
+      {/* Between the photo and the words: lights the photo, never the type. */}
+      <HeroSpotlight />
       <div className="pointer-events-none absolute inset-0 z-10 flex items-center">
         <div className="shell pointer-events-auto">
           <h1

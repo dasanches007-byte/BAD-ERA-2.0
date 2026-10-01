@@ -24,6 +24,9 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-line-faint bg-void/85 backdrop-blur-sm">
+      {/* Underglow: a hairline LED with light falling onto the page below. */}
+      <span aria-hidden="true" className="glow-line" />
+      <span aria-hidden="true" className="glow-spill" />
       <div className="shell flex h-16 items-center justify-between gap-6 lg:h-20">
         <Link
           href="/"

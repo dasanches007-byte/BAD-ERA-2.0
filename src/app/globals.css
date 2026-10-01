@@ -284,3 +284,165 @@ body {
 [data-be-flash] {
   animation: be-flash 1.4s var(--ease-bad-era) both;
 }
+
+/*
+ * Ambient light — chosen by the owner from the "make it feel alive" studies:
+ * UNDERGLOW (an LED line under the header; Archive 01 cards lit from below
+ * like pieces on a lit shelf) and the GALLERY SPOTLIGHT on the hero.
+ *
+ * Warm white only. The light is the bone of the palette, so it adds presence
+ * without adding colour; colour still comes from the photography. Every glow
+ * breathes slowly (7–8 s) and out of step — never blinks, never flashes.
+ * Reduced motion: the rule above stops the breathing, and each element rests
+ * at its base opacity rather than vanishing. The spotlight's script stops
+ * following and drifting (hero-spotlight.tsx).
+ *
+ * Decorative throughout: aria-hidden, pointer-events none, so nothing here can
+ * take a click, a focus or a screen-reader announcement.
+ */
+:root {
+  --glow: 244 241 234;
+}
+
+@keyframes glow-breathe {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Header: a hairline LED with light falling onto whatever scrolls beneath. */
+.glow-line {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: -1px;
+  height: 1px;
+  pointer-events: none;
+  background: rgb(var(--glow));
+  box-shadow:
+    0 0 10px 1px rgb(var(--glow) / 0.85),
+    0 0 34px 5px rgb(var(--glow) / 0.3);
+  opacity: 0.85;
+  animation: glow-breathe 7s ease-in-out infinite;
+}
+
+.glow-spill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 110px;
+  pointer-events: none;
+  background: radial-gradient(55% 100% at 50% 0%, rgb(var(--glow) / 0.1), transparent 72%);
+  opacity: 0.85;
+  animation: glow-breathe 7s ease-in-out infinite;
+}
+
+/* Archive 01: each card stands on a lit shelf. */
+.glow-shelf {
+  position: relative;
+  box-shadow: 0 34px 60px -34px rgb(var(--glow) / 0.4);
+}
+
+.glow-shelf-light {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -1px;
+  height: 2px;
+  pointer-events: none;
+  background: rgb(var(--glow));
+  box-shadow:
+    0 0 14px 2px rgb(var(--glow) / 0.8),
+    0 0 46px 10px rgb(var(--glow) / 0.2);
+  opacity: 0.85;
+  animation: glow-breathe 8s ease-in-out infinite;
+}
+
+.glow-shelf:nth-child(2) .glow-shelf-light {
+  animation-delay: -2.6s;
+}
+
+.glow-shelf:nth-child(3) .glow-shelf-light {
+  animation-delay: -5.2s;
+}
+
+/* Light from the shelf rising up the photo. */
+.glow-shelf-rise {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 70%;
+  pointer-events: none;
+  background: linear-gradient(to top, rgb(var(--glow) / 0.1), transparent);
+}
+
+/* Hero: a soft light that follows the cursor or finger, and film grain. */
+.spot-light {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 760px;
+  height: 760px;
+  margin: -380px 0 0 -380px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--glow) / 0.14),
+    rgb(var(--glow) / 0.045) 55%,
+    transparent
+  );
+  mix-blend-mode: screen;
+  will-change: transform;
+  /* Where it rests before the script takes over (and under reduced motion). */
+  transform: translate3d(34vw, 40vh, 0);
+}
+
+@media (max-width: 767px) {
+  .spot-light {
+    width: 520px;
+    height: 520px;
+    margin: -260px 0 0 -260px;
+  }
+}
+
+.spot-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 95% at 50% 45%, transparent 55%, rgb(0 0 0 / 0.32));
+}
+
+.spot-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: film-grain 0.9s steps(6) infinite;
+}
+
+@keyframes film-grain {
+  0% {
+    background-position: 0 0;
+  }
+  20% {
+    background-position: -37px 21px;
+  }
+  40% {
+    background-position: 29px -44px;
+  }
+  60% {
+    background-position: -18px -13px;
+  }
+  80% {
+    background-position: 41px 33px;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}

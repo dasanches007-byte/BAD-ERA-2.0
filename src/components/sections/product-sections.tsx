@@ -141,12 +141,16 @@ function ArchiveCard({ product }: { product: CatalogProduct }) {
   const isBundle = product.kind === "bundle";
 
   return (
-    <article className="hairline group flex flex-col bg-surface-raised">
-      <MediaSlot
-        media={emptyMedia(product.title, product.title)}
-        sizes="(min-width: 768px) 33vw, 100vw"
-        className="aspect-square w-full"
-      />
+    // Underglow: each piece stands on a lit shelf (globals.css, glow-shelf).
+    <article className="glow-shelf hairline group flex flex-col bg-surface-raised">
+      <div className="relative">
+        <MediaSlot
+          media={emptyMedia(product.title, product.title)}
+          sizes="(min-width: 768px) 33vw, 100vw"
+          className="aspect-square w-full"
+        />
+        <span aria-hidden="true" className="glow-shelf-rise" />
+      </div>
       <div className="flex flex-1 flex-col p-7">
         <p className="label text-ink-subtle">Archive 01</p>
         <h3 className="mt-4 font-display text-display-sm uppercase text-ink-strong">
@@ -173,6 +177,7 @@ function ArchiveCard({ product }: { product: CatalogProduct }) {
           </Link>
         </div>
       </div>
+      <span aria-hidden="true" className="glow-shelf-light" />
     </article>
   );
 }

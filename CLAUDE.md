@@ -616,6 +616,38 @@ Rules that hold across click-to-edit:
   refused phone photos. Vercel's 4.5 MB request cap still applies there — see
   `docs/LAUNCH_READINESS.md`.
 
+## Ambient light (owner-approved)
+
+Two effects, chosen by the owner from five mockups: **underglow** (a breathing
+LED line under the header, a lit shelf under each Archive 01 card) and the
+**gallery spotlight** on the hero (a soft light that follows the cursor or a
+finger, drifts on its own when idle, with fine film grain).
+
+```
+src/app/globals.css                         "Ambient light" section (--glow token)
+src/components/sections/hero-spotlight.tsx  Client. The spotlight's motion
+```
+
+Rules that hold across the light:
+
+- **Warm white only** — `--glow: 244 241 234`, the bone of the palette. Colour
+  comes from photography, never from the light. No hue, no colour cycling.
+- **Slow.** Breathing cycles are 6 s or longer. Never a flicker or a pulse.
+- **Decoration only.** Every layer is `aria-hidden` and `pointer-events: none`,
+  so it never takes a click — the on-page editor looks straight through it.
+- **The light sits between the photo and the words** (`z-[5]` under the text's
+  `z-10`), so it lights the image and never washes the type. It never touches
+  the logo.
+- **The spotlight moves by `transform` only** and runs only while the hero is
+  on screen and the tab is visible.
+- **Reduced motion means stillness.** The spotlight script does nothing and the
+  global rule stops the breathing; every glow then rests visible at ~0.85
+  opacity rather than vanishing.
+- The Archive shelf light appears only where Archive cards render — i.e. once
+  the three Archive 01 products are active.
+
+`tests/unit/ambient-light.test.tsx` holds all of the above.
+
 ## Orders & customers (Phase 5)
 
 ```
