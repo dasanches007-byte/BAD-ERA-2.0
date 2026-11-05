@@ -11,8 +11,9 @@
    accents, gradients-as-decoration or generic admin-template styling.
 
    NOTE ON THE LOGO: no font in this file may be used to reconstruct the
-   BAD ERA monogram. The mark is owner-supplied locked artwork
-   (brand/logo/bad-era-monogram-master.png) and is always rendered as an image.
+   BAD mark. It is owner-supplied locked artwork
+   (brand/logo/BAD-primary-white-transparent.png) and is always rendered as an
+   image — a bold sans set in caps is not the logo.
    ========================================================================== */
 
 @theme {

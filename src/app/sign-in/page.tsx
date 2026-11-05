@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { SignInForm } from "@/components/auth/sign-in-form";
-import { Monogram } from "@/components/ui/logo";
+import { BrandMark } from "@/components/ui/logo";
 import { safeRedirectPath } from "@/lib/auth/safe-redirect";
 import { createClient } from "@/lib/db/server";
 
@@ -42,7 +42,7 @@ export default async function SignInPage({
       <main className="flex flex-1 items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm">
           <div className="flex flex-col items-center text-center">
-            <Monogram size={44} priority />
+            <BrandMark height={60} priority />
             <h1 className="mt-8 font-display text-display-sm text-ink-strong">
               Sign in
             </h1>

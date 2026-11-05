@@ -1,54 +1,51 @@
 import Image from "next/image";
 
-import monogram from "../../../public/brand/bad-era-monogram.png";
+import mark from "../../../public/brand/bad-primary-white.png";
+
+/** The artwork's size in pixels. `tests/unit/brand-mark.test.tsx` checks the file. */
+export const MARK_SIZE = { width: 961, height: 350 } as const;
 
 /**
- * The official BAD ERA monogram.
+ * The official BAD mark — the owner's primary wordmark, approved 5 November
+ * 2026 (`brand/logo/BAD-official-logo-package.md`). It replaced the B–E
+ * monogram, which is retired to `brand/logo/legacy/`.
  *
- * LOCKED ASSET (Master Spec §0.1, §0.3). This component renders the
- * owner-supplied artwork as an image. The mark must NEVER be reconstructed with
- * web fonts, CSS, SVG paths, or by any other means; its geometry, letter
- * overlap and four-point sparkle are fixed, and its aspect ratio is preserved.
+ * LOCKED ASSET. This renders the owner-supplied artwork as an image. The mark
+ * must NEVER be set in a font, redrawn, traced, reshaped, slanted, stretched
+ * or given effects — "a bold geometric sans in caps" is not the logo; this
+ * file is. Its aspect ratio is fixed: give a height and the width follows.
  *
- * If you are tempted to "just set the tracking on a serif font" to approximate
- * it — don't. Use this component.
+ * White, for the site's dark surfaces. The black master
+ * (`brand/logo/BAD-primary-black-transparent.png`) is for light backgrounds,
+ * of which the site currently has none.
+ *
+ * The file carries its own clear space — about a quarter of the letter height
+ * on every side, as the package asks — so the letters fill roughly 70% of
+ * `height`. Do not crop it to make the mark look bigger; size it instead.
  */
-export function Monogram({
-  size = 40,
+export function BrandMark({
+  height = 32,
   className,
   priority = false,
 }: {
-  size?: number;
+  /** Rendered height in CSS pixels, clear space included. */
+  height?: number;
   className?: string;
   priority?: boolean;
 }) {
   return (
     <Image
-      src={monogram}
+      src={mark}
       alt="BAD ERA"
-      width={size}
-      height={size}
+      height={height}
+      width={Math.round((height * MARK_SIZE.width) / MARK_SIZE.height)}
       priority={priority}
-      className={className}
-      // Never distort. The source is square; height follows width.
-      style={{ height: "auto" }}
+      // Height is set here, and width always follows it — the base styles give
+      // every image `height: auto`, which would otherwise let the file's own
+      // size decide. A responsive class such as `lg:h-10` still wins on its
+      // breakpoint; it can change the height, never the proportions.
+      className={`h-[var(--mark-h)] w-auto ${className ?? ""}`}
+      style={{ "--mark-h": `${height}px` } as React.CSSProperties}
     />
-  );
-}
-
-/**
- * The wordmark lockup used in navigation.
- *
- * The words "BAD ERA" set in the display serif are a typographic treatment, not
- * the logo. The logo is the monogram above. Both appear on the approved usage
- * board; keep them distinct.
- */
-export function Wordmark({ className }: { className?: string }) {
-  return (
-    <span
-      className={`font-display text-[1.35rem] leading-none tracking-[0.28em] text-ink-strong ${className ?? ""}`}
-    >
-      BAD ERA
-    </span>
   );
 }

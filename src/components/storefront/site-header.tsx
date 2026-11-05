@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { NavLink, visibleLinks } from "@/components/storefront/nav-link";
-import { Monogram, Wordmark } from "@/components/ui/logo";
+import { BrandMark } from "@/components/ui/logo";
 import { DEFAULT_SITE_HEADER } from "@/lib/cms/default-pages";
 import { editAttrs } from "@/lib/cms/edit-targets";
 import type { SiteHeaderSection } from "@/lib/cms/sections";
@@ -11,8 +11,9 @@ import type { SiteHeaderSection } from "@/lib/cms/sections";
  * changes its menu links in Studio → Site → Menu & footer, but never its
  * structure or typography.
  *
- * The logo is the locked artwork. Account and Cart are fixed — they are how a
- * customer reaches their order and their bag, so no edit can remove them.
+ * The logo is the locked BAD artwork (`BrandMark`). Account and Cart are
+ * fixed — they are how a customer reaches their order and their bag, so no
+ * edit can remove them.
  *
  * LOOKBOOK and ERA 00 are approved future modules. They are not in the
  * shipped menu, because their routes do not exist yet (Master Spec §2.3).
@@ -60,13 +61,8 @@ export function SiteHeader({
       <span aria-hidden="true" className="glow-line" />
       <span aria-hidden="true" className="glow-spill" />
       <div className="shell flex h-16 items-center justify-between gap-6 lg:h-20">
-        <Link
-          href="/"
-          className="flex items-center gap-3"
-          aria-label="BAD ERA — home"
-        >
-          <Monogram size={28} priority />
-          <Wordmark className="hidden sm:inline" />
+        <Link href="/" className="flex items-center" aria-label="BAD ERA — home">
+          <BrandMark height={36} priority className="lg:h-10" />
         </Link>
 
         <nav aria-label="Primary" className="hidden md:block">

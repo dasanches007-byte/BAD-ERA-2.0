@@ -17,8 +17,12 @@ in document order. Classifications come from master spec §25.3.
 
 | File | Class | Rule |
 |---|---|---|
-| `logo/bad-era-monogram-master.png` | OFFICIAL / ACTIVE | The master mark: overlapping B–E serif monogram with four-point sparkle, ivory on near-black. Exact geometry is locked. Use the source artwork — never reconstruct with web fonts or CSS. |
-| `logo/bad-era-logo-usage-board.jpeg` | OFFICIAL / ACTIVE | Approved primary, inverse, favicon, wordmark lockup, small-size/embroidery applications. Supersedes all earlier generated identity boards. |
+| `logo/BAD-primary-white-transparent.png` | OFFICIAL / ACTIVE | The primary mark, approved 5 Nov 2026: the **BAD** wordmark, white on transparent, for dark backgrounds. Served byte-for-byte as `public/brand/bad-primary-white.png`. Never set in a font, redrawn or reshaped. |
+| `logo/BAD-primary-black-transparent.png` | OFFICIAL / ACTIVE | Same geometry in black, for light backgrounds. |
+| `logo/BAD-primary-white-on-black-square.png` | OFFICIAL / ACTIVE | The owner's unchanged original — the reference authority. Source of the 180 and 512 px app icons. |
+| `logo/BAD-official-logo-package.md` | OFFICIAL / ACTIVE | The package's own rules (clear space, monochrome default, vector master still to be commissioned). |
+| `logo/legacy/bad-era-monogram-master.png` | RETIRED | The B–E monogram, superseded 5 Nov 2026. Kept for history; not used anywhere. |
+| `logo/legacy/bad-era-logo-usage-board.jpeg` | RETIRED | Usage board for the retired monogram. |
 
 Full-resolution originals. All other files in this directory are downscaled references.
 

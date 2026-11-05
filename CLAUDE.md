@@ -33,11 +33,16 @@ These are locked. Do not redesign, simplify away, or "improve" them without the 
 explicitly changing the spec.
 
 ### Brand & identity
-- **The logo is locked.** Use `brand/logo/bad-era-monogram-master.png` — the overlapping
-  B–E serif monogram with the four-point sparkle. **Never** redraw, trace, reconstruct with
-  web fonts/CSS, regenerate, stretch, recolor, re-space, or alter its geometry. Never remove
-  or reposition the sparkle. Preserve aspect ratio and clear space. Use the inverse variant
-  on light backgrounds (`brand/logo/bad-era-logo-usage-board.jpeg` defines approved variants).
+- **The logo is locked.** It is the **BAD** wordmark the owner approved on 5 November 2026
+  (`brand/logo/BAD-official-logo-package.md`), which supersedes the B–E monogram described
+  in master spec §0.1/§0.3. Masters: `brand/logo/BAD-primary-white-transparent.png` (dark
+  backgrounds — the site), `BAD-primary-black-transparent.png` (light backgrounds) and
+  `BAD-primary-white-on-black-square.png` (the owner's original, the reference authority).
+  **Never** set it in a font, redraw, trace, reshape, slant, stretch, recolor or add effects.
+  Preserve aspect ratio and clear space (≥ ¼ letter height each side; the PNGs carry it).
+  "BAD ERA" is the brand name; "BAD" is the mark — never put the two side by side as if one
+  were the other's caption. Render it only through `BrandMark`. The retired monogram and its
+  usage board are kept, unused, in `brand/logo/legacy/`.
 - Any logo visible *inside* a concept mockup is reference-only and never overrides the
   official artwork.
 - The brand must feel editorial, cinematic, restrained, expensive, intentionally minimal.
@@ -458,7 +463,7 @@ Rules that hold across this layer:
 
 ```
 src/components/
-  ui/logo.tsx              Monogram (locked artwork) + Wordmark. NEVER reconstruct the mark.
+  ui/logo.tsx              BrandMark (locked BAD artwork). NEVER reconstruct the mark.
   ui/media-slot.tsx        Every editorial image. Renders a placeholder until Studio fills it.
   storefront/site-header.tsx   Locked global component
   storefront/site-footer.tsx   Locked global component

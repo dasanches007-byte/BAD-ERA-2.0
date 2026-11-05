@@ -1,5 +1,5 @@
 import { NavLink, visibleLinks } from "@/components/storefront/nav-link";
-import { Monogram } from "@/components/ui/logo";
+import { BrandMark } from "@/components/ui/logo";
 import { DEFAULT_SITE_FOOTER } from "@/lib/cms/default-pages";
 import { editAttrs } from "@/lib/cms/edit-targets";
 import type { NavLink as NavLinkItem, SiteFooterSection } from "@/lib/cms/sections";
@@ -117,7 +117,7 @@ export function SiteFooter({
         <p className="label text-ink-subtle">
           © {new Date().getFullYear()} BAD ERA. All rights reserved.
         </p>
-        <Monogram size={26} />
+        <BrandMark height={30} />
         {section.location ? (
           <p {...edit("location")} className="label text-ink-subtle">
             {section.location}
