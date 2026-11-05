@@ -161,6 +161,23 @@ The first page takes around 20 seconds while it compiles; after that it is quick
 Open **codespaces.new/dasanches007-byte/BAD-ERA-2.0?quickstart=1** and choose
 **Resume**. The site starts again by itself.
 
+**It updates itself.** Each time it opens, the Codespace checks GitHub for a
+newer version of BAD ERA, installs it, and starts that — the terminal says
+*Updated to the latest version.* If it ever says it could **not** update
+(because the Codespace has changes of its own), tell Claude what it listed
+rather than deleting anything.
+
+> **A Codespace made before this existed** has to be updated by hand once.
+> In its terminal, type:
+>
+> ```sh
+> git checkout -- CLAUDE.md && git pull && npm install && bash .devcontainer/start.sh --restart
+> ```
+>
+> Or delete the old Codespace at **github.com/codespaces** (**⋯** → **Delete**)
+> and create a new one — your keys are saved with your GitHub account, not in
+> the Codespace, so nothing needs re-entering.
+
 It sleeps on its own after 30 minutes idle. To stop it immediately:
 **github.com/codespaces** → **⋯** next to it → **Stop codespace**.
 
@@ -397,6 +414,9 @@ fault.
 | I want to… | Go to |
 |---|---|
 | Change words or a photo on the homepage | Open your site, press **Edit this page** (bottom right — only you see it), then click the thing you want to change |
+| Change the menu, the footer, or add your social links | Studio → **Site** → **Menu & footer** → **Edit on the page**, then tap any link or words. Tapping a menu link opens the whole menu: add, remove, reorder, hide |
+| Change the words on the Shop page | Open **/shop** → **Edit this page** (or Studio → **Site** → **Shop**) |
+| Change the words every product page shares ("Details", the Archive 01 lines, a note on every product) | Open any product → **Edit page wording** (or Studio → **Site** → **Product pages**). A product's own name, price, description and photos: **Edit this product** |
 | Write the about / privacy / terms / shipping / returns / support pages | Open that page on your site → **Edit this page** → **Start writing this page** → tap the text → **Publish** |
 | See every field of a page in one list | **Site** → **All fields** |
 | Upload photography | Click any photo on the page → **Upload a photo**. Or **Media** to manage the whole library |
@@ -445,7 +465,10 @@ Either way:
 ### What you can't break
 
 The editor deliberately has no font, colour, size, spacing or HTML controls. You
-change words, images and which sections show. The design stays locked, so the
+change words, images, links and which sections show. The menu, footer, Shop
+page and product pages are always shown — you change their words and links,
+never remove them — and Account, Cart and the logo stay put whatever the menu
+says. The design stays locked, so the
 site can't drift away from the brand no matter what you type — even "BAD ERA"
 typed in the hero keeps exactly its assigned typeface and size. Clicking only
 ever opens a field the page was designed to have.

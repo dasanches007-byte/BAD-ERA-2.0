@@ -2,9 +2,12 @@ import "server-only";
 
 import { getStudioIdentity } from "@/lib/auth/studio";
 import { createAdminClient } from "@/lib/db/admin";
+import { chromeFrom, TEMPLATE_DEFAULTS, type SiteChrome } from "@/lib/cms/default-pages";
 import { parseSection } from "@/lib/cms/registry";
+import { ensureEditablePages, isEditablePage } from "@/lib/cms/system-pages";
 import { PUBLIC_BUCKET } from "@/lib/studio/media-types";
 import type { Section } from "@/lib/cms/sections";
+import type { Json } from "@/lib/db/generated.types";
 
 /**
  * Page and revision service (Master Spec §13).
@@ -228,6 +231,23 @@ export async function getPublishedSections(
   return sections;
 }
 
+/**
+ * Published sections for a PUBLIC render, or null. Never throws: a storefront
+ * page falls back to its shipped wording rather than failing because the
+ * content read did. The failure is logged loudly.
+ */
+export async function readPublishedForStorefront(pageKey: string): Promise<Section[] | null> {
+  return getPublishedSections(pageKey).catch((error) => {
+    console.error(`[bad-era] published "${pageKey}" read failed; using shipped wording`, error);
+    return null;
+  });
+}
+
+/** The live menu and footer (Studio → Site → Menu & footer), or the shipped ones. */
+export async function getSiteChrome(): Promise<SiteChrome> {
+  return chromeFrom(await readPublishedForStorefront("site"));
+}
+
 async function readPageRow(pageKey: string) {
   const db = createAdminClient();
   const { data, error } = await db
@@ -241,6 +261,12 @@ async function readPageRow(pageKey: string) {
 }
 
 type PageRow = NonNullable<Awaited<ReturnType<typeof readPageRow>>>;
+
+/** Which template a page uses, or null if there is no such page. */
+export async function getPageTemplateKey(pageKey: string): Promise<string | null> {
+  const page = await readPageRow(pageKey);
+  return page?.template_key ?? null;
+}
 
 /**
  * The page's current draft revision, or null.
@@ -298,7 +324,12 @@ async function assembleDraft(page: PageRow, revisionId: string): Promise<PageDra
  * the one place that decides, and it cannot be talked into a second draft.
  */
 export async function getOrCreateDraft(pageKey: string): Promise<PageDraft | null> {
-  const page = await readPageRow(pageKey);
+  let page = await readPageRow(pageKey);
+  if (!page && isEditablePage(pageKey)) {
+    // Menu & footer, Shop, Product pages: registered on first use.
+    await ensureEditablePages();
+    page = await readPageRow(pageKey);
+  }
   if (!page) return null;
 
   let revisionId = currentDraftId(page);
@@ -315,7 +346,46 @@ export async function getOrCreateDraft(pageKey: string): Promise<PageDraft | nul
     revisionId = data;
   }
 
+  const draft = await assembleDraft(page, revisionId);
+  if (draft.sections.length > 0 || draft.sectionRows.length > 0) return draft;
+
+  // A page whose words have a shipped default starts its first draft from
+  // them, so the owner edits what customers see today rather than a blank.
+  const defaults = TEMPLATE_DEFAULTS[draft.templateKey];
+  if (!defaults) return draft;
+  await seedDraftSections(revisionId, defaults);
   return assembleDraft(page, revisionId);
+}
+
+/**
+ * Write default sections into an EMPTY draft revision. The draft is not
+ * live, so this changes nothing a customer sees. Two tabs seeding at once
+ * collide on (revision_id, section_key), and the loser's rows are dropped.
+ */
+async function seedDraftSections(revisionId: string, sections: Section[]): Promise<void> {
+  const rows = sections.map((section, position) => {
+    const parsed = parseSection(section);
+    if (!parsed.success) throw new Error(`Default ${section.type} section is invalid`);
+    const { sectionId, type, enabled, schemaVersion, ...payload } = parsed.data as Record<string, unknown> & {
+      sectionId: string;
+      type: string;
+      enabled: boolean;
+      schemaVersion: number;
+    };
+    return {
+      revision_id: revisionId,
+      section_key: sectionId,
+      section_type: type,
+      schema_version: schemaVersion,
+      position,
+      enabled,
+      payload: payload as Json,
+    };
+  });
+  const { error } = await createAdminClient()
+    .from("page_sections")
+    .upsert(rows, { onConflict: "revision_id,section_key", ignoreDuplicates: true });
+  if (error) throw error;
 }
 
 /**

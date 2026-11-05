@@ -130,6 +130,49 @@ export const legalProseSchema = z.object({
   body: z.string().max(20000),
 });
 
+// Menu & footer, Shop page, product page wording. Lists of links are capped
+// so a menu always fits the header the brand was designed with.
+const navLinkSchema = z.object({ link: ctaSchema });
+
+export const siteHeaderSchema = z.object({
+  ...baseFields,
+  type: z.literal("site.header"),
+  links: z.array(navLinkSchema).max(5),
+});
+
+export const siteFooterSchema = z.object({
+  ...baseFields,
+  type: z.literal("site.footer"),
+  statement: z.string().max(240),
+  shopHeading: z.string().max(30),
+  shopLinks: z.array(navLinkSchema).max(6),
+  infoHeading: z.string().max(30),
+  infoLinks: z.array(navLinkSchema).max(8),
+  newsletterHeading: z.string().max(30),
+  newsletterText: z.string().max(200),
+  socialHeading: z.string().max(30),
+  socialLinks: z.array(navLinkSchema).max(6),
+  location: z.string().max(40),
+});
+
+export const shopCatalogSchema = z.object({
+  ...baseFields,
+  type: z.literal("shop.catalog"),
+  eyebrow: z.string().max(30),
+  headline: z.string().max(60),
+  emptyTitle: z.string().max(40),
+  emptyText: z.string().max(200),
+});
+
+export const productWordingSchema = z.object({
+  ...baseFields,
+  type: z.literal("product.wording"),
+  archiveLabel: z.string().max(30),
+  detailsHeading: z.string().max(30),
+  archiveNote: z.string().max(80),
+  note: z.string().max(300),
+});
+
 export const sectionSchema = z.discriminatedUnion("type", [
   heroEditorialSchema,
   trustStripSchema,
@@ -139,6 +182,10 @@ export const sectionSchema = z.discriminatedUnion("type", [
   archive01FeatureSchema,
   newsletterSchema,
   legalProseSchema,
+  siteHeaderSchema,
+  siteFooterSchema,
+  shopCatalogSchema,
+  productWordingSchema,
 ]);
 
 // --- Inspector definitions --------------------------------------------------
@@ -156,7 +203,20 @@ export type InspectorField =
   | { kind: "media"; path: string; label: string }
   | { kind: "cta"; path: string; label: string }
   | { kind: "productList"; path: string; label: string; max: number; hint?: string }
-  | { kind: "repeater"; path: string; label: string; max: number; fields: InspectorField[] };
+  | {
+      kind: "repeater";
+      path: string;
+      label: string;
+      max: number;
+      fields: InspectorField[];
+      /**
+       * Present only on true lists (menu links, social links): the owner may
+       * add, remove and reorder items, and a new one starts as this. Absent,
+       * the item count is the approved design's (three story tiles) and is
+       * fixed.
+       */
+      newItem?: Record<string, unknown>;
+    };
 
 export type SectionDefinition = {
   type: SectionType;
@@ -166,8 +226,19 @@ export type SectionDefinition = {
   schemaVersion: number;
   /** Locked sections cannot be reordered or removed, only edited/disabled. */
   locked?: boolean;
+  /**
+   * Always shown: there is no "hide" for it. The menu, the footer, the Shop
+   * page's product grid and the product page's purchase controls are how a
+   * customer gets around and buys; hiding one would break the store, not
+   * restyle it. Enforced on save as well as in the editor.
+   */
+  alwaysShown?: boolean;
   fields: InspectorField[];
 };
+
+/** A link in a list: label, destination, shown or hidden. */
+const LINK_FIELD: InspectorField = { kind: "cta", path: "link", label: "Link" };
+const NEW_LINK = { link: { label: "", href: "/", enabled: true } };
 
 export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
   "legal.prose": {
@@ -280,6 +351,82 @@ export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
       { kind: "productList", path: "productHandles", label: "Products", max: 6, hint: "Tee, Crossbody, then the Set." },
       { kind: "text", path: "footnote", label: "Footnote", maxLength: 120 },
       { kind: "cta", path: "cta", label: "Section action" },
+    ],
+  },
+  "site.header": {
+    type: "site.header",
+    label: "Menu",
+    description: "The links across the top of every page. The logo, Account and Cart stay fixed.",
+    schemaVersion: 1,
+    alwaysShown: true,
+    fields: [
+      {
+        kind: "repeater",
+        path: "links",
+        label: "Menu links",
+        max: 5,
+        fields: [LINK_FIELD],
+        newItem: NEW_LINK,
+      },
+    ],
+  },
+  "site.footer": {
+    type: "site.footer",
+    label: "Footer",
+    description: "The bottom of every page: your statement, links, newsletter and social links.",
+    schemaVersion: 1,
+    alwaysShown: true,
+    fields: [
+      { kind: "textarea", path: "statement", label: "Brand statement", maxLength: 240 },
+      { kind: "text", path: "shopHeading", label: "Shop heading", maxLength: 30 },
+      { kind: "repeater", path: "shopLinks", label: "Shop links", max: 6, fields: [LINK_FIELD], newItem: NEW_LINK },
+      { kind: "text", path: "infoHeading", label: "Info heading", maxLength: 30 },
+      { kind: "repeater", path: "infoLinks", label: "Info links", max: 8, fields: [LINK_FIELD], newItem: NEW_LINK },
+      { kind: "text", path: "newsletterHeading", label: "Newsletter heading", maxLength: 30 },
+      { kind: "textarea", path: "newsletterText", label: "Newsletter text", maxLength: 200 },
+      { kind: "text", path: "socialHeading", label: "Social heading", maxLength: 30 },
+      {
+        kind: "repeater",
+        path: "socialLinks",
+        label: "Social links",
+        max: 6,
+        fields: [LINK_FIELD],
+        newItem: NEW_LINK,
+      },
+      { kind: "text", path: "location", label: "Bottom line", maxLength: 40, hint: "E.g. Based in California." },
+    ],
+  },
+  "shop.catalog": {
+    type: "shop.catalog",
+    label: "Shop page",
+    description: "The heading above every product, and what shows when nothing is live yet.",
+    schemaVersion: 1,
+    alwaysShown: true,
+    fields: [
+      { kind: "text", path: "eyebrow", label: "Small heading", maxLength: 30 },
+      { kind: "text", path: "headline", label: "Headline", maxLength: 60 },
+      { kind: "text", path: "emptyTitle", label: "When nothing is live: title", maxLength: 40 },
+      { kind: "textarea", path: "emptyText", label: "When nothing is live: text", maxLength: 200 },
+    ],
+  },
+  "product.wording": {
+    type: "product.wording",
+    label: "Product page wording",
+    description:
+      "Words shared by every product page. Each product's name, price, description and photos are in Products.",
+    schemaVersion: 1,
+    alwaysShown: true,
+    fields: [
+      { kind: "text", path: "archiveLabel", label: "Archive 01 label", maxLength: 30, hint: "Above the name of Archive 01 pieces." },
+      { kind: "text", path: "detailsHeading", label: "Details heading", maxLength: 30 },
+      { kind: "text", path: "archiveNote", label: "Archive 01 note", maxLength: 80, hint: "Under the details of Archive 01 pieces." },
+      {
+        kind: "textarea",
+        path: "note",
+        label: "Note on every product",
+        maxLength: 300,
+        hint: "Optional. Only promise what you will keep, e.g. how long orders take to ship.",
+      },
     ],
   },
   newsletter: {

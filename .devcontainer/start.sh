@@ -57,11 +57,72 @@ fi
 
 port_in_use() { (exec 3<>/dev/tcp/127.0.0.1/3000) 2>/dev/null; }
 
+# Keep this Codespace on the latest version on GitHub.
+#
+# Without this, a Codespace keeps the code it was created with forever: new
+# Studio features land on GitHub and never reach the owner's editor. So every
+# start fetches, and fast-forwards when it safely can. It never discards
+# anything — the one exception is the block `next dev` itself writes into
+# CLAUDE.md, which is restored only when it is the ONLY change in that file.
+# Anything else uncommitted, or a history that has diverged, and the update
+# is skipped with a note; the site still starts on the code that is here.
+UPDATED=""
+GENERATED_BLOCK='<!-- BEGIN:nextjs-agent-rules -->'
+only_generated_block() {
+  node -e '
+    const fs = require("fs"), cp = require("child_process");
+    const file = process.argv[1];
+    const strip = (t) => t.replace(/\n*<!-- BEGIN:nextjs-agent-rules -->[\s\S]*?<!-- END:nextjs-agent-rules -->\n*/g, "\n").trimEnd();
+    const head = cp.execFileSync("git", ["show", "HEAD:" + file], { encoding: "utf8" });
+    process.exit(strip(fs.readFileSync(file, "utf8")) === strip(head) ? 0 : 1);
+  ' "$1" 2>/dev/null
+}
+update_code() {
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
+  local branch upstream before after
+  branch=$(git symbolic-ref --quiet --short HEAD) || return 0
+  upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null) || upstream="origin/$branch"
+
+  echo "${DIM}Checking GitHub for a newer version…${OFF}"
+  if ! GIT_TERMINAL_PROMPT=0 timeout 60 git fetch --quiet origin "$branch" 2>/dev/null; then
+    echo "${DIM}Couldn't reach GitHub, so this starts the version already here.${OFF}"
+    return 0
+  fi
+
+  before=$(git rev-parse HEAD)
+  [ "$before" = "$(git rev-parse "$upstream" 2>/dev/null)" ] && return 0
+
+  if ! git diff --quiet -- CLAUDE.md 2>/dev/null && grep -q "$GENERATED_BLOCK" CLAUDE.md 2>/dev/null \
+    && only_generated_block CLAUDE.md; then
+    git checkout --quiet -- CLAUDE.md
+  fi
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "${RED}A newer version is on GitHub, but this Codespace has changes of its own, so it was not updated.${OFF}"
+    echo "${DIM}Changed here:${OFF}"; git status --short | head -10
+    return 0
+  fi
+  if ! git merge --ff-only --quiet "$upstream" 2>/dev/null; then
+    echo "${RED}A newer version is on GitHub, but it could not be applied automatically.${OFF}"
+    return 0
+  fi
+
+  after=$(git rev-parse HEAD)
+  echo "${GREEN}Updated to the latest version.${OFF}"
+  if ! git diff --quiet "$before" "$after" -- package.json package-lock.json; then
+    echo "Installing what the new version needs. This takes a couple of minutes…"
+    npm install --no-audit --no-fund || echo "${RED}Installing failed; the site may not start until it is run again.${OFF}"
+  fi
+  UPDATED=1
+}
+update_code
+
 # `--restart` stops a running site first, so code you just pulled — and in
 # particular next.config.ts, which Next only reads at startup — takes effect.
 # Ctrl+C is not on a phone keyboard, so this is the phone-friendly way to stop
 # it. The patterns match Next's own processes and nothing else in a Codespace.
-if [ "${1:-}" = "--restart" ] && port_in_use; then
+# A site already running when an update arrives is restarted the same way, so
+# the update is what the owner sees.
+if { [ "${1:-}" = "--restart" ] || [ -n "$UPDATED" ]; } && port_in_use; then
   echo "Stopping the running site…"
   pkill -f "next dev" 2>/dev/null
   for _ in $(seq 1 20); do port_in_use || break; sleep 0.5; done
@@ -87,7 +148,8 @@ ${GREEN}${BOLD}BAD ERA is already running.${OFF}
   Storefront   ${SITE}
 ${SIGNIN_LINE}
 
-${DIM}Just pulled new code? Run:  bash .devcontainer/start.sh --restart${OFF}
+${DIM}It updates itself from GitHub each time the Codespace opens.
+To check again now:  bash .devcontainer/start.sh --restart${OFF}
 
 BANNER
   exit 0

@@ -16,7 +16,16 @@ import { getStudioIdentityForRender } from "@/lib/auth/studio";
  * one cookie-name check and no network call. Only a signed-in visitor's
  * session is verified, and only an active owner sees the button.
  */
-export async function OwnerEditLink({ pageKey }: { pageKey: string }) {
+export async function OwnerEditLink({
+  pageKey,
+  label = "Edit this page",
+  also,
+}: {
+  pageKey: string;
+  label?: string;
+  /** A second way in, e.g. a product page's own product in Studio. */
+  also?: { href: string; label: string };
+}) {
   const jar = await cookies();
   const hasSession = jar
     .getAll()
@@ -26,16 +35,22 @@ export async function OwnerEditLink({ pageKey }: { pageKey: string }) {
   const owner = await getStudioIdentityForRender().catch(() => null);
   if (!owner) return null;
 
+  const button =
+    "label inline-flex min-h-12 items-center gap-2.5 border border-line-strong bg-surface-overlay px-5 text-ink shadow-[0_8px_24px_rgb(0_0_0/0.5)] transition-colors hover:border-ink";
+
   return (
-    <Link
-      href={`/studio/edit/${encodeURIComponent(pageKey)}`}
-      prefetch={false}
-      className="label fixed bottom-5 right-5 z-[60] inline-flex min-h-12 items-center gap-2.5 border border-line-strong bg-surface-overlay px-5 text-ink shadow-[0_8px_24px_rgb(0_0_0/0.5)] transition-colors hover:border-ink"
-    >
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-        <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16v4z" />
-      </svg>
-      Edit this page
-    </Link>
+    <div className="fixed bottom-5 right-5 z-[60] flex flex-col items-end gap-2">
+      {also ? (
+        <Link href={also.href} prefetch={false} className={button}>
+          {also.label}
+        </Link>
+      ) : null}
+      <Link href={`/studio/edit/${encodeURIComponent(pageKey)}`} prefetch={false} className={button}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+          <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16v4z" />
+        </svg>
+        {label}
+      </Link>
+    </div>
   );
 }

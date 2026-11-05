@@ -267,15 +267,17 @@ export function SiteEditor({
                     >
                       {name}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleEnabled(section)}
-                      aria-label={section.enabled ? `Hide ${name}` : `Show ${name}`}
-                      title={section.enabled ? "Hide on the page" : "Show on the page"}
-                      className="flex size-11 shrink-0 items-center justify-center text-ink-subtle transition-colors hover:text-ink"
-                    >
-                      <EyeIcon off={!section.enabled} />
-                    </button>
+                    {def?.alwaysShown ? null : (
+                      <button
+                        type="button"
+                        onClick={() => toggleEnabled(section)}
+                        aria-label={section.enabled ? `Hide ${name}` : `Show ${name}`}
+                        title={section.enabled ? "Hide on the page" : "Show on the page"}
+                        className="flex size-11 shrink-0 items-center justify-center text-ink-subtle transition-colors hover:text-ink"
+                      >
+                        <EyeIcon off={!section.enabled} />
+                      </button>
+                    )}
                   </div>
                 </li>
               );

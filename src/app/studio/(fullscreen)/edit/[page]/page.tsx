@@ -1,14 +1,12 @@
 import { notFound } from "next/navigation";
 
-import { renderSections } from "@/components/sections/render";
+import { editablePageView } from "@/components/studio/editable-page";
 import { OnPageEditor } from "@/components/studio/on-page/on-page-editor";
-import { SiteFooter } from "@/components/storefront/site-footer";
-import { SiteHeader } from "@/components/storefront/site-header";
 import { getStudioIdentityForRender } from "@/lib/auth/studio";
 import { listActiveProducts } from "@/lib/catalog/queries";
 import { safeCatalogRead } from "@/lib/catalog/safe";
-import { CONTENT_TEMPLATE, countChangedSections } from "@/lib/cms/edit-targets";
-import { getOrCreateDraft, getPublishedSections } from "@/lib/cms/pages";
+import { CHROME_TEMPLATE, CONTENT_TEMPLATE, countChangedSections } from "@/lib/cms/edit-targets";
+import { getOrCreateDraft, getPublishedSections, getSiteChrome } from "@/lib/cms/pages";
 import { listMedia } from "@/lib/studio/media";
 
 export const metadata = {
@@ -45,7 +43,7 @@ export default async function EditPagePage({
   const draft = await getOrCreateDraft(pageKey);
   if (!draft) notFound();
 
-  const [live, products, media] = await Promise.all([
+  const [live, products, media, chrome] = await Promise.all([
     getPublishedSections(pageKey),
     safeCatalogRead("on-page editor", listActiveProducts),
     // An unreachable library should not stop the owner editing words.
@@ -53,6 +51,7 @@ export default async function EditPagePage({
       console.error("[bad-era] media read failed in on-page editor", error);
       return [];
     }),
+    getSiteChrome(),
   ]);
 
   return (
@@ -63,7 +62,7 @@ export default async function EditPagePage({
       pageId={draft.pageId}
       pageKey={draft.pageKey}
       pageTitle={draft.title}
-      liveHref={draft.route ?? "/"}
+      liveHref={draft.route ?? (draft.templateKey === CHROME_TEMPLATE ? "/" : "/shop")}
       revisionId={draft.revisionId}
       sections={draft.sections}
       versions={Object.fromEntries(draft.sectionRows.map((row) => [row.sectionKey, row.version]))}
@@ -71,14 +70,15 @@ export default async function EditPagePage({
       changedCount={countChangedSections(draft.sections, live)}
       hasPublished={Boolean(draft.publishedRevisionId)}
       startable={draft.templateKey === CONTENT_TEMPLATE && draft.sections.length === 0}
+      chromeEditable={draft.templateKey === CHROME_TEMPLATE}
     >
-      <div className="flex min-h-screen flex-col bg-surface text-ink">
-        <SiteHeader />
-        <main id="main-content" className="flex-1">
-          {renderSections(draft.sections, products, { editing: true })}
-        </main>
-        <SiteFooter />
-      </div>
+      {editablePageView({
+        templateKey: draft.templateKey,
+        sections: draft.sections,
+        products,
+        chrome,
+        editing: true,
+      })}
     </OnPageEditor>
   );
 }

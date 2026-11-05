@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { SiteEditor } from "@/components/studio/site-editor";
 import { getStudioIdentityForRender } from "@/lib/auth/studio";
-import { CONTENT_TEMPLATE } from "@/lib/cms/edit-targets";
+import { CHROME_TEMPLATE, CONTENT_TEMPLATE } from "@/lib/cms/edit-targets";
 import { getOrCreateDraft } from "@/lib/cms/pages";
 import { listMedia } from "@/lib/studio/media";
 
@@ -44,7 +44,8 @@ export default async function StudioPageEditor({
       pageId={draft.pageId}
       pageKey={draft.pageKey}
       pageTitle={draft.title}
-      liveHref={draft.route ?? "/"}
+      // Menu & footer show on every page; product wording, on any product.
+      liveHref={draft.route ?? (draft.templateKey === CHROME_TEMPLATE ? "/" : "/shop")}
       revisionId={draft.revisionId}
       revisionNumber={draft.revisionNumber}
       initialSections={draft.sections}

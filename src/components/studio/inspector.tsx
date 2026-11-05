@@ -135,9 +135,8 @@ export function InspectorFieldControl({
     case "repeater":
       return (
         <Repeater
-          label={field.label}
+          field={field}
           path={path}
-          fields={field.fields}
           value={(value as Record<string, unknown>[]) ?? []}
           media={media}
           onChange={onChange}
@@ -219,7 +218,7 @@ function CtaInput({
           onChange={(e) => set({ enabled: e.target.checked })}
           className="size-4 accent-[var(--color-accent)]"
         />
-        <span className="text-sm text-ink">Show this action</span>
+        <span className="text-sm text-ink">Show on the site</span>
       </label>
 
       <div className="mt-4 space-y-3">
@@ -305,47 +304,82 @@ function ProductListInput({
   );
 }
 
+type RepeaterField = Extract<InspectorField, { kind: "repeater" }>;
+
+/**
+ * A repeating group. A fixed set (three story tiles) edits its items in place;
+ * a list the owner manages (menu links, social links — `newItem` in the
+ * registry) also adds, removes and reorders them, up to the registry's max.
+ */
 function Repeater({
-  label,
+  field,
   path,
-  fields,
   value,
   media,
   onChange,
   onMediaUploaded,
 }: {
-  label: string;
+  field: RepeaterField;
   path: string;
-  fields: InspectorField[];
   value: Record<string, unknown>[];
   media: MediaAsset[];
   onChange: (next: unknown) => void;
   onMediaUploaded?: () => void;
 }) {
+  const managed = field.newItem !== undefined;
+  const one = singularOf(field.label);
+
+  function move(from: number, to: number) {
+    if (to < 0 || to >= value.length) return;
+    const next = [...value];
+    [next[from], next[to]] = [next[to], next[from]];
+    onChange(next);
+  }
+
   return (
     <div>
-      <p className="label text-ink-muted">{label}</p>
+      <p className="label text-ink-muted">{field.label}</p>
+      {managed && value.length === 0 ? (
+        <p className="mt-3 text-sm text-ink-subtle">None yet.</p>
+      ) : null}
       <div className="mt-3 space-y-4">
         {value.map((item, index) => (
           <fieldset key={index} className="border border-line p-4">
             <legend className="label px-2 text-ink-subtle">
-              {index + 1}
+              {managed ? `${one} ${index + 1}` : index + 1}
             </legend>
+            {managed ? (
+              <div className="-mt-1 mb-3 flex flex-wrap justify-end gap-1">
+                <ItemButton label={`Move ${one} ${index + 1} up`} disabled={index === 0} onClick={() => move(index, index - 1)}>
+                  Up
+                </ItemButton>
+                <ItemButton
+                  label={`Move ${one} ${index + 1} down`}
+                  disabled={index === value.length - 1}
+                  onClick={() => move(index, index + 1)}
+                >
+                  Down
+                </ItemButton>
+                <ItemButton label={`Remove ${one} ${index + 1}`} onClick={() => onChange(value.filter((_, i) => i !== index))}>
+                  Remove
+                </ItemButton>
+              </div>
+            ) : null}
             <div className="mt-1 space-y-5">
-              {fields.map((field) => (
+              {field.fields.map((child) => (
                 <div
-                  key={field.path}
-                  data-field-path={`${path}.${index}.${field.path}`}
+                  key={child.path}
+                  data-field-path={`${path}.${index}.${child.path}`}
                   className="scroll-mt-6"
                 >
                   <InspectorFieldControl
-                    field={field}
-                    path={`${path}.${index}.${field.path}`}
-                    value={item[field.path]}
+                    field={child}
+                    path={`${path}.${index}.${child.path}`}
+                    value={item[child.path]}
                     media={media}
                     onChange={(next) => {
                       const updated = [...value];
-                      updated[index] = { ...item, [field.path]: next };
+                      updated[index] = { ...item, [child.path]: next };
                       onChange(updated);
                     }}
                     onMediaUploaded={onMediaUploaded}
@@ -356,6 +390,50 @@ function Repeater({
           </fieldset>
         ))}
       </div>
+      {managed && value.length < field.max ? (
+        <button
+          type="button"
+          onClick={() => onChange([...value, structuredClone(field.newItem)])}
+          className="label mt-4 min-h-11 border border-line-strong px-5 text-ink transition-colors hover:border-ink"
+        >
+          + Add a {one}
+        </button>
+      ) : null}
+      {managed ? (
+        <p className="mt-2 text-xs text-ink-subtle">
+          Up to {field.max}. A {one} with no words is not shown.
+        </p>
+      ) : null}
     </div>
   );
+}
+
+function ItemButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="label min-h-9 px-3 text-ink-subtle transition-colors hover:text-ink disabled:opacity-30"
+    >
+      {children}
+    </button>
+  );
+}
+
+/** "Menu links" -> "menu link". */
+function singularOf(label: string): string {
+  const lower = label.toLowerCase();
+  return lower.endsWith("s") ? lower.slice(0, -1) : lower;
 }

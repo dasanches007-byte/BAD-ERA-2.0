@@ -6,10 +6,13 @@ import {
   Newsletter,
   TrustStrip,
 } from "@/components/sections";
+import { ProductPage, ShopCatalog } from "@/components/sections/page-sections";
 import {
   Archive01Feature,
   ProductRail,
 } from "@/components/sections/product-sections";
+import { SiteFooter } from "@/components/storefront/site-footer";
+import { SiteHeader } from "@/components/storefront/site-header";
 import type { CatalogProduct } from "@/lib/catalog/queries";
 import { SECTION_ATTR } from "@/lib/cms/edit-targets";
 import type { Section } from "@/lib/cms/sections";
@@ -31,18 +34,29 @@ import type { Section } from "@/lib/cms/sections";
 export function renderSections(
   sections: Section[],
   products: CatalogProduct[],
-  options: { editing?: boolean } = {},
+  options: {
+    editing?: boolean;
+    /** The product a product page is showing (`product.wording`). */
+    product?: CatalogProduct | null;
+  } = {},
 ): React.ReactNode {
   const byHandle = new Map(products.map((p) => [p.handle, p]));
   const editing = options.editing === true;
+  const product = options.product ?? null;
   return sections
     .filter((section) => section.enabled)
     .map((section) => {
-      const node = renderSection(section, products, byHandle, editing);
+      const node = renderSection(section, products, byHandle, editing, product);
       // A wrapper lets the Site Editor scroll the preview to a section picked
-      // from its list. Block-level and unstyled, so layout is unchanged.
+      // from its list. Block-level and unstyled, so layout is unchanged — except
+      // around the header, where any box would end its sticky range at its own
+      // bottom edge, so that wrapper generates no box at all.
       return editing ? (
-        <div key={section.sectionId} {...{ [SECTION_ATTR]: section.sectionId }}>
+        <div
+          key={section.sectionId}
+          {...{ [SECTION_ATTR]: section.sectionId }}
+          className={section.type === "site.header" ? "contents" : undefined}
+        >
           {node}
         </div>
       ) : (
@@ -56,6 +70,7 @@ function renderSection(
   allProducts: CatalogProduct[],
   byHandle: Map<string, CatalogProduct>,
   editing: boolean,
+  product: CatalogProduct | null,
 ): React.ReactNode {
   switch (section.type) {
     case "hero.editorial":
@@ -108,6 +123,20 @@ function renderSection(
 
     case "legal.prose":
       return <LegalProse key={section.sectionId} section={section} editing={editing} />;
+
+    case "site.header":
+      return <SiteHeader key={section.sectionId} section={section} editing={editing} />;
+
+    case "site.footer":
+      return <SiteFooter key={section.sectionId} section={section} editing={editing} />;
+
+    case "shop.catalog":
+      return (
+        <ShopCatalog key={section.sectionId} section={section} products={allProducts} editing={editing} />
+      );
+
+    case "product.wording":
+      return <ProductPage key={section.sectionId} section={section} product={product} editing={editing} />;
 
     default: {
       const _never: never = section;

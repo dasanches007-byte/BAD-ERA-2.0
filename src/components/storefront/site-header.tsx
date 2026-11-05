@@ -1,26 +1,58 @@
 import Link from "next/link";
 
+import { NavLink, visibleLinks } from "@/components/storefront/nav-link";
 import { Monogram, Wordmark } from "@/components/ui/logo";
+import { DEFAULT_SITE_HEADER } from "@/lib/cms/default-pages";
+import { editAttrs } from "@/lib/cms/edit-targets";
+import type { SiteHeaderSection } from "@/lib/cms/sections";
 
 /**
- * Global storefront header. A LOCKED component (Master Spec §11.2): the Site
- * Editor may change its link labels and destinations later, but never its
+ * Global storefront header. A LOCKED component (Master Spec §11.2): the owner
+ * changes its menu links in Studio → Site → Menu & footer, but never its
  * structure or typography.
  *
- * LOOKBOOK and ERA 00 are approved future modules. They stay hidden until the
- * owner enables them rather than linking to routes that do not exist
- * (Master Spec §2.3, §3.1).
+ * The logo is the locked artwork. Account and Cart are fixed — they are how a
+ * customer reaches their order and their bag, so no edit can remove them.
+ *
+ * LOOKBOOK and ERA 00 are approved future modules. They are not in the
+ * shipped menu, because their routes do not exist yet (Master Spec §2.3).
  */
 
-const NAV = [
-  { label: "Shop", href: "/shop", enabled: true },
-  { label: "Lookbook", href: "/lookbook", enabled: false },
-  { label: "ERA 00", href: "/collections/era-00", enabled: false },
-  { label: "About", href: "/about", enabled: true },
-];
+const LINK_CLASS =
+  "label text-ink-muted transition-colors duration-[var(--animate-duration-fast)] hover:text-ink";
 
-export function SiteHeader() {
-  const visible = NAV.filter((item) => item.enabled);
+export function SiteHeader({
+  section = DEFAULT_SITE_HEADER,
+  editing,
+}: {
+  section?: SiteHeaderSection;
+  editing?: boolean;
+}) {
+  // While editing, every link is drawn — hidden and unnamed ones as stand-ins.
+  const items = (editing ? section.links : visibleLinks(section.links)).map((item) => ({
+    item,
+    index: section.links.indexOf(item),
+  }));
+
+  const links = (className: string) =>
+    items.map(({ item, index }) => (
+      <li key={index}>
+        <NavLink
+          link={item.link}
+          className={className}
+          edit={editAttrs(editing, section, `links.${index}.link`)}
+        />
+      </li>
+    ));
+
+  // A menu with no links still needs something to click while editing.
+  const addLinks = editing && section.links.length === 0 && (
+    <li>
+      <span {...editAttrs(editing, section, "links")} data-be-empty="" className="label text-ink-subtle">
+        + Add menu links
+      </span>
+    </li>
+  );
 
   return (
     <header className="sticky top-0 z-50 border-b border-line-faint bg-void/85 backdrop-blur-sm">
@@ -39,16 +71,8 @@ export function SiteHeader() {
 
         <nav aria-label="Primary" className="hidden md:block">
           <ul className="flex items-center gap-10">
-            {visible.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="label text-ink-muted transition-colors duration-[var(--animate-duration-fast)] hover:text-ink"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+            {links(LINK_CLASS)}
+            {addLinks}
           </ul>
         </nav>
 
@@ -68,19 +92,16 @@ export function SiteHeader() {
         </div>
       </div>
 
-      {/* Mobile navigation. A drawer replaces this in Phase 2 polish; for now the
-          links stay reachable rather than hidden behind an unbuilt control. */}
-      <nav aria-label="Primary mobile" className="md:hidden">
-        <ul className="shell flex items-center gap-8 border-t border-line-faint py-3">
-          {visible.map((item) => (
-            <li key={item.href}>
-              <Link href={item.href} className="label text-ink-muted">
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      {/* Mobile navigation: the same links on their own row. Wraps rather than
+          scrolling sideways when the owner adds more. */}
+      {items.length > 0 || addLinks ? (
+        <nav aria-label="Primary mobile" className="md:hidden">
+          <ul className="shell flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-line-faint py-3">
+            {links("label text-ink-muted")}
+            {addLinks}
+          </ul>
+        </nav>
+      ) : null}
     </header>
   );
 }

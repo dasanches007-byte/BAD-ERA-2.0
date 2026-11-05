@@ -117,6 +117,65 @@ export type LegalProseSection = SectionBase & {
   body: string;
 };
 
+/** One link in a menu or footer list: words, where it goes, and shown or hidden. */
+export type NavLink = { link: CtaField };
+
+/**
+ * The menu across the top of every page (page `site`, "Menu & footer").
+ *
+ * Only the words and destinations are content. The logo is locked artwork,
+ * and Account and Cart are fixed: they are how a customer reaches their order
+ * and their bag, so no edit may remove them.
+ */
+export type SiteHeaderSection = SectionBase & {
+  type: "site.header";
+  links: NavLink[];
+};
+
+/**
+ * The footer on every page. Social links start EMPTY: handles are the
+ * owner's to give, and a link to a profile that does not exist is worse than
+ * none. The newsletter box stays disabled until signup is wired up.
+ */
+export type SiteFooterSection = SectionBase & {
+  type: "site.footer";
+  statement: string;
+  shopHeading: string;
+  shopLinks: NavLink[];
+  infoHeading: string;
+  infoLinks: NavLink[];
+  newsletterHeading: string;
+  newsletterText: string;
+  socialHeading: string;
+  socialLinks: NavLink[];
+  /** The line on the right of the bottom bar, e.g. "Based in California". */
+  location: string;
+};
+
+/** The Shop page's words. The products themselves come from the catalog. */
+export type ShopCatalogSection = SectionBase & {
+  type: "shop.catalog";
+  eyebrow: string;
+  headline: string;
+  emptyTitle: string;
+  emptyText: string;
+};
+
+/**
+ * The words every product page shares. Each product's own name, price,
+ * description and photos are edited in Studio → Products, not here.
+ */
+export type ProductWordingSection = SectionBase & {
+  type: "product.wording";
+  /** Shown above the name of Archive 01 pieces. */
+  archiveLabel: string;
+  detailsHeading: string;
+  /** Shown under the details of Archive 01 pieces. */
+  archiveNote: string;
+  /** Optional, on every product page. Empty by default: the owner's words. */
+  note: string;
+};
+
 export type Section =
   | HeroEditorialSection
   | TrustStripSection
@@ -125,7 +184,11 @@ export type Section =
   | EditorialStoryGridSection
   | Archive01FeatureSection
   | NewsletterSection
-  | LegalProseSection;
+  | LegalProseSection
+  | SiteHeaderSection
+  | SiteFooterSection
+  | ShopCatalogSection
+  | ProductWordingSection;
 
 export type SectionType = Section["type"];
 
@@ -139,6 +202,10 @@ export const REGISTERED_SECTION_TYPES: readonly SectionType[] = [
   "editorial.story_grid",
   "archive01.feature",
   "newsletter",
+  "site.header",
+  "site.footer",
+  "shop.catalog",
+  "product.wording",
 ] as const;
 
 /** Empty media slot helper — every image starts unfilled and Studio-replaceable. */

@@ -10,13 +10,32 @@ import {
 } from "@/components/studio/primitives";
 import { listPages } from "@/lib/cms/pages";
 import type { PageSummary } from "@/lib/cms/pages";
+import { EDITABLE_PAGES, ensureEditablePages } from "@/lib/cms/system-pages";
 
 export const metadata = { title: "Site Editor" };
 
+/** The pages an owner edits most, first; information pages after, A to Z. */
+const FIRST = ["home", "site", "shop", "product"];
+const BLURBS: Record<string, string> = {
+  home: "Your homepage: the hero, Featured Drops, From the Archive and the stories.",
+  ...Object.fromEntries(EDITABLE_PAGES.map((page) => [page.pageKey, page.blurb])),
+};
+
+function order(pages: PageSummary[]): PageSummary[] {
+  const rank = (key: string) => (FIRST.includes(key) ? FIRST.indexOf(key) : FIRST.length);
+  return [...pages].sort((a, b) => rank(a.pageKey) - rank(b.pageKey) || a.title.localeCompare(b.title));
+}
+
 export default async function StudioSitePage() {
+  // Menu & footer, Shop and Product pages are registered on first visit. If
+  // that fails, the pages that exist are still listed.
+  await ensureEditablePages().catch((error) => {
+    console.error("[bad-era] registering editable pages failed", error);
+  });
+
   let pages: PageSummary[];
   try {
-    pages = await listPages();
+    pages = order(await listPages());
   } catch (error) {
     console.error("[bad-era] pages read failed", error);
     return (
@@ -34,7 +53,7 @@ export default async function StudioSitePage() {
       <PageHeader
         eyebrow="Site"
         title="Site Editor"
-        description="Open a page and click any words or photo to change them. Typography, colour and layout stay locked to the brand."
+        description="Open a page and click any words, link or photo to change them — including the menu and footer. Typography, colour and layout stay locked to the brand."
       />
 
       <Panel>
@@ -52,8 +71,13 @@ export default async function StudioSitePage() {
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm text-ink">{page.title}</p>
+                  {BLURBS[page.pageKey] ? (
+                    <p className="mt-1 max-w-xl text-xs leading-relaxed text-ink-muted">
+                      {BLURBS[page.pageKey]}
+                    </p>
+                  ) : null}
                   <p className="mt-1 truncate text-xs text-ink-subtle">
-                    {page.route ?? page.pageKey}
+                    {page.route ?? (page.pageKey === "site" ? "Every page" : "Every product")}
                     {page.draftUpdatedAt
                       ? ` · draft saved ${formatDateTime(page.draftUpdatedAt)}`
                       : ""}

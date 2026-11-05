@@ -409,7 +409,8 @@ migration version.
 
 Registered v1 sections: `hero.editorial` · `trust.strip` · `campaign.feature` ·
 `product.rail` · `editorial.story_grid` · `archive01.feature` · `newsletter` ·
-`legal.prose` (Phase 10, for policy pages) · `footer`.
+`legal.prose` (Phase 10, for policy pages) · `site.header` · `site.footer` ·
+`shop.catalog` · `product.wording` (see "Menu, footer, Shop & product wording").
 
 Field types: text (with max-length guidance) · restricted rich text · media (asset id, alt,
 focal X/Y, optional mobile override) · product reference · collection reference · CTA (label,
@@ -635,6 +636,63 @@ Rules that hold across click-to-edit:
 - **Uploads allow 25 MB** (`serverActions.bodySizeLimit`); the 1 MB default
   refused phone photos. Vercel's 4.5 MB request cap still applies there — see
   `docs/LAUNCH_READINESS.md`.
+
+## Menu, footer, Shop & product wording
+
+The owner edits these like the homepage, in the same two editors with the
+same draft → publish → rollback. Studio → Site lists them first: **Menu &
+footer** (page `site`, kind `global`), **Shop** (`shop`, `/shop`) and
+**Product pages** (`product`, no single route).
+
+```
+src/lib/cms/
+  default-pages.ts     shipped wording (also the outage fallback), pickSection, chromeFrom
+  system-pages.ts      EDITABLE_PAGES + ensureEditablePages (insert-if-missing)
+src/components/
+  storefront/storefront-frame.tsx  header + page + footer, for the layout AND both editors
+  storefront/nav-link.tsx          one link: shown/hidden, stand-ins, external = new tab
+  sections/page-sections.tsx       ShopCatalog, ProductPage
+  studio/editable-page.tsx         editablePageView: what each template looks like in an editor
+```
+
+Rules that hold here:
+
+- **Defaults are the wording the site already shipped, word for word.**
+  Registering a page or opening its editor changes nothing a customer sees;
+  only Publish does. Social links start EMPTY and the product note starts
+  empty — handles and shipping promises are the owner's to give.
+- **These pages are registered by code, not a migration.** `getOrCreateDraft`
+  and Studio → Site call `ensureEditablePages()`, which inserts any missing
+  `pages` row and never updates one. The live project was not reachable from
+  the build session; this keeps it from depending on a migration being run.
+  A first draft of one of these templates is seeded from `TEMPLATE_DEFAULTS`.
+- **Always shown.** `alwaysShown` in the registry: the Site Editor offers no
+  hide toggle, `saveSectionAction` forces `enabled: true`,
+  `setSectionEnabledAction` refuses, and `pickSection` renders them shown
+  whatever is stored. Hiding the menu or the Shop grid breaks the store; it
+  does not restyle it.
+- **Account, Cart and the logo are not content.** The menu holds only the
+  owner's links; those three are fixed in `SiteHeader`.
+- **Lists the owner manages carry `newItem`** (menu, footer and social links).
+  Only they get add / remove / reorder, capped at the schema's max; a fixed set
+  (the three story tiles) keeps its count. Clicking one link opens the whole
+  list (`ResolvedField.listPath`); an empty list shows a stand-in that opens it.
+- **The menu and footer render through `renderSections`** inside
+  `StorefrontFrame`, in the public layout and both editors. While editing, the
+  header's section wrapper is `display: contents` — any box would end the
+  sticky header's range at its own bottom edge.
+- **Product page words are shared; the product's own are not.** The wording
+  section renders around a real live product (`sampleProduct` prefers an
+  Archive 01 piece with a description). Archive-only lines appear as stand-ins
+  on other products while editing, so every word is reachable from any one.
+- **Every storefront route stays dynamic** (`ƒ` in the build output), so a
+  published menu reaches every page on the next request.
+
+The Codespace keeps itself current: `.devcontainer/start.sh` fetches and
+fast-forwards on every start, reinstalls when `package*.json` changed, and
+restarts a running site. It never discards work — it restores CLAUDE.md only
+when Next's generated agent-rules block is the file's ONLY change — and skips
+the update, saying so, when anything else is uncommitted.
 
 ## Ambient light (owner-approved)
 
@@ -1084,4 +1142,4 @@ the native internal provider and is always supported.
 - Flat shipping amount
 - Stripe live keys + webhook endpoint; Supabase production project; Resend verified domain
 - Product copy: descriptions, materials, care, fit
-- Policy and legal language; social links; newsletter configuration
+- Policy and legal language; social links (Studio → Site → Menu & footer); newsletter configuration

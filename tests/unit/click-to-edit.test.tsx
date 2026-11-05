@@ -18,6 +18,12 @@ import {
   encodeEditTarget,
   resolveEditTarget,
 } from "@/lib/cms/edit-targets";
+import {
+  DEFAULT_PRODUCT_WORDING,
+  DEFAULT_SHOP_CATALOG,
+  DEFAULT_SITE_FOOTER,
+  DEFAULT_SITE_HEADER,
+} from "@/lib/cms/default-pages";
 import { SECTION_REGISTRY } from "@/lib/cms/registry";
 import type { LegalProseSection, Section } from "@/lib/cms/sections";
 
@@ -47,7 +53,14 @@ const LEGAL: LegalProseSection = {
   body: "",
 };
 
-const ALL: Section[] = [...DEFAULT_HOME_SECTIONS, LEGAL];
+const ALL: Section[] = [
+  ...DEFAULT_HOME_SECTIONS,
+  LEGAL,
+  DEFAULT_SITE_HEADER,
+  DEFAULT_SITE_FOOTER,
+  DEFAULT_SHOP_CATALOG,
+  DEFAULT_PRODUCT_WORDING,
+];
 const SIX_KINDS = ["text", "textarea", "media", "cta", "productList", "repeater"];
 
 // --- Targets ------------------------------------------------------------------
@@ -102,8 +115,13 @@ describe("edit targets", () => {
               expect(resolved!.inspectorPath).toBe(field.path);
             }
           });
-          // A whole list is not one thing to click.
-          expect(resolveEditTarget(section, field.path)).toBeNull();
+          // A fixed set (story tiles) is not one thing to click; a list the
+          // owner manages (menu links) is, so it can be added to.
+          if (field.newItem) {
+            expect(resolveEditTarget(section, field.path)?.field.kind).toBe("repeater");
+          } else {
+            expect(resolveEditTarget(section, field.path)).toBeNull();
+          }
           expect(resolveEditTarget(section, `${field.path}.${items.length}.${field.fields[0].path}`)).toBeNull();
         } else {
           const resolved = resolveEditTarget(section, field.path);

@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
-import { ProductDetail } from "@/components/storefront/product-detail";
+import { renderSections } from "@/components/sections/render";
+import { OwnerEditLink } from "@/components/storefront/owner-edit-link";
 import { getProductByHandle } from "@/lib/catalog/queries";
+import { DEFAULT_PRODUCT_WORDING, pickSection } from "@/lib/cms/default-pages";
+import { readPublishedForStorefront } from "@/lib/cms/pages";
 
 export const revalidate = 60;
 
@@ -33,7 +36,9 @@ export async function generateMetadata({
  *
  * Desktop composes gallery and purchase controls as an editorial layout;
  * mobile stacks them naturally. The gallery shows the owner's product photos
- * (Studio → Products → Photos) and follows the chosen variant.
+ * (Studio → Products → Photos) and follows the chosen variant. The words the
+ * pages share ("Details", the Archive 01 lines) are the owner's, from
+ * Studio → Site → Product pages; see `ProductPage`.
  */
 export default async function ProductPage({
   params,
@@ -54,39 +59,21 @@ export default async function ProductPage({
 
   if (!product) notFound();
 
-  const isArchive = product.tags.some((t) =>
-    t.toLowerCase().includes("archive"),
+  // The shared wording degrades to the shipped words; the product does not.
+  const wording = pickSection(
+    await readPublishedForStorefront("product"),
+    "product.wording",
+    DEFAULT_PRODUCT_WORDING,
   );
 
   return (
-    <article className="shell py-14 lg:py-20">
-      <ProductDetail
-        product={product}
-        header={
-          <>
-            {isArchive ? <p className="label mb-5 text-ink-subtle">Archive 01</p> : null}
-            <h1 className="font-display text-display-md text-ink-strong">{product.title}</h1>
-            {product.subtitle ? (
-              <p className="mt-4 text-sm leading-relaxed text-ink-muted">{product.subtitle}</p>
-            ) : null}
-          </>
-        }
-        details={
-          <>
-            {product.description ? (
-              <div className="mt-14 border-t border-line pt-8">
-                <h2 className="label text-ink-subtle">Details</h2>
-                <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-ink-muted">
-                  {product.description}
-                </p>
-              </div>
-            ) : null}
-            {isArchive ? (
-              <p className="label mt-10 text-ink-subtle">Limited quantities. Never restocked.</p>
-            ) : null}
-          </>
-        }
+    <>
+      {renderSections([wording], [], { product })}
+      <OwnerEditLink
+        pageKey="product"
+        label="Edit page wording"
+        also={{ href: `/studio/products/${product.id}`, label: "Edit this product" }}
       />
-    </article>
+    </>
   );
 }

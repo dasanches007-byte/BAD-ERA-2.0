@@ -14,7 +14,7 @@ import {
   writePublishAudit,
 } from "@/lib/cms/publish-core";
 import { CONTENT_TEMPLATE } from "@/lib/cms/edit-targets";
-import { parseSection } from "@/lib/cms/registry";
+import { parseSection, SECTION_REGISTRY } from "@/lib/cms/registry";
 import type { Json } from "@/lib/db/generated.types";
 
 /**
@@ -109,7 +109,7 @@ export async function saveSectionAction(input: {
   const section = parsed.data;
   // sectionId / type / enabled / schemaVersion live in their own columns, so
   // they are stripped from the stored payload to keep one source of truth.
-  const { sectionId: _sectionId, type: _type, enabled, schemaVersion, ...payload } =
+  const { sectionId: _sectionId, type: _type, enabled: requested, schemaVersion, ...payload } =
     section as Record<string, unknown> & {
       sectionId: string;
       type: string;
@@ -118,6 +118,9 @@ export async function saveSectionAction(input: {
     };
   void _sectionId;
   void _type;
+  // The menu, footer, shop grid and product page cannot be hidden, whatever
+  // a request says.
+  const enabled = SECTION_REGISTRY[section.type].alwaysShown ? true : requested;
 
   let update = db
     .from("page_sections")
@@ -242,6 +245,20 @@ export async function setSectionEnabledAction(input: {
   if (!auth.ok) return { ok: false, message: auth.message };
 
   const db = createAdminClient();
+  if (!input.enabled) {
+    const { data: row, error: readError } = await db
+      .from("page_sections")
+      .select("section_type")
+      .eq("revision_id", input.revisionId)
+      .eq("section_key", input.sectionKey)
+      .maybeSingle();
+    if (readError) return { ok: false, message: readError.message };
+    const definition = row ? SECTION_REGISTRY[row.section_type as keyof typeof SECTION_REGISTRY] : undefined;
+    if (definition?.alwaysShown) {
+      return { ok: false, message: `${definition.label} is always shown. Change its words instead.` };
+    }
+  }
+
   const { error } = await db
     .from("page_sections")
     .update({ enabled: input.enabled })

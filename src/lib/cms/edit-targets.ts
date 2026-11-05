@@ -25,6 +25,13 @@ import type { Section } from "@/lib/cms/sections";
 /** Information pages (About, Privacy…): one prose section, started by the owner. */
 export const CONTENT_TEMPLATE = "storefront.content";
 
+/** "Menu & footer": the header and footer every storefront page shares. */
+export const CHROME_TEMPLATE = "storefront.chrome";
+/** The Shop page's words. */
+export const SHOP_TEMPLATE = "storefront.shop";
+/** The words every product page shares. */
+export const PRODUCT_TEMPLATE = "storefront.product";
+
 export const EDIT_ATTR = "data-be-edit";
 export const EDIT_KIND_ATTR = "data-be-kind";
 export const SECTION_ATTR = "data-be-section";
@@ -45,6 +52,12 @@ export type ResolvedField = {
   /** The top-level registry field the Site Editor inspector shows for it. */
   inspectorPath: string;
   value: unknown;
+  /**
+   * Set when the thing clicked is one item of a list the owner manages (menu
+   * links, social links): the list's own path, so the editor can open the
+   * whole list — add, remove, reorder — rather than one link in isolation.
+   */
+  listPath?: string;
 };
 
 export function encodeEditTarget(sectionKey: string, path: string): string {
@@ -89,7 +102,9 @@ export function resolveEditTarget(section: Section, path: string): ResolvedField
   const record = section as unknown as Record<string, unknown>;
 
   if (segments.length === 1) {
-    if (top.kind === "repeater") return null; // a whole list is not one thing to click
+    // A fixed set of items (three story tiles) is not one thing to click; a
+    // list the owner manages is, so a menu with no links can still be opened.
+    if (top.kind === "repeater" && !top.newItem) return null;
     return {
       field: top,
       label: top.label,
@@ -112,6 +127,7 @@ export function resolveEditTarget(section: Section, path: string): ResolvedField
       sectionLabel: definition.label,
       inspectorPath: top.path,
       value: item?.[leaf.path],
+      listPath: top.newItem ? top.path : undefined,
     };
   }
 

@@ -66,6 +66,7 @@ export function OnPageEditor({
   changedCount,
   hasPublished,
   startable,
+  chromeEditable = false,
   children,
 }: {
   pageId: string;
@@ -80,6 +81,8 @@ export function OnPageEditor({
   hasPublished: boolean;
   /** An information page with nothing in it yet: offer to start it. */
   startable: boolean;
+  /** This page IS the menu and footer, so clicks on them edit them. */
+  chromeEditable?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -183,7 +186,8 @@ export function OnPageEditor({
       setHover(null);
       setInline({ phase: "editing" });
       setActive({
-        target,
+        // One link of a menu opens the whole menu: add, remove, reorder.
+        target: resolved.listPath ? { ...target, path: resolved.listPath } : target,
         mode: typesInPlace ? "inline" : "sheet",
         element: el,
         displayFace: el.classList.contains("font-display"),
@@ -235,7 +239,11 @@ export function OnPageEditor({
     } else {
       setActive(null);
       reveal();
-      if (followingLink) say("Links are paused while you edit. Use Exit to browse the site.");
+      if (!chromeEditable && (event.target as Element).closest("header, footer")) {
+        say("The menu and footer are on every page. Change them in Site → Menu & footer.");
+      } else if (followingLink) {
+        say("Links are paused while you edit. Use Exit to browse the site.");
+      }
     }
   }
 

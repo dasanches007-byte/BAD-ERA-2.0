@@ -1,3 +1,4 @@
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -248,7 +249,26 @@ describe("OwnerEditLink", () => {
   it("links the owner to the on-page editor for this page", async () => {
     db.cookies = [{ name: "sb-project-auth-token.0" }];
     const { OwnerEditLink } = await import("@/components/storefront/owner-edit-link");
-    const element = (await OwnerEditLink({ pageKey: "returns-policy" })) as { props: { href: string } };
-    expect(element.props.href).toBe("/studio/edit/returns-policy");
+    const html = renderToStaticMarkup((await OwnerEditLink({ pageKey: "returns-policy" }))!);
+    expect(hrefs(html)).toEqual(["/studio/edit/returns-policy"]);
+    expect(html).toContain("Edit this page");
+  });
+
+  it("on a product page, offers the product itself and the shared wording", async () => {
+    db.cookies = [{ name: "sb-project-auth-token" }];
+    const { OwnerEditLink } = await import("@/components/storefront/owner-edit-link");
+    const html = renderToStaticMarkup(
+      (await OwnerEditLink({
+        pageKey: "product",
+        label: "Edit page wording",
+        also: { href: "/studio/products/p-1", label: "Edit this product" },
+      }))!,
+    );
+    expect(hrefs(html)).toEqual(["/studio/products/p-1", "/studio/edit/product"]);
+    expect(html).toContain("Edit page wording");
   });
 });
+
+function hrefs(html: string): string[] {
+  return [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
+}

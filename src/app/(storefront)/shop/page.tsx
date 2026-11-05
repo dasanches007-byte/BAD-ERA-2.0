@@ -1,6 +1,9 @@
-import { ProductCard } from "@/components/storefront/product-card";
+import { renderSections } from "@/components/sections/render";
+import { OwnerEditLink } from "@/components/storefront/owner-edit-link";
 import { listActiveProductsCached } from "@/lib/catalog/cache";
 import { safeCatalogRead } from "@/lib/catalog/safe";
+import { DEFAULT_SHOP_CATALOG, pickSection } from "@/lib/cms/default-pages";
+import { readPublishedForStorefront } from "@/lib/cms/pages";
 
 export const metadata = {
   title: "Shop All",
@@ -14,47 +17,21 @@ export const dynamic = "force-dynamic";
 /**
  * Shop All (Master Spec §4).
  *
- * Editorial header, then a product grid that must accommodate apparel,
- * accessories and future eyewear without redesign. Filtering and sorting stay
- * deliberately minimal — this should read as a campaign, not a marketplace.
- * Those controls arrive with real catalog breadth; shipping empty filter
- * chrome now would be noise.
+ * The words are the owner's (Studio → Site → Shop); the grid is the live
+ * catalog. Until the Shop page is published, or if it cannot be read, the
+ * shipped wording renders. See `ShopCatalog` for the layout.
  */
 export default async function ShopPage() {
-  const products = await safeCatalogRead("shop", listActiveProductsCached);
+  const [published, products] = await Promise.all([
+    readPublishedForStorefront("shop"),
+    safeCatalogRead("shop", listActiveProductsCached),
+  ]);
+  const section = pickSection(published, "shop.catalog", DEFAULT_SHOP_CATALOG);
 
   return (
     <>
-      <header className="shell pt-20 pb-14 lg:pt-28 lg:pb-20">
-        <p className="label text-ink-subtle">Shop</p>
-        <h1 className="mt-6 font-display text-display-lg text-ink-strong">
-          All products
-        </h1>
-      </header>
-
-      <div className="shell pb-section">
-        {products.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-12 lg:grid-cols-4">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        )}
-      </div>
+      {renderSections([section], products)}
+      <OwnerEditLink pageKey="shop" />
     </>
-  );
-}
-
-/** Zero-result state (Master Spec §20.1). Calm, not an error page. */
-function EmptyState() {
-  return (
-    <div className="hairline flex min-h-[40vh] flex-col items-center justify-center gap-4 bg-surface-raised px-6 text-center">
-      <p className="label text-ink-subtle">Nothing here yet</p>
-      <p className="max-w-sm text-sm leading-relaxed text-ink-muted">
-        Products appear here as soon as they are published from BAD ERA Studio.
-      </p>
-    </div>
   );
 }

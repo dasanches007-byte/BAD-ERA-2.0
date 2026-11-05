@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
 
-import { renderSections } from "@/components/sections/render";
-import { SiteFooter } from "@/components/storefront/site-footer";
-import { SiteHeader } from "@/components/storefront/site-header";
+import { editablePageView } from "@/components/studio/editable-page";
 import { PreviewBridge } from "@/components/studio/preview-bridge";
 import { getStudioIdentityForRender } from "@/lib/auth/studio";
-import { getExistingDraft, getPublishedSections } from "@/lib/cms/pages";
+import {
+  getExistingDraft,
+  getPageTemplateKey,
+  getPublishedSections,
+  getSiteChrome,
+} from "@/lib/cms/pages";
 import { listActiveProducts } from "@/lib/catalog/queries";
 import { safeCatalogRead } from "@/lib/catalog/safe";
 
@@ -43,15 +46,23 @@ export default async function DraftPreviewPage({
   const { page: pageKey } = await params;
   const draft = await getExistingDraft(pageKey);
   const sections = draft?.sections ?? (await getPublishedSections(pageKey));
-  if (!sections) notFound();
+  const templateKey = draft?.templateKey ?? (await getPageTemplateKey(pageKey));
+  if (!sections || !templateKey) notFound();
 
-  const products = await safeCatalogRead("preview", listActiveProducts);
+  const [products, chrome] = await Promise.all([
+    safeCatalogRead("preview", listActiveProducts),
+    getSiteChrome(),
+  ]);
 
   return (
-    <div id="be-preview" className="be-editable flex min-h-screen flex-col bg-surface text-ink">
-      <SiteHeader />
-      <main className="flex-1">{renderSections(sections, products, { editing: true })}</main>
-      <SiteFooter />
+    <div id="be-preview" className="be-editable">
+      {editablePageView({
+        templateKey,
+        sections,
+        products,
+        chrome,
+        editing: true,
+      })}
       <PreviewBridge rootId="be-preview" />
     </div>
   );
