@@ -36,9 +36,13 @@ explicitly changing the spec.
 - **The logos are locked** — owner-approved identity amendment of 5 November 2026
   (`brand/logo/README.md`), superseding the B–E monogram of master spec §0.1/§0.3.
   **PRIMARY** is the full **BAD ERA** lockup (oversized BAD, small italic ERA on its lower
-  right): `brand/logo/primary-full-BAD-ERA/`, rendered by `BrandMark`. **SECONDARY** is **BAD**
-  alone, exactly the file first approved: `brand/logo/secondary-BAD/`, rendered by
-  `SecondaryBrandMark` — icons, the narrowest phone header, compact navigation, sign-offs.
+  right): `brand/logo/primary-full-BAD-ERA/`, rendered by `BrandMark` — the homepage hero,
+  the footer's brand column, sign-in. **SECONDARY** is **BAD** alone, exactly the file first
+  approved: `brand/logo/secondary-BAD/`, rendered by `SecondaryBrandMark` — the site header
+  (owner's choice, 6 Nov 2026), icons, Studio's nav, the footer sign-off. The hero shows the
+  lockup whenever its headline is the brand name or empty (`heroShowsBrandMark`); any other
+  words are a headline in the display face. The brand name is never typeset where the logo
+  can stand.
   **Never** set either in a font, redraw, trace, reshape, slant, stretch, recolor or add
   effects, and never imitate the primary by typing "ERA" after the BAD artwork. Preserve
   aspect ratio and clear space (≥ ¼ of BAD's letter height; the PNGs carry it). ERA is a

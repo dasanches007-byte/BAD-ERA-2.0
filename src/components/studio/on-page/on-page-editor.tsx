@@ -179,8 +179,12 @@ export function OnPageEditor({
       if (!resolved) return;
 
       const { field } = resolved;
+      // Words drawn as the logo (the hero's BAD ERA) open the sheet, where the
+      // hint says how the logo and the headline trade places; typing over
+      // artwork would be typing over a picture.
       const typesInPlace =
         (field.kind === "text" || (field.kind === "textarea" && field.maxLength <= 400)) &&
+        !el.querySelector("img") &&
         window.matchMedia("(min-width: 768px) and (pointer: fine)").matches;
 
       setHover(null);

@@ -18,9 +18,14 @@ and when, is part of the record.
 
 | | Mark | Use |
 |---|---|---|
-| **Primary** | Full **BAD ERA**: oversized BAD, small italic ERA on its lower right | Site header and footer, sign-in, brand moments, packaging, signage — wherever ERA can still be read |
-| **Secondary** | **BAD** alone | App and browser icons, the narrowest phone header, compact navigation, small sign-offs, embroidery, hardware |
+| **Primary** | Full **BAD ERA**: oversized BAD, small italic ERA on its lower right | The homepage hero, the footer's brand column, sign-in, packaging, signage — wherever ERA can still be read |
+| **Secondary** | **BAD** alone | The site header, app and browser icons, Studio's nav, small sign-offs, embroidery, hardware |
 | Retired | B–E monogram (`legacy/`) | Nowhere. Kept for history |
+
+**6 November 2026, owner's placement:** BAD alone in the site header; the full
+BAD ERA lockup takes the homepage hero's headline place. The hero draws the
+lockup whenever its headline is the brand name (or empty); any other words
+show as a headline.
 
 Rules from the package, all locked:
 

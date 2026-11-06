@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { HeroSpotlight } from "@/components/sections/hero-spotlight";
+import { BrandMark } from "@/components/ui/logo";
 import { MediaSlot } from "@/components/ui/media-slot";
 import { editAttrs } from "@/lib/cms/edit-targets";
 import type {
@@ -13,6 +14,7 @@ import type {
   Section,
   TrustStripSection,
 } from "@/lib/cms/sections";
+import { heroShowsBrandMark } from "@/lib/cms/sections";
 
 /**
  * Section renderers.
@@ -129,12 +131,21 @@ export function HeroEditorial({
       <HeroSpotlight />
       <div className="pointer-events-none absolute inset-0 z-10 flex items-center">
         <div className="shell pointer-events-auto">
-          <h1
-            {...editAttrs(editing, section, "headline")}
-            className="font-display text-display-xl text-ink-strong"
-          >
-            {section.headline}
-          </h1>
+          {heroShowsBrandMark(section.headline) ? (
+            // The brand name is drawn as the logo, never typeset. Still the
+            // page's h1 (named by the image's alt) and still the headline
+            // field, so a click opens it and other words replace the logo.
+            <h1 {...editAttrs(editing, section, "headline")} className="flex">
+              <BrandMark height={84} mdHeight={140} lgHeight={190} flush priority />
+            </h1>
+          ) : (
+            <h1
+              {...editAttrs(editing, section, "headline")}
+              className="font-display text-display-xl text-ink-strong"
+            >
+              {section.headline}
+            </h1>
+          )}
           {section.supportingLine ? (
             <p
               {...editAttrs(editing, section, "supportingLine")}

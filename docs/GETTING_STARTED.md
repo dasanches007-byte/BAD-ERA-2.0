@@ -413,6 +413,7 @@ fault.
 
 | I want to… | Go to |
 |---|---|
+| The big BAD ERA logo on the homepage | It shows because the hero's headline says **BAD ERA**. Tap it to change the headline: any other words replace the logo; type BAD ERA again (or leave it empty) to bring it back |
 | Change words or a photo on the homepage | Open your site, press **Edit this page** (bottom right — only you see it), then click the thing you want to change |
 | Change the menu, the footer, or add your social links | Studio → **Site** → **Menu & footer** → **Edit on the page**, then tap any link or words. Tapping a menu link opens the whole menu: add, remove, reorder, hide |
 | Change the words on the Shop page | Open **/shop** → **Edit this page** (or Studio → **Site** → **Shop**) |

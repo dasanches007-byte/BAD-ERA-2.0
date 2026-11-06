@@ -272,7 +272,13 @@ export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
     schemaVersion: 1,
     locked: true,
     fields: [
-      { kind: "text", path: "headline", label: "Headline", maxLength: 60, hint: "Short. The display face is locked." },
+      {
+        kind: "text",
+        path: "headline",
+        label: "Headline",
+        maxLength: 60,
+        hint: "BAD ERA (or empty) shows the logo. Any other words show as the headline, in the locked display face.",
+      },
       { kind: "text", path: "supportingLine", label: "Supporting line", maxLength: 160, hint: "Optional. Leave empty for the approved treatment." },
       { kind: "cta", path: "cta", label: "Primary action" },
       { kind: "media", path: "media", label: "Hero image" },

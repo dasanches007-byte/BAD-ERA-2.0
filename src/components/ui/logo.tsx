@@ -33,6 +33,8 @@ type Artwork = { width: number; height: number; inkLeft: number };
 type MarkProps = {
   /** Rendered height in CSS pixels, clear space included. Width follows. */
   height?: number;
+  /** A different height from the `md` breakpoint up. */
+  mdHeight?: number;
   /** A different height from the `lg` breakpoint up. */
   lgHeight?: number;
   /**
@@ -55,7 +57,7 @@ export function BrandMark(props: MarkProps) {
   return <Mark src={fullLockup} artwork={PRIMARY_ARTWORK} {...props} />;
 }
 
-/** The SECONDARY logo: BAD alone — icons, compact navigation, small sign-offs. */
+/** The SECONDARY logo: BAD alone — the header, icons, compact places, sign-offs. */
 export function SecondaryBrandMark(props: MarkProps) {
   return <Mark src={compactMark} artwork={SECONDARY_ARTWORK} {...props} />;
 }
@@ -64,12 +66,15 @@ function Mark({
   src,
   artwork,
   height = 32,
+  mdHeight,
   lgHeight,
   flush = false,
   className,
   priority = false,
 }: MarkProps & { src: StaticImageData; artwork: Artwork }) {
-  const largest = Math.max(height, lgHeight ?? height);
+  const md = mdHeight ?? height;
+  const lg = lgHeight ?? md;
+  const largest = Math.max(height, md, lg);
   return (
     <Image
       src={src}
@@ -84,14 +89,17 @@ function Mark({
       // Heights travel as variables so the flush offset is always computed
       // from the height actually drawn.
       className={[
-        "w-auto max-w-none shrink-0 h-[var(--mark-h)] lg:h-[var(--mark-h-lg)]",
-        flush ? "-ml-[calc(var(--mark-h)*var(--mark-inset))] lg:-ml-[calc(var(--mark-h-lg)*var(--mark-inset))]" : "",
+        "w-auto max-w-none shrink-0 h-[var(--mark-h)] md:h-[var(--mark-h-md)] lg:h-[var(--mark-h-lg)]",
+        flush
+          ? "-ml-[calc(var(--mark-h)*var(--mark-inset))] md:-ml-[calc(var(--mark-h-md)*var(--mark-inset))] lg:-ml-[calc(var(--mark-h-lg)*var(--mark-inset))]"
+          : "",
         className ?? "",
       ].join(" ")}
       style={
         {
           "--mark-h": `${height}px`,
-          "--mark-h-lg": `${lgHeight ?? height}px`,
+          "--mark-h-md": `${md}px`,
+          "--mark-h-lg": `${lg}px`,
           "--mark-inset": String(artwork.inkLeft / artwork.height),
         } as React.CSSProperties
       }

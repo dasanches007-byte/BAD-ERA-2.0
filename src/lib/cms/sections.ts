@@ -51,6 +51,17 @@ export type HeroEditorialSection = SectionBase & {
   media: MediaSlot;
 };
 
+/**
+ * The hero draws the full BAD ERA logo instead of type when its headline is
+ * the brand name (or empty) — the owner's choice of 6 November 2026. The
+ * brand name is never typeset where the logo can stand; any other words are
+ * a headline, in the locked display face.
+ */
+export function heroShowsBrandMark(headline: string): boolean {
+  const words = headline.trim().replace(/\s+/g, " ").toLowerCase();
+  return words === "" || words === "bad era";
+}
+
 export type TrustStripSection = SectionBase & {
   type: "trust.strip";
   items: { label: string; detail: string }[];
