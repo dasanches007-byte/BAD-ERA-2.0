@@ -33,16 +33,17 @@ These are locked. Do not redesign, simplify away, or "improve" them without the 
 explicitly changing the spec.
 
 ### Brand & identity
-- **The logo is locked.** It is the **BAD** wordmark the owner approved on 5 November 2026
-  (`brand/logo/BAD-official-logo-package.md`), which supersedes the B–E monogram described
-  in master spec §0.1/§0.3. Masters: `brand/logo/BAD-primary-white-transparent.png` (dark
-  backgrounds — the site), `BAD-primary-black-transparent.png` (light backgrounds) and
-  `BAD-primary-white-on-black-square.png` (the owner's original, the reference authority).
-  **Never** set it in a font, redraw, trace, reshape, slant, stretch, recolor or add effects.
-  Preserve aspect ratio and clear space (≥ ¼ letter height each side; the PNGs carry it).
-  "BAD ERA" is the brand name; "BAD" is the mark — never put the two side by side as if one
-  were the other's caption. Render it only through `BrandMark`. The retired monogram and its
-  usage board are kept, unused, in `brand/logo/legacy/`.
+- **The logos are locked** — owner-approved identity amendment of 5 November 2026
+  (`brand/logo/README.md`), superseding the B–E monogram of master spec §0.1/§0.3.
+  **PRIMARY** is the full **BAD ERA** lockup (oversized BAD, small italic ERA on its lower
+  right): `brand/logo/primary-full-BAD-ERA/`, rendered by `BrandMark`. **SECONDARY** is **BAD**
+  alone, exactly the file first approved: `brand/logo/secondary-BAD/`, rendered by
+  `SecondaryBrandMark` — icons, the narrowest phone header, compact navigation, sign-offs.
+  **Never** set either in a font, redraw, trace, reshape, slant, stretch, recolor or add
+  effects, and never imitate the primary by typing "ERA" after the BAD artwork. Preserve
+  aspect ratio and clear space (≥ ¼ of BAD's letter height; the PNGs carry it). ERA is a
+  fifth of BAD's height: below ~48px tall use the secondary rather than shrink the primary.
+  The retired monogram is kept, unused, in `brand/logo/legacy/`.
 - Any logo visible *inside* a concept mockup is reference-only and never overrides the
   official artwork.
 - The brand must feel editorial, cinematic, restrained, expensive, intentionally minimal.
@@ -463,7 +464,7 @@ Rules that hold across this layer:
 
 ```
 src/components/
-  ui/logo.tsx              BrandMark (locked BAD artwork). NEVER reconstruct the mark.
+  ui/logo.tsx              BrandMark (primary BAD ERA) + SecondaryBrandMark (BAD). Images only.
   ui/media-slot.tsx        Every editorial image. Renders a placeholder until Studio fills it.
   storefront/site-header.tsx   Locked global component
   storefront/site-footer.tsx   Locked global component

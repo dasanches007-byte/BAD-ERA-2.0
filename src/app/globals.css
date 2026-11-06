@@ -11,9 +11,9 @@
    accents, gradients-as-decoration or generic admin-template styling.
 
    NOTE ON THE LOGO: no font in this file may be used to reconstruct the
-   BAD mark. It is owner-supplied locked artwork
-   (brand/logo/BAD-primary-white-transparent.png) and is always rendered as an
-   image — a bold sans set in caps is not the logo.
+   BAD ERA lockup or the BAD mark. Both are owner-supplied locked artwork
+   (brand/logo/) and are always rendered as images — a bold sans in caps with
+   an italic "ERA" beside it is not the logo.
    ========================================================================== */
 
 @theme {

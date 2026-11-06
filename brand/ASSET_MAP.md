@@ -15,12 +15,17 @@ in document order. Classifications come from master spec §25.3.
 
 ## Official identity — locked
 
+Owner-approved identity amendment, 5 Nov 2026 — `logo/README.md` is the full record.
+
 | File | Class | Rule |
 |---|---|---|
-| `logo/BAD-primary-white-transparent.png` | OFFICIAL / ACTIVE | The primary mark, approved 5 Nov 2026: the **BAD** wordmark, white on transparent, for dark backgrounds. Served byte-for-byte as `public/brand/bad-primary-white.png`. Never set in a font, redrawn or reshaped. |
-| `logo/BAD-primary-black-transparent.png` | OFFICIAL / ACTIVE | Same geometry in black, for light backgrounds. |
-| `logo/BAD-primary-white-on-black-square.png` | OFFICIAL / ACTIVE | The owner's unchanged original — the reference authority. Source of the 180 and 512 px app icons. |
-| `logo/BAD-official-logo-package.md` | OFFICIAL / ACTIVE | The package's own rules (clear space, monochrome default, vector master still to be commissioned). |
+| `logo/primary-full-BAD-ERA/BAD-ERA-primary-white-transparent.png` | OFFICIAL / ACTIVE — **PRIMARY** | The full **BAD ERA** lockup: oversized BAD, small italic ERA on its lower right. 863×270 incl. clear space. Served byte-for-byte as `public/brand/bad-era-primary-white.png`. |
+| `logo/primary-full-BAD-ERA/BAD-ERA-primary-black-transparent.png` | OFFICIAL / ACTIVE | Black master for light backgrounds (`public/brand/bad-era-primary-black.png`). |
+| `logo/secondary-BAD/BAD-secondary-white-transparent.png` | OFFICIAL / ACTIVE — **SECONDARY** | **BAD** alone, exactly as first approved (961×350). Icons, compact places. Served as `public/brand/bad-secondary-white.png`. |
+| `logo/secondary-BAD/BAD-secondary-black-transparent.png` | OFFICIAL / ACTIVE | Its black counterpart. |
+| `logo/secondary-BAD/BAD-secondary-white-on-black-square-ORIGINAL.png` | OFFICIAL / ACTIVE | The owner's original BAD image; source of the 180 and 512 px icons. |
+| `logo/reference/owner-approved-BAD-ERA-on-building.jpeg` | OFFICIAL / REFERENCE | The approved primary treatment (top panel) and signage. Reference only — not site photography. |
+| `logo/vector-traces-DRAFT/*.svg` | DRAFT | Autotraces. Never for manufacturing or trademark filing. |
 | `logo/legacy/bad-era-monogram-master.png` | RETIRED | The B–E monogram, superseded 5 Nov 2026. Kept for history; not used anywhere. |
 | `logo/legacy/bad-era-logo-usage-board.jpeg` | RETIRED | Usage board for the retired monogram. |
 

@@ -6,9 +6,9 @@ import "./globals.css";
 /**
  * Editorial display serif. Used for headlines and brand moments.
  *
- * This font must NEVER be used to reconstruct the BAD mark. The mark is
- * owner-supplied locked artwork and is always rendered from the source asset
- * (`BrandMark`; Master Spec §0.1, §0.3).
+ * This font must NEVER be used to reconstruct the BAD ERA logos. They are
+ * owner-supplied locked artwork, always rendered from the source assets
+ * (`BrandMark`, `SecondaryBrandMark`; brand/logo/README.md).
  */
 const display = Playfair_Display({
   subsets: ["latin"],
@@ -37,8 +37,8 @@ export const metadata: Metadata = {
     siteName: "BAD ERA",
     type: "website",
   },
-  // Icons are the owner's BAD artwork, never a redrawn mark: 180 and 512 are
-  // the supplied square image scaled; 32 is the same mark scaled on black.
+  // Icons use the compact BAD secondary artwork, never a redrawn mark: 180 and
+  // 512 are the owner's square image scaled; 32 is the same mark on black.
   icons: {
     icon: [
       { url: "/brand/icon-32.png", sizes: "32x32", type: "image/png" },

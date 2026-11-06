@@ -1,36 +1,64 @@
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { renderToStaticMarkup } from "react-dom/server";
+import sharp from "sharp";
 import { describe, expect, it, vi } from "vitest";
 
 import { SiteFooter } from "@/components/storefront/site-footer";
 import { SiteHeader } from "@/components/storefront/site-header";
-import { BrandMark, MARK_SIZE } from "@/components/ui/logo";
+import {
+  BrandMark,
+  PRIMARY_ARTWORK,
+  SECONDARY_ARTWORK,
+  SecondaryBrandMark,
+} from "@/components/ui/logo";
 
 /**
- * The official BAD mark (approved 5 November 2026) replaced the B–E monogram.
+ * The BAD ERA identity, owner-approved amendment of 5 November 2026
+ * (brand/logo/README.md): PRIMARY is the full BAD ERA lockup, SECONDARY is
+ * BAD alone. The B–E monogram is retired.
  *
- * What must stay true: the site serves the owner's artwork byte for byte,
- * never a re-exported, cropped or redrawn copy; it is always an image, never
- * letters set in a font; its width follows its height; and the retired
- * monogram appears nowhere a customer or the owner can see.
+ * What must stay true: the site serves the owner's artwork byte for byte; the
+ * BAD master is exactly the file approved before (it was demoted, not
+ * re-exported); both marks are images, never type; proportions hold at every
+ * size; and the full lockup is what the header and footer lead with.
  */
 
 vi.mock("next/image", () => ({
-  default: (props: { alt: string; width: number; height: number; className?: string }) => {
+  default: (props: { alt: string; width: number; height: number; className?: string; src: unknown }) => {
+    // Vitest resolves a PNG import to its path, which says which artwork drew.
+    const src = typeof props.src === "string" ? props.src : "unknown";
     // eslint-disable-next-line @next/next/no-img-element
-    return <img alt={props.alt} width={props.width} height={props.height} className={props.className} src="/mark.png" />;
+    return <img alt={props.alt} width={props.width} height={props.height} className={props.className} src={src} />;
   },
 }));
 
 const ROOT = join(__dirname, "..", "..");
 const bytes = (path: string) => readFileSync(join(ROOT, path));
+const sha256 = (path: string) => createHash("sha256").update(bytes(path)).digest("hex");
+
+const PRIMARY_WHITE = "brand/logo/primary-full-BAD-ERA/BAD-ERA-primary-white-transparent.png";
+const PRIMARY_BLACK = "brand/logo/primary-full-BAD-ERA/BAD-ERA-primary-black-transparent.png";
+const SECONDARY_WHITE = "brand/logo/secondary-BAD/BAD-secondary-white-transparent.png";
+const SECONDARY_BLACK = "brand/logo/secondary-BAD/BAD-secondary-black-transparent.png";
 
 /** Width and height from a PNG's IHDR chunk. */
 function pngSize(path: string): { width: number; height: number } {
   const file = bytes(path);
   return { width: file.readUInt32BE(16), height: file.readUInt32BE(20) };
+}
+
+/** First column holding ink (alpha over half). */
+async function inkLeft(path: string): Promise<number> {
+  const { data, info } = await sharp(join(ROOT, path)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (let x = 0; x < info.width; x++) {
+    for (let y = 0; y < info.height; y++) {
+      if (data[(y * info.width + x) * info.channels + 3] > 128) return x;
+    }
+  }
+  return -1;
 }
 
 function files(dir: string): string[] {
@@ -40,41 +68,93 @@ function files(dir: string): string[] {
   });
 }
 
-describe("the BAD mark", () => {
+describe("the artwork", () => {
   it("is served exactly as the owner supplied it", () => {
-    expect(bytes("public/brand/bad-primary-white.png").equals(bytes("brand/logo/BAD-primary-white-transparent.png"))).toBe(
-      true,
-    );
-    expect(pngSize("brand/logo/BAD-primary-white-transparent.png")).toEqual(MARK_SIZE);
-    expect(pngSize("brand/logo/BAD-primary-black-transparent.png")).toEqual(MARK_SIZE);
+    expect(bytes("public/brand/bad-era-primary-white.png").equals(bytes(PRIMARY_WHITE))).toBe(true);
+    expect(bytes("public/brand/bad-era-primary-black.png").equals(bytes(PRIMARY_BLACK))).toBe(true);
+    expect(bytes("public/brand/bad-secondary-white.png").equals(bytes(SECONDARY_WHITE))).toBe(true);
   });
 
-  it("is an image, never letters set in a font", () => {
-    const html = renderToStaticMarkup(<BrandMark />);
-    expect(html).toMatch(/<img alt="BAD ERA"/);
-    expect(html).not.toMatch(/>\s*BAD\s*</);
-    expect(readFileSync(join(ROOT, "src/components/ui/logo.tsx"), "utf8")).not.toMatch(/font-|<svg|<path/);
+  it("keeps the BAD master exactly as first approved — demoted, never re-exported", () => {
+    expect(sha256(SECONDARY_WHITE)).toBe("0fc20e6c9dc42505f916c975802ddcbf76b44384a760f2024a3f1eb9e086436e");
+    expect(sha256(SECONDARY_BLACK)).toBe("b731c7b29bc95e765e109df589cc9c03c231710b2cecf4ca9a5aa9bcf2788372");
   });
 
-  it("keeps its proportions at every size", () => {
-    for (const height of [26, 30, 40, 60]) {
-      const html = renderToStaticMarkup(<BrandMark height={height} />);
-      const width = Number(html.match(/width="(\d+)"/)?.[1]);
-      expect(Math.abs(width / height - MARK_SIZE.width / MARK_SIZE.height), String(height)).toBeLessThan(0.05);
+  it("is described by the sizes and clear space the components use", async () => {
+    for (const [path, artwork] of [
+      [PRIMARY_WHITE, PRIMARY_ARTWORK],
+      [PRIMARY_BLACK, PRIMARY_ARTWORK],
+      [SECONDARY_WHITE, SECONDARY_ARTWORK],
+      [SECONDARY_BLACK, SECONDARY_ARTWORK],
+    ] as const) {
+      expect(pngSize(path), path).toEqual({ width: artwork.width, height: artwork.height });
+    }
+    expect(await inkLeft(PRIMARY_WHITE)).toBe(PRIMARY_ARTWORK.inkLeft);
+    expect(await inkLeft(SECONDARY_WHITE)).toBe(SECONDARY_ARTWORK.inkLeft);
+  });
+});
+
+describe("the marks", () => {
+  it.each([
+    ["primary", BrandMark, "bad-era-primary-white.png"],
+    ["secondary", SecondaryBrandMark, "bad-secondary-white.png"],
+  ] as const)("%s: an image of the right artwork, never letters set in a font", (_name, Mark, file) => {
+    const html = renderToStaticMarkup(<Mark />);
+    expect(html).toMatch(new RegExp(`<img alt="BAD ERA"[^>]*src="[^"]*${file.replace(".", "\\.")}"`));
+    expect(html).not.toMatch(/>\s*(BAD|ERA|BAD ERA)\s*</);
+  });
+
+  it("keep their proportions at every size", () => {
+    for (const [Mark, artwork] of [
+      [BrandMark, PRIMARY_ARTWORK],
+      [SecondaryBrandMark, SECONDARY_ARTWORK],
+    ] as const) {
+      for (const height of [26, 36, 48, 56, 72]) {
+        const html = renderToStaticMarkup(<Mark height={height} />);
+        const width = Number(html.match(/width="(\d+)"/)?.[1]);
+        expect(Math.abs(width / height - artwork.width / artwork.height), String(height)).toBeLessThan(0.05);
+      }
     }
   });
 
-  it("is the logo in the header and the footer, and the only one", () => {
+  it("cannot be squeezed by a narrow parent", () => {
+    // Base styles cap images at max-width: 100%. With a fixed height, a parent
+    // narrower than the mark squashed it — measured: the header lockup drew
+    // 170x56 instead of 179x56.
+    for (const Mark of [BrandMark, SecondaryBrandMark]) {
+      expect(renderToStaticMarkup(<Mark />)).toMatch(/class="[^"]*\bmax-w-none\b[^"]*"/);
+    }
+  });
+
+  it("are never rebuilt from type, SVG or an ERA typed after BAD", () => {
+    expect(readFileSync(join(ROOT, "src/components/ui/logo.tsx"), "utf8")).not.toMatch(/font-|<svg|<path/);
+    for (const file of files("src").filter((f) => f.endsWith(".tsx"))) {
+      expect(readFileSync(join(ROOT, file), "utf8"), file).not.toMatch(/>\s*ERA\s*</);
+    }
+  });
+});
+
+describe("where they appear", () => {
+  it("the header leads with the full lockup, the compact BAD only for the narrowest phones", () => {
     const header = renderToStaticMarkup(<SiteHeader />);
-    expect(header).toMatch(/<a [^>]*aria-label="BAD ERA — home"[^>]*><img alt="BAD ERA"/);
-    // The words beside the old monogram would now read "BAD BAD ERA".
+    const home = header.match(/<a [^>]*aria-label="BAD ERA — home"[^>]*>([\s\S]*?)<\/a>/)?.[1] ?? "";
+    expect(home).toMatch(/<img [^>]*class="[^"]*min-\[375px\]:hidden[^"]*"[^>]*bad-secondary-white\.png/);
+    expect(home).toMatch(/<img [^>]*class="[^"]*hidden min-\[375px\]:block[^"]*"[^>]*bad-era-primary-white\.png/);
+    // Typed beside the lockup, the name would read twice.
     expect(header).not.toMatch(/>BAD ERA</);
-    expect(renderToStaticMarkup(<SiteFooter />)).toContain('<img alt="BAD ERA"');
+  });
+
+  it("the footer's brand moment is the full lockup; its sign-off the compact BAD", () => {
+    const footer = renderToStaticMarkup(<SiteFooter />);
+    const primary = footer.indexOf("bad-era-primary-white.png");
+    const secondary = footer.indexOf("bad-secondary-white.png");
+    expect(primary).toBeGreaterThan(-1);
+    expect(secondary).toBeGreaterThan(primary);
+    expect(footer).not.toMatch(/>BAD ERA</);
   });
 
   it("the retired monogram is used nowhere", () => {
-    const sources = files("src").filter((f) => /\.(ts|tsx|css)$/.test(f));
-    for (const file of sources) {
+    for (const file of files("src").filter((f) => /\.(ts|tsx|css)$/.test(f))) {
       expect(readFileSync(join(ROOT, file), "utf8"), file).not.toMatch(/bad-era-monogram|\bMonogram\b/);
     }
     expect(readdirSync(join(ROOT, "public/brand"))).not.toContain("bad-era-monogram.png");

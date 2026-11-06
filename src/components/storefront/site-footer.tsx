@@ -1,5 +1,5 @@
 import { NavLink, visibleLinks } from "@/components/storefront/nav-link";
-import { BrandMark } from "@/components/ui/logo";
+import { BrandMark, SecondaryBrandMark } from "@/components/ui/logo";
 import { DEFAULT_SITE_FOOTER } from "@/lib/cms/default-pages";
 import { editAttrs } from "@/lib/cms/edit-targets";
 import type { NavLink as NavLinkItem, SiteFooterSection } from "@/lib/cms/sections";
@@ -29,15 +29,15 @@ export function SiteFooter({
     <footer className="border-t border-line bg-void">
       <div className="shell grid gap-12 py-16 md:grid-cols-2 lg:grid-cols-4 lg:py-20">
         <div className="lg:pr-8">
-          <p className="font-display text-2xl tracking-[0.22em] text-ink-strong">
-            BAD ERA
-          </p>
+          {/* The footer's brand moment: the full lockup, in place of the name
+              once set in type beside the old monogram. */}
+          <BrandMark height={64} flush />
           {section.statement ? (
-            <p {...edit("statement")} className="mt-5 max-w-xs text-sm leading-relaxed text-ink-muted">
+            <p {...edit("statement")} className="mt-3 max-w-xs text-sm leading-relaxed text-ink-muted">
               {section.statement}
             </p>
           ) : editing ? (
-            <p {...edit("statement")} data-be-empty="" className="mt-5 max-w-xs text-sm leading-relaxed text-ink-subtle">
+            <p {...edit("statement")} data-be-empty="" className="mt-3 max-w-xs text-sm leading-relaxed text-ink-subtle">
               + Add a brand statement
             </p>
           ) : null}
@@ -117,7 +117,8 @@ export function SiteFooter({
         <p className="label text-ink-subtle">
           © {new Date().getFullYear()} BAD ERA. All rights reserved.
         </p>
-        <BrandMark height={30} />
+        {/* A small sign-off: the compact BAD, as the identity reserves it. */}
+        <SecondaryBrandMark height={30} />
         {section.location ? (
           <p {...edit("location")} className="label text-ink-subtle">
             {section.location}

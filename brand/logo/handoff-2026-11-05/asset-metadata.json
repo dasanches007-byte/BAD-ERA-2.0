@@ -1,0 +1,29 @@
+{
+  "approval_date": "2026-11-05",
+  "hierarchy": {
+    "primary": "BAD ERA full wordmark",
+    "secondary": "BAD-only wordmark"
+  },
+  "source": "BF5DE27A-C496-4A8B-AC2A-605DD9B09DDE.jpeg",
+  "source_image_dimensions": [
+    1122,
+    1402
+  ],
+  "extraction_bbox_xyxy": [
+    181,
+    221,
+    954,
+    401
+  ],
+  "intrinsic_primary_png_dimensions": [
+    863,
+    270
+  ],
+  "primary_original_glyph_height_px": 180,
+  "clearspace_padding_px": 45,
+  "secondary_original_asset_dimensions": [
+    961,
+    350
+  ],
+  "production_note": "Raster from JPEG screenshot; auto-traced SVG drafts are NOT final artwork."
+}

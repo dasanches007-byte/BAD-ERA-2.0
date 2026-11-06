@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { STUDIO_NAV, isNavActive } from "@/components/studio/nav";
-import { BrandMark } from "@/components/ui/logo";
+import { SecondaryBrandMark } from "@/components/ui/logo";
 
 /**
  * Studio navigation.
@@ -25,7 +25,8 @@ export function StudioNav() {
       {/* Mobile bar */}
       <div className="flex items-center justify-between border-b border-line px-5 py-4 lg:hidden">
         <Link href="/studio" className="flex items-center gap-3">
-          <BrandMark height={26} />
+          {/* Compact place beside the STUDIO label: the BAD secondary. */}
+          <SecondaryBrandMark height={26} flush />
           <span className="label text-ink">Studio</span>
         </Link>
         <button
@@ -52,7 +53,7 @@ export function StudioNav() {
             href="/studio"
             className="flex items-center gap-3 border-b border-line px-6 py-6"
           >
-            <BrandMark height={28} />
+            <SecondaryBrandMark height={28} flush />
             <span className="label text-ink">Studio</span>
           </Link>
           <div className="flex-1 overflow-y-auto">

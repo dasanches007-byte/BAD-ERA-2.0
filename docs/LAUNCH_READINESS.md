@@ -84,7 +84,7 @@ exactly this (heading, sub-line, body; plain text, no markup field).
 | CSP nonce coverage | 100% of script tags on every public page, 404s included |
 | Horizontal overflow, 390px and 1440px | None on any page |
 | Accessibility (h1, landmark, alt text, labelled inputs, skip link, lang) | Pass. `/sign-in` has no skip link, which is correct — it has no nav to skip |
-| Brand lock | The BAD mark (approved 5 Nov 2026, replacing the monogram) rendered from the owner-supplied asset — served byte-identical to the master, 961×350, aspect preserved, never reconstructed (`tests/unit/brand-mark.test.tsx`) |
+| Brand lock | Owner-approved identity of 5 Nov 2026: full BAD ERA lockup primary, BAD secondary, monogram retired. Both rendered from the owner's files, served byte-identical to the masters, proportions held at every width (a squeeze in the header was found and fixed), never reconstructed (`tests/unit/brand-mark.test.tsx`) |
 | ARCHIVE 01 contract | Tee S/M/L only · $30.00 / $25.00 / $45.00 · no 2XL anywhere · no sale/clearance/urgency language anywhere |
 | Secret hygiene | No real credential in any tracked file. `.env` and `.env*.local` ignored |
 

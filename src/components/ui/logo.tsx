@@ -1,51 +1,100 @@
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
 
-import mark from "../../../public/brand/bad-primary-white.png";
-
-/** The artwork's size in pixels. `tests/unit/brand-mark.test.tsx` checks the file. */
-export const MARK_SIZE = { width: 961, height: 350 } as const;
+import fullLockup from "../../../public/brand/bad-era-primary-white.png";
+import compactMark from "../../../public/brand/bad-secondary-white.png";
 
 /**
- * The official BAD mark — the owner's primary wordmark, approved 5 November
- * 2026 (`brand/logo/BAD-official-logo-package.md`). It replaced the B–E
- * monogram, which is retired to `brand/logo/legacy/`.
+ * The BAD ERA logos — owner-approved identity amendment of 5 November 2026
+ * (`brand/logo/README.md`). Two marks, in a fixed hierarchy:
  *
- * LOCKED ASSET. This renders the owner-supplied artwork as an image. The mark
- * must NEVER be set in a font, redrawn, traced, reshaped, slanted, stretched
- * or given effects — "a bold geometric sans in caps" is not the logo; this
- * file is. Its aspect ratio is fixed: give a height and the width follows.
+ *   PRIMARY    `BrandMark`           the full BAD ERA lockup: oversized BAD,
+ *                                    small italic ERA on its lower right
+ *   SECONDARY  `SecondaryBrandMark`  BAD alone, for compact places
  *
- * White, for the site's dark surfaces. The black master
- * (`brand/logo/BAD-primary-black-transparent.png`) is for light backgrounds,
- * of which the site currently has none.
+ * LOCKED ASSETS. Both render the owner's artwork as images. Neither may be set
+ * in a font, redrawn, traced, reshaped, slanted, stretched or given effects,
+ * and the primary must never be imitated by typing "ERA" after the secondary.
+ * The B–E monogram they replaced is retired to `brand/logo/legacy/`.
  *
- * The file carries its own clear space — about a quarter of the letter height
- * on every side, as the package asks — so the letters fill roughly 70% of
- * `height`. Do not crop it to make the mark look bigger; size it instead.
+ * White, for the site's dark surfaces. Black masters for light backgrounds
+ * are in `brand/logo/`; the site currently has none.
  */
-export function BrandMark({
-  height = 32,
-  className,
-  priority = false,
-}: {
-  /** Rendered height in CSS pixels, clear space included. */
+
+/**
+ * Each artwork's pixel size, and where its letters start (`inkLeft`) — the
+ * files carry their own clear space. `tests/unit/brand-mark.test.tsx` checks
+ * these against the files.
+ */
+export const PRIMARY_ARTWORK = { width: 863, height: 270, inkLeft: 46 } as const;
+export const SECONDARY_ARTWORK = { width: 961, height: 350, inkLeft: 56 } as const;
+
+type Artwork = { width: number; height: number; inkLeft: number };
+
+type MarkProps = {
+  /** Rendered height in CSS pixels, clear space included. Width follows. */
   height?: number;
+  /** A different height from the `lg` breakpoint up. */
+  lgHeight?: number;
+  /**
+   * Pull the mark left by its built-in clear space, so its letters line up
+   * with text beneath it. The page margin still provides the clear space.
+   */
+  flush?: boolean;
   className?: string;
   priority?: boolean;
-}) {
+};
+
+/**
+ * The PRIMARY logo: the full BAD ERA lockup.
+ *
+ * ERA is a fifth of BAD's height, so this needs room: below about 48px tall
+ * ERA drops under ~6px and stops reading. Where there is not that much room,
+ * use `SecondaryBrandMark` — never shrink this until ERA is a smudge.
+ */
+export function BrandMark(props: MarkProps) {
+  return <Mark src={fullLockup} artwork={PRIMARY_ARTWORK} {...props} />;
+}
+
+/** The SECONDARY logo: BAD alone — icons, compact navigation, small sign-offs. */
+export function SecondaryBrandMark(props: MarkProps) {
+  return <Mark src={compactMark} artwork={SECONDARY_ARTWORK} {...props} />;
+}
+
+function Mark({
+  src,
+  artwork,
+  height = 32,
+  lgHeight,
+  flush = false,
+  className,
+  priority = false,
+}: MarkProps & { src: StaticImageData; artwork: Artwork }) {
+  const largest = Math.max(height, lgHeight ?? height);
   return (
     <Image
-      src={mark}
+      src={src}
       alt="BAD ERA"
-      height={height}
-      width={Math.round((height * MARK_SIZE.width) / MARK_SIZE.height)}
+      height={largest}
+      width={Math.round((largest * artwork.width) / artwork.height)}
       priority={priority}
-      // Height is set here, and width always follows it — the base styles give
-      // every image `height: auto`, which would otherwise let the file's own
-      // size decide. A responsive class such as `lg:h-10` still wins on its
-      // breakpoint; it can change the height, never the proportions.
-      className={`h-[var(--mark-h)] w-auto ${className ?? ""}`}
-      style={{ "--mark-h": `${height}px` } as React.CSSProperties}
+      // Height is set here and width always follows it: the base styles give
+      // every image `height: auto` and `max-width: 100%`, which would let the
+      // file's size decide the height and a narrow parent squeeze the width —
+      // a squashed logo. `max-w-none` is what keeps the proportions true.
+      // Heights travel as variables so the flush offset is always computed
+      // from the height actually drawn.
+      className={[
+        "w-auto max-w-none shrink-0 h-[var(--mark-h)] lg:h-[var(--mark-h-lg)]",
+        flush ? "-ml-[calc(var(--mark-h)*var(--mark-inset))] lg:-ml-[calc(var(--mark-h-lg)*var(--mark-inset))]" : "",
+        className ?? "",
+      ].join(" ")}
+      style={
+        {
+          "--mark-h": `${height}px`,
+          "--mark-h-lg": `${lgHeight ?? height}px`,
+          "--mark-inset": String(artwork.inkLeft / artwork.height),
+        } as React.CSSProperties
+      }
     />
   );
 }

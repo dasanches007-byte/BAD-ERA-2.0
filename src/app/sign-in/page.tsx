@@ -42,7 +42,7 @@ export default async function SignInPage({
       <main className="flex flex-1 items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm">
           <div className="flex flex-col items-center text-center">
-            <BrandMark height={60} priority />
+            <BrandMark height={72} priority />
             <h1 className="mt-8 font-display text-display-sm text-ink-strong">
               Sign in
             </h1>
