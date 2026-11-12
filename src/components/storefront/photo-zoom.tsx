@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -59,11 +60,17 @@ export function PhotoZoom({
   title,
   start,
   originOf,
+  link,
   onClose,
 }: {
   photos: CatalogPhoto[];
   title: string;
   start: ZoomStart;
+  /**
+   * Where the piece lives, when the zoom was opened away from its own page
+   * (a card): shown as the piece's name, so its page is one tap away.
+   */
+  link?: { href: string; label: string };
   /** The photo's place on the page right now, or null if it has none. */
   originOf: (index: number) => ZoomOrigin | null;
   onClose: (index: number) => void;
@@ -420,7 +427,7 @@ export function PhotoZoom({
       paint(bound({ ...now, ty: now.ty + (e.key === "ArrowUp" ? step : -step) }), 160);
     } else if (e.key === "Tab" && root.current) {
       // Keep the keyboard inside while the zoom is open.
-      const stops = [...root.current.querySelectorAll<HTMLElement>("button")].filter(
+      const stops = [...root.current.querySelectorAll<HTMLElement>("a[href], button")].filter(
         (el) => el.offsetParent !== null,
       );
       const first = stops[0];
@@ -487,9 +494,20 @@ export function PhotoZoom({
       </div>
 
       <div className="zoom-bar zoom-bar-top">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] tabular-nums" aria-hidden={!many}>
+        <p
+          className="min-w-10 flex-none text-xs font-semibold uppercase tracking-[0.14em] tabular-nums"
+          aria-hidden={!many}
+        >
           {many ? `${index + 1} / ${photos.length}` : ""}
         </p>
+        {link ? (
+          <Link href={link.href} className="zoom-link">
+            <span className="truncate">{link.label}</span>
+            <svg viewBox="0 0 18 10" width="18" height="10" aria-hidden="true" className="flex-none">
+              <path d="M0 5h16.5M12.5 1l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.4" />
+            </svg>
+          </Link>
+        ) : null}
         <button type="button" className="round-btn" aria-label="Close zoom" onClick={close}>
           <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">
             <path d="M1 1l12 12M13 1L1 13" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -564,11 +582,12 @@ export function PhotoZoom({
   );
 }
 
-/** The mark in a photo's corner that says it can be zoomed. */
-export function ZoomMark() {
+/** The mark in a photo's corner that says it can be zoomed. Smaller on a card. */
+export function ZoomMark({ small = false }: { small?: boolean }) {
+  const size = small ? 13 : 16;
   return (
-    <span className="round-btn zoom-mark" aria-hidden="true">
-      <svg viewBox="0 0 16 16" width="16" height="16">
+    <span className={`round-btn zoom-mark ${small ? "round-btn-sm zoom-mark-sm" : ""}`} aria-hidden="true">
+      <svg viewBox="0 0 16 16" width={size} height={size}>
         <circle cx="6.75" cy="6.75" r="5" fill="none" stroke="currentColor" strokeWidth="1.3" />
         <path d="M10.5 10.5 15 15M4.5 6.75h4.5M6.75 4.5v4.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
       </svg>

@@ -759,6 +759,7 @@ src/components/storefront/
   header-buttons.tsx     Cart (a real link that slides the bag in) and Menu
   add-to-bag.tsx         the buy button; a card's add / choose / sold out
   photo-zoom.tsx         Client. A product photo opened full screen, zoomed
+  card-photo.tsx         Client. A card's photo: a link that zooms where it stands
   product-detail.tsx     first photo + pale buy panel + more photos + phone buy bar
   site-effects.tsx       Client. Header tone, hero easing, posters rising
 src/lib/cart/bag.ts  bag-types.ts   the bag as drawn: server read / client-safe shapes
@@ -799,6 +800,13 @@ Rules that hold across the design:
   and fades in the largest one (`sizes="300vw"`); a photo is only as sharp
   zoomed as the file the owner uploaded. Offered only on the public site
   (`shop.interactive`), never in the editors.
+- **A card's photo zooms where it stands** (owner's request): the same zoom,
+  opened from the line-up without leaving it, showing every photo of the
+  piece. The photo is still a real link to the product page (`CardPhoto`),
+  so it goes there before script loads, with a modifier key, in the editors
+  and when there is no photo. Inside the zoom the piece's name is a link to
+  its page, and the name and button under the photo are unchanged, so the
+  product page is never further away than it was.
 - **Whatever fills the screen holds the page.** The bag, the menu and the
   zoom all make the page behind `inert` and stop it scrolling
   (`shop.holdPage` for the zoom, which is portalled out of the frame).
@@ -815,7 +823,8 @@ Rules that hold across the design:
   no slabs. The bag's words are edited on the Menu & footer page, where
   `BagWording` lays them out (customers never get that block).
 - **Sold out is said once**, on the button. A card with sizes or colours
-  links to the product page rather than guessing one.
+  links to the product page rather than guessing one (its button; its photo
+  zooms).
 
 `tests/unit/cement.test.tsx` holds all of the above.
 

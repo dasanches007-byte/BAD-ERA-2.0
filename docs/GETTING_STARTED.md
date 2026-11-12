@@ -420,6 +420,7 @@ fault.
 | Change the menu, the footer, or add your social links | Studio → **Site** → **Menu & footer** → **Edit on the page**, then tap any link or words. Tapping a menu link opens the whole menu: add, remove, reorder, hide |
 | Change the words on the Shop page | Open **/shop** → **Edit this page** (or Studio → **Site** → **Shop**) |
 | Change the words every product page shares ("Details", the back link, the "Tap to zoom in" hint on the photo, the Archive 01 lines, a note on every product) | Open any product → **Edit page wording** (or Studio → **Site** → **Product pages**). A product's own name, price, description and photos: **Edit this product** |
+| See how zoom works | On your site, tap a product's photo — on a card or on its page — and it opens full screen, zoomed in where you tapped. Pinch, drag, double-tap; swipe for the next photo. From a card, the product's name at the top of the zoom opens its page |
 | Choose a product's main photo, and make zoom look its best | **Products** → the product → **Photos**. The **first** photo is the main one (cards, the bag, top of the product page); add close-ups after it. Customers can zoom into every photo, so upload the largest version you have — a small or screenshotted photo goes soft when zoomed |
 | Write the about / privacy / terms / shipping / returns / support pages | Open that page on your site → **Edit this page** → **Start writing this page** → tap the text → **Publish** |
 | See every field of a page in one list | **Site** → **All fields** |

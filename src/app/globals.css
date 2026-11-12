@@ -886,9 +886,16 @@ body {
   background: rgb(11 11 10 / 0.5);
 }
 
-.zoom-open:hover .zoom-mark {
+.zoom-open:hover .zoom-mark,
+a:hover > .zoom-mark {
   background-color: var(--color-ink);
   color: var(--color-inverse-ink);
+}
+
+/* On a card the mark is smaller and tucked closer to the corner. */
+.zoom-mark-sm {
+  right: 0.5rem;
+  bottom: 0.5rem;
 }
 
 .stage-hint {
@@ -1028,6 +1035,31 @@ body {
 .zoom[data-phase="opening"] .zoom-bar,
 .zoom[data-phase="closing"] .zoom-bar {
   opacity: 0;
+}
+
+/* Opened from a card, the zoom names the piece: a link to its own page. */
+.zoom-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid rgb(244 241 234 / 0.3);
+  border-radius: 999px;
+  background: rgb(10 10 10 / 0.55);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition:
+    background-color 200ms,
+    color 200ms;
+}
+
+.zoom-link:hover {
+  background-color: var(--color-ink);
+  color: var(--color-inverse-ink);
 }
 
 .zoom .round-btn {

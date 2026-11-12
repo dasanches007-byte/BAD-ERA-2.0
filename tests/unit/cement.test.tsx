@@ -354,6 +354,30 @@ describe("a piece in a line-up", () => {
     expect(markup.match(/sold out/gi)?.length).toBe(1);
   });
 
+  it("its photo zooms where it stands, and is still a real link to the piece's page", () => {
+    // Drawn outside the shop (here, and in the editors) it is simply the link.
+    const markup = card(product({ photos: [{ url: "/a.jpg", alt: "Front", focal: { x: 0.5, y: 0.5 }, variantId: null }] }));
+    expect(markup).toMatch(/<a [^>]*aria-label="ERA Tee"[^>]*href="\/products\/era-tee"[^>]*>[\s\S]*?<img alt="Front"/);
+    expect(markup).not.toContain("zoom-mark");
+
+    const source = read("src/components/storefront/card-photo.tsx");
+    // Only in the shop, and only when there is a photo to zoom.
+    expect(source).toMatch(/const zoomable = shop\.interactive && Boolean\(main\);/);
+    // A modifier key still means "open the page"; so does no script at all.
+    expect(source).toMatch(/if \(!zoomable \|\| event\.metaKey \|\| event\.ctrlKey \|\| event\.shiftKey \|\| event\.altKey\) return;/);
+    expect(source).toMatch(/<Link\s+ref=\{place\}\s+href=\{href\}/);
+    // The zoom names the piece, so its page is one tap away from inside it.
+    expect(source).toMatch(/link=\{\{ href, label: title \}\}/);
+    const zoom = read("src/components/storefront/photo-zoom.tsx");
+    expect(zoom).toMatch(/<Link href=\{link\.href\} className="zoom-link">/);
+    // …and the keyboard can reach that link while the zoom holds it.
+    expect(zoom).toMatch(/querySelectorAll<HTMLElement>\("a\[href\], button"\)/);
+  });
+
+  it("the name still goes to the piece's page, with or without a photo", () => {
+    expect(card(product())).toMatch(/<h3 [^>]*><a href="\/products\/era-tee">ERA Tee<\/a><\/h3>/);
+  });
+
   it("takes its price from the catalog and its photo from the product, never from wording", () => {
     const markup = card(product());
     expect(markup).toContain("$68");

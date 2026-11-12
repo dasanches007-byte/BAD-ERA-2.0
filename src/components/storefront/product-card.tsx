@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { CardAction } from "@/components/storefront/add-to-bag";
-import { MediaSlot } from "@/components/ui/media-slot";
-import { mainPhoto, photoSlot } from "@/lib/catalog/photos";
+import { CardPhoto } from "@/components/storefront/card-photo";
 import { STOCK_STATE_LABEL } from "@/lib/inventory/availability";
 import type { CatalogProduct } from "@/lib/catalog/queries";
 
@@ -17,7 +16,8 @@ import type { CatalogProduct } from "@/lib/catalog/queries";
  * Price comes from commerce data, never from duplicated editable copy
  * (Master Spec §14.3.1A). Availability comes from server-derived stock state.
  * The card carries no hover-only information, so it works identically on
- * touch (Master Spec §4.1).
+ * touch (Master Spec §4.1). Its photo can be zoomed without leaving the
+ * line-up (`CardPhoto`).
  *
  * `tone` is the cement it sits on: pale for the line-ups and the Shop page,
  * dark for the archive.
@@ -58,16 +58,15 @@ export function ProductCard({
         pale ? "border-pale-ink" : "border-ink/25"
       }`}
     >
-      {/* The name below is the link a screen reader meets; the photo is the
-          same destination for a tap, not a second stop for the keyboard. */}
-      <Link href={href} tabIndex={-1} aria-hidden="true" className="block">
-        <MediaSlot
-          media={photoSlot(mainPhoto(product.photos), product.title)}
-          tone={tone}
-          sizes={sizes}
-          className={`piece-tile aspect-[4/5] w-full ${pale ? "shadow-[0_18px_30px_-20px_rgb(40_38_34/0.45)]" : ""}`}
-        />
-      </Link>
+      {/* The photo zooms where it stands; the name below goes to the piece's
+          page, and so does the name inside the zoom. */}
+      <CardPhoto
+        handle={product.handle}
+        title={product.title}
+        photos={product.photos}
+        tone={tone}
+        sizes={sizes}
+      />
       {/* Across a row of cards the names line up at the top and the buttons
           along the bottom, however long each name runs. */}
       <div className="grid content-between justify-items-start gap-3 py-1 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
