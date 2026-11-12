@@ -419,8 +419,8 @@ fault.
 | Change what the bag and the buy buttons say ("Your bag", "Add to bag", "Checkout"…) | Studio → **Site** → **Menu & footer** → **Edit on the page**, scroll to **The bag and the buy buttons**, tap any of the words |
 | Change the menu, the footer, or add your social links | Studio → **Site** → **Menu & footer** → **Edit on the page**, then tap any link or words. Tapping a menu link opens the whole menu: add, remove, reorder, hide |
 | Change the words on the Shop page | Open **/shop** → **Edit this page** (or Studio → **Site** → **Shop**) |
-| Change the words every product page shares ("Details", the back link, the hint on the photo, the Archive 01 lines, a note on every product) | Open any product → **Edit page wording** (or Studio → **Site** → **Product pages**). A product's own name, price, description and photos: **Edit this product** |
-| Choose the photo customers can move the light across | It is the product's **first** photo: **Products** → the product → **Photos**, and put the one you want first. A close-up of fabric or stitching shows it off best |
+| Change the words every product page shares ("Details", the back link, the "Tap to zoom in" hint on the photo, the Archive 01 lines, a note on every product) | Open any product → **Edit page wording** (or Studio → **Site** → **Product pages**). A product's own name, price, description and photos: **Edit this product** |
+| Choose a product's main photo, and make zoom look its best | **Products** → the product → **Photos**. The **first** photo is the main one (cards, the bag, top of the product page); add close-ups after it. Customers can zoom into every photo, so upload the largest version you have — a small or screenshotted photo goes soft when zoomed |
 | Write the about / privacy / terms / shipping / returns / support pages | Open that page on your site → **Edit this page** → **Start writing this page** → tap the text → **Publish** |
 | See every field of a page in one list | **Site** → **All fields** |
 | Upload photography | Click any photo on the page → **Upload a photo**. Or **Media** to manage the whole library |

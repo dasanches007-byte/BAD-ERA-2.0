@@ -88,8 +88,8 @@ export const DEFAULT_PRODUCT_WORDING: ProductWordingSection = {
   archiveNote: "Limited quantities. Never restocked.",
   note: "",
   backLabel: "All pieces",
-  lightHintTouch: "Press and hold, then drag the light",
-  lightHintMouse: "Move the cursor to move the light",
+  zoomHintTouch: "Tap to zoom in",
+  zoomHintMouse: "Click to zoom in",
 };
 
 /**

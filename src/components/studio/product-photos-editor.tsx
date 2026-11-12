@@ -110,9 +110,9 @@ export function ProductPhotosEditor({
             Photos{photos.length > 0 ? ` · ${photos.length}` : ""}
           </h2>
           <p className="text-xs text-ink-subtle">
-            The first photo is the main one: it is on every card, and on the product page it is the
-            one customers can move the light across. A close-up of the fabric or stitching shows that
-            off best.
+            The first photo is the main one: it is on every card and leads the product page.
+            Customers can zoom into every photo, so upload the largest version you have — a photo
+            is only as sharp zoomed in as the file you give it.
           </p>
         </div>
 

@@ -60,7 +60,7 @@ export const EDITABLE_PAGES: readonly EditablePage[] = [
     kind: "page",
     templateKey: PRODUCT_TEMPLATE,
     blurb:
-      "Words every product page shares, like the back link and the light hint. Names, prices and photos are in Studio → Products.",
+      "Words every product page shares, like the back link and the zoom hint. Names, prices and photos are in Studio → Products.",
   },
 ];
 

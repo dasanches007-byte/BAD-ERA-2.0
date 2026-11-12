@@ -130,7 +130,7 @@ export function ProductPage({
         </p>
         <div className="mt-10 grid max-w-md gap-6">
           <BackLink section={section} editing={editing} />
-          <LightHint section={section} editing={editing} standalone />
+          <ZoomHint section={section} editing={editing} standalone />
           <Wording section={section} product={null} editing={editing} />
         </div>
       </article>
@@ -143,7 +143,7 @@ export function ProductPage({
     <ProductDetail
       product={product}
       back={<BackLink section={section} editing={editing} />}
-      lightHint={<LightHint section={section} editing={editing} />}
+      zoomHint={<ZoomHint section={section} editing={editing} />}
       header={
         <>
           {archive && section.archiveLabel ? (
@@ -188,12 +188,12 @@ function BackLink({ section, editing }: { section: ProductWordingSection; editin
 }
 
 /**
- * How to move the light: one line for a finger, one for a mouse. CSS shows
- * whichever the device is; both are shown while editing, so each can be
- * tapped. `standalone` is the same pair as plain lines, for the editor when
- * there is no product to light.
+ * How to zoom in: one line for a finger, one for a mouse. CSS shows whichever
+ * the device is; both are shown while editing, so each can be tapped.
+ * `standalone` is the same pair as plain lines, for the editor when there is
+ * no product to show.
  */
-function LightHint({
+function ZoomHint({
   section,
   editing,
   standalone = false,
@@ -202,37 +202,37 @@ function LightHint({
   editing?: boolean;
   standalone?: boolean;
 }) {
-  const touch = section.lightHintTouch;
-  const mouse = section.lightHintMouse;
+  const touch = section.zoomHintTouch;
+  const mouse = section.zoomHintMouse;
   if (!touch && !mouse && !editing) return null;
   const lines = (
     <>
       {touch || editing ? (
         <span
-          {...editAttrs(editing, section, "lightHintTouch")}
+          {...editAttrs(editing, section, "zoomHintTouch")}
           {...(touch ? {} : { "data-be-empty": "" })}
           className="for-touch"
         >
-          {touch || "+ Light hint for phones"}
+          {touch || "+ Zoom hint for phones"}
         </span>
       ) : null}
       {mouse || editing ? (
         <span
-          {...editAttrs(editing, section, "lightHintMouse")}
+          {...editAttrs(editing, section, "zoomHintMouse")}
           {...(mouse ? {} : { "data-be-empty": "" })}
           className="for-mouse"
         >
-          {mouse || "+ Light hint for computers"}
+          {mouse || "+ Zoom hint for computers"}
         </span>
       ) : null}
     </>
   );
   if (standalone) {
-    return <p className="lit-hint-plain grid justify-items-start gap-2">{lines}</p>;
+    return <p className="stage-hint-plain grid justify-items-start gap-2">{lines}</p>;
   }
-  // Decoration for everyone but the owner: the stage itself is labelled.
+  // A caption for the eye: the photo's own button says the same to a reader.
   return (
-    <p className="lit-hint" aria-hidden={editing ? undefined : true}>
+    <p className="stage-hint" aria-hidden={editing ? undefined : true}>
       {lines}
     </p>
   );

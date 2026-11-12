@@ -55,6 +55,8 @@ export function StorefrontShell({
 }) {
   const [bag, setBag] = useState(initialBag);
   const [open, setOpen] = useState<"bag" | "menu" | null>(null);
+  // Something else filling the screen (the photo zoom) holds the page too.
+  const [held, setHeld] = useState(false);
   const [status, setStatus] = useState("");
   const opener = useRef<HTMLElement | null>(null);
   const pathname = usePathname();
@@ -113,16 +115,17 @@ export function StorefrontShell({
     if (open) setOpen(null);
   }
 
-  // The page behind does not scroll while a slab is open.
+  // The page behind does not scroll while a slab or the zoom is open.
+  const covered = open !== null || held;
   useEffect(() => {
-    if (!open) return;
+    if (!covered) return;
     const root = document.documentElement;
     const before = root.style.overflow;
     root.style.overflow = "hidden";
     return () => {
       root.style.overflow = before;
     };
-  }, [open]);
+  }, [covered]);
 
   const shop = useMemo<Shop>(
     () => ({
@@ -134,6 +137,7 @@ export function StorefrontShell({
       openMenu: (from) => show("menu", from),
       add,
       adopt,
+      holdPage: setHeld,
     }),
     [bag, words, interactive, open, show, add, adopt],
   );
@@ -142,7 +146,7 @@ export function StorefrontShell({
     <ShopContext.Provider value={shop}>
       <div
         className="storefront flex min-h-screen flex-col bg-surface text-ink"
-        inert={interactive && open !== null}
+        inert={interactive && covered}
       >
         {children}
       </div>

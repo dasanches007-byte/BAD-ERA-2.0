@@ -40,6 +40,11 @@ export type Shop = {
   add: (variantId: string, opener?: HTMLElement | null) => Promise<AddResult>;
   /** Take the bag a cart change on another part of the page returned. */
   adopt: (bag: BagView | null) => void;
+  /**
+   * Hold the page still behind something that fills the screen (the photo
+   * zoom): inert, and not scrolling, until released.
+   */
+  holdPage: (held: boolean) => void;
 };
 
 const NOT_INTERACTIVE: Shop = {
@@ -51,6 +56,7 @@ const NOT_INTERACTIVE: Shop = {
   openMenu: () => {},
   add: async () => ({ ok: false, message: "The bag is not available here." }),
   adopt: () => {},
+  holdPage: () => {},
 };
 
 export const ShopContext = createContext<Shop>(NOT_INTERACTIVE);

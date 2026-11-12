@@ -194,9 +194,9 @@ export type ProductWordingSection = SectionBase & {
   note: string;
   /** The link back to the shop, above the name. */
   backLabel: string;
-  /** How to move the light on the first photo: on a touch screen, with a mouse. */
-  lightHintTouch: string;
-  lightHintMouse: string;
+  /** On the first photo, how to zoom in: on a touch screen, with a mouse. */
+  zoomHintTouch: string;
+  zoomHintMouse: string;
 };
 
 /**

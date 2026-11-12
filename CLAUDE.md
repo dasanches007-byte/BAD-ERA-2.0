@@ -497,7 +497,7 @@ src/components/
   storefront/product-card.tsx  Price from commerce data, availability from stock state
   storefront/variant-picker.tsx  Client. Sold-out variants disabled but legible
   storefront/cart-lines.tsx      Client. Mutations go through Server Actions
-  (bag, light, buy bar: see "Cement design")
+  (bag, photo zoom, buy bar: see "Cement design")
   sections/                Section renderers, one per registered section_type
 src/lib/cms/
   sections.ts              Typed section payloads + MediaSlot/CTA field types
@@ -743,21 +743,23 @@ the update, saying so, when anything else is uncommitted.
 The storefront's look, chosen by the owner from mockups (the approved one:
 homepage, product page, slide-in bag, phone buy bar). It replaced the serif
 storefront and retired the earlier ambient light (header underglow, hero
-spotlight, archive shelf light).
+spotlight, archive shelf light). The mockup's movable light on the product
+page was built and then **replaced by a photo zoom the same day, at the
+owner's request** — do not bring the light back.
 
 ```
 brand/texture/                 the owner's cement (master) + README: palette, rules
 public/brand/texture/          cement / pale cement, upright and on its side
 src/app/globals.css            "The cement system": surfaces, poster, pills, header tones,
-                               drawers, the lit stage, the buy bar
+                               drawers, the photo stage and zoom, the buy bar
 src/components/ui/poster.tsx   Poster (line breaking + sizing), Stitch, Arrow
 src/components/storefront/
   storefront-shell.tsx   Client. The frame, the bag (right) and phone menu (left) slabs
   shop-context.tsx       the bag, its words and how to open it, for every button
   header-buttons.tsx     Cart (a real link that slides the bag in) and Menu
   add-to-bag.tsx         the buy button; a card's add / choose / sold out
-  lit-photo.tsx          Client. A light you can hold (WebGL, with fallbacks)
-  product-detail.tsx     lit photo + pale buy panel + more photos + phone buy bar
+  photo-zoom.tsx         Client. A product photo opened full screen, zoomed
+  product-detail.tsx     first photo + pale buy panel + more photos + phone buy bar
   site-effects.tsx       Client. Header tone, hero easing, posters rising
 src/lib/cart/bag.ts  bag-types.ts   the bag as drawn: server read / client-safe shapes
 ```
@@ -771,8 +773,8 @@ Rules that hold across the design:
   CSS sizes it to the column. Counting letters was tried and broke
   "CROSSBODY" mid-word, because an M is three I's wide.
 - **No colour in the design.** Cement, pale cement, bone, black and shade.
-  The light on the product page is warm white. `tests/unit/cement.test.tsx`
-  fails if a hue is written into the cement styles.
+  `tests/unit/cement.test.tsx` fails if a hue is written into the cement
+  styles. A zoomed photo is the owner's photo, larger: no filter, no overlay.
 - **The cement is a brand surface, not a photo slot.** It is not swapped from
   Studio. Photos are still `MediaSlot`s and still replaced with no code change.
 - **The header follows what is under it.** Each section says `data-tone`
@@ -787,21 +789,26 @@ Rules that hold across the design:
   full pages, and Cart is a real link to `/cart`, so it works without script.
 - **A slab that is open owns the keyboard.** The page behind is `inert`,
   Tab stays inside, Escape closes, and focus returns to what opened it.
-- **A light you can hold** is the product page's first photo, lit from its
-  own detail. Mouse: it follows. Touch: tap places it; press and hold picks it
-  up and the page stays put while it is dragged; a swipe still scrolls.
-  Arrow keys carry it. It rests off screen and in a hidden tab, never moves
-  by itself under reduced motion, and falls back to the plain photo (always
-  in the page underneath) without WebGL or if the picture cannot be read.
-  The photo is drawn through `/_next/image`, so it is same-origin and can be
-  used as a texture.
+- **Every product photo can be zoomed** (`PhotoZoom`). A tap or click opens
+  it out of its place to fill the screen, already zoomed in on the spot that
+  was touched (whole, from the keyboard). Touch: pinch, drag, double-tap; at
+  full view a sideways swipe is the next photo and a pull down closes. Mouse:
+  move to look around, click to zoom out or in, wheel to zoom. Keys: + − 0,
+  arrows, Escape. Touches are taken over only inside the zoom, so a swipe on
+  a photo on the page still scrolls. It opens with the copy already on screen
+  and fades in the largest one (`sizes="300vw"`); a photo is only as sharp
+  zoomed as the file the owner uploaded. Offered only on the public site
+  (`shop.interactive`), never in the editors.
+- **Whatever fills the screen holds the page.** The bag, the menu and the
+  zoom all make the page behind `inert` and stop it scrolling
+  (`shop.holdPage` for the zoom, which is portalled out of the frame).
 - **On a phone, Add to bag stays in reach**: a bar along the bottom of the
   product page whenever the page's own button is out of sight. It adds the
   chosen variant, exactly as that button would, and steps aside for the bag.
 - **Never `disabled` while saving** on the control that triggered the save
   (it drops keyboard focus); `aria-busy` says it and the button eases back.
 - **Decoration never takes a click.** The seam, the hero's shade and the
-  light's hint are `pointer-events: none`; the on-page editor looks through
+  zoom hint are `pointer-events: none`; the on-page editor looks through
   them. The hints become tappable only while the owner is editing.
 - **In the editors nothing opens.** `StorefrontFrame` is given the visitor's
   bag only by the public layout; without it the shell provides the words and
@@ -818,7 +825,8 @@ The owner's way to stock the store: Studio → Products → **+ New product**
 (Archive 01 is one tap per piece; name, price, sizes, stock and an optional
 description on one form), then the product's **Photos** tab, then
 **Make it live**. The first photo is the main one: on every card, in the
-bag, and the one a customer can light on the product page.
+bag, and leading the product page. Customers can zoom into every photo, so
+the largest file the owner has is the one to upload.
 
 ```
 supabase/migrations/0017_studio_products.sql   create product; actor-checked stock adjust
@@ -1163,7 +1171,7 @@ every phase in one uncontrolled pass.
 | 8 | Publishing / version control: optimistic concurrency, publish sets, revision history, rollback, audit trail | **Complete** |
 | 9 | Hardening: security headers, MFA, rate limits, observability, a11y, SEO, performance, backups | **Complete** (MFA awaits an owner enrolment; leaked-password protection is an owner dashboard toggle) |
 | 10 | Full QA / launch readiness — **stop and report; do not launch publicly** | **Complete** — reported in `docs/LAUNCH_READINESS.md`. Not launched. Blocking items are owner-owed credentials and content |
-| 11 | Cement redesign of the storefront: surfaces, poster voice, slide-in bag, phone menu, hold-the-light product page, phone buy bar; all new wording editable | **Complete** (driven in a browser against fixtures; awaiting live products and a real phone for an end-to-end pass). Not launched |
+| 11 | Cement redesign of the storefront: surfaces, poster voice, slide-in bag, phone menu, product photo zoom (in place of the mockup's light), phone buy bar; all new wording editable | **Complete** (driven in a browser against fixtures; awaiting live products and a real phone for an end-to-end pass). Not launched |
 
 Keep this table current as phases complete.
 

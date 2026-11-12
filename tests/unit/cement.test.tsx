@@ -24,20 +24,22 @@ import type { Section } from "@/lib/cms/sections";
 
 /**
  * The cement design, owner-approved 12 November 2026: the owner's cement in
- * two tones, one loud condensed voice, a bag that slides in, and a light the
- * customer can hold on the product page.
+ * two tones, one loud condensed voice, a bag that slides in, and product
+ * photos the customer can zoom into. (The zoom replaced the product page's
+ * movable light the same day, at the owner's request.)
  *
  * What must stay true:
  *   - the look is fixed; Studio edits words and photos, and whatever the
  *     owner writes still fits (a poster is sized to its words, never by a
  *     control);
- *   - there is no colour in the design: the light is warm white, the surfaces
- *     are the cement;
+ *   - there is no colour in the design: the surfaces are the cement, and a
+ *     photo is only ever shown as it is, larger;
  *   - every new word is the owner's to change, and content saved before the
  *     design still reads;
  *   - the bag shows what the server worked out and sends back only a variant;
- *   - the light and the motion are decoration with a fallback: still under
- *     reduced motion, absent without script, never in the way of a click.
+ *   - the zoom keeps the keyboard and the page in order, and the motion is
+ *     decoration: still under reduced motion, absent without script, never in
+ *     the way of a click.
  */
 
 vi.mock("next/image", () => ({
@@ -187,18 +189,18 @@ describe("no colour in the design", () => {
     expect(statSync(join(ROOT, "brand/texture/cement-owner-supplied.jpg")).size).toBeGreaterThan(10_000);
   });
 
-  it("the light is warm white, and only ever lights the photo", () => {
-    const light = read("src/components/storefront/lit-photo.tsx");
-    expect(light).toMatch(/const vec3 WARM = vec3\(1\.0, 0\.985, 0\.955\)/);
-    // The photo's colour times a white light: no hue is added anywhere.
-    expect(light).toMatch(/vec3 col = photo \* \(ambient \+ power \* lit \* WARM\)/);
-    expect(light).not.toMatch(/hue|rainbow|vec3\(1\.0, 0\.0|vec3\(0\.0, 0\.0, 1\.0\)\s*\*/);
+  it("a zoomed photo is the owner's photo and nothing else: no filter, tint or overlay", () => {
+    const zoom = read("src/components/storefront/photo-zoom.tsx");
+    expect(zoom).not.toMatch(/filter:|mixBlend|mix-blend|<canvas|getContext|gradient/);
+    const css = read("src/app/globals.css");
+    const rules = css.slice(css.indexOf("/* The zoom:"), css.indexOf("/* --- The buy bar"));
+    expect(rules).not.toMatch(/filter:|mix-blend|gradient/);
   });
 
-  it("the retired underglow and spotlight are gone", () => {
-    expect(css).not.toMatch(/glow-line|glow-shelf|glow-spill|spot-light|--glow\b/);
+  it("the retired lights are gone: the underglow, the spotlight and the product page's light", () => {
+    expect(css).not.toMatch(/glow-line|glow-shelf|glow-spill|spot-light|--glow\b|\.lit\b|lit-hint/);
     for (const file of files("src").filter((f) => /\.(ts|tsx)$/.test(f))) {
-      expect(read(file), file).not.toMatch(/glow-shelf|glow-line|HeroSpotlight/);
+      expect(read(file), file).not.toMatch(/glow-shelf|glow-line|HeroSpotlight|LitPhoto|lightHint|WebGL/);
     }
   });
 });
@@ -213,7 +215,7 @@ describe("every section says which cement it is, so the header can follow", () =
 
     expect(html(renderSections([DEFAULT_SHOP_CATALOG], []))).toMatch(/<section [^>]*data-tone="light"/);
     const pdp = html(renderSections([DEFAULT_PRODUCT_WORDING], [], { product: product() }));
-    expect(pdp).toMatch(/class="lit"[^>]*data-tone="dark"/);
+    expect(pdp).toMatch(/class="stage"[^>]*data-tone="dark"/);
     expect(pdp).toMatch(/<section [^>]*class="pale[^"]*"[^>]*data-tone="light"/);
   });
 
@@ -301,8 +303,19 @@ describe("content saved before the design still reads", () => {
     expect(markup).not.toContain('class="pill');
   });
 
+  it("wording saved with the light's hints simply loses them", () => {
+    const withLight = {
+      ...DEFAULT_PRODUCT_WORDING,
+      lightHintTouch: "Press and hold, then drag the light",
+      lightHintMouse: "Move the cursor to move the light",
+    };
+    const parsed = parseSection(withLight);
+    expect(parsed.success).toBe(true);
+    expect(parsed.data).toEqual(DEFAULT_PRODUCT_WORDING);
+  });
+
   it("older product page wording gains the new words at their shipped values", () => {
-    const { backLabel: _b, lightHintTouch: _t, lightHintMouse: _m, ...older } = DEFAULT_PRODUCT_WORDING;
+    const { backLabel: _b, zoomHintTouch: _t, zoomHintMouse: _m, ...older } = DEFAULT_PRODUCT_WORDING;
     void _b;
     void _t;
     void _m;
@@ -360,18 +373,25 @@ describe("the product page", () => {
   });
   const page = html(renderSections([DEFAULT_PRODUCT_WORDING], [], { product: withPhoto }));
 
-  it("lights the first photo, and keeps the plain photo underneath as the fallback", () => {
-    expect(page).toMatch(/<section [^>]*class="lit"[^>]*tabindex="0"[^>]*aria-label="Close-up of the tee\. Use the arrow keys to move the light\."/);
-    expect(page).toMatch(/<img [^>]*class="lit-photo[^"]*"[^>]*src="\/a\.jpg"/);
-    expect(page).toMatch(/<canvas aria-hidden="true">/);
-    // The other photos follow, plainly.
-    expect(page).toMatch(/aria-label="More photos of ERA 00 Tee"[\s\S]*src="\/b\.jpg"/);
+  it("shows the photos plainly, each with its own description, first one leading", () => {
+    expect(page).toMatch(/<section class="stage" data-tone="dark">[\s\S]*?<img alt="Close-up of the tee"[^>]*src="\/a\.jpg"/);
+    expect(page).toMatch(/aria-label="More photos of ERA 00 Tee"[\s\S]*<img alt="Worn"[^>]*src="\/b\.jpg"/);
+    expect(page).not.toContain("<canvas");
   });
 
-  it("a product with no photo yet has an unlit stage, not a broken one", () => {
+  it("a product with no photo yet has an empty stage, not a broken one", () => {
     const bare = html(renderSections([DEFAULT_PRODUCT_WORDING], [], { product: product() }));
-    expect(bare).toMatch(/class="lit"[^>]*aria-label="ERA Tee: no photo yet"/);
-    expect(bare).not.toContain("<canvas");
+    expect(bare).toMatch(/class="stage"[^>]*aria-label="ERA Tee: no photo yet"/);
+    expect(bare).not.toContain("zoom-open");
+  });
+
+  it("offers the zoom only where there is a shop to zoom in: never in the editors", () => {
+    // Outside the public layout (the editors, this test) nothing opens, so
+    // the photos carry no zoom button and stay out of the owner's way.
+    expect(page).not.toContain("zoom-open");
+    const detail = read("src/components/storefront/product-detail.tsx");
+    expect(detail).toMatch(/const zoomable = shop\.interactive;/);
+    expect(detail.match(/\{zoomable \? \(\s*<button\s+type="button"\s+className="zoom-open"\s+aria-label="Zoom in on this photo"/g)?.length).toBe(2);
   });
 
   it("keeps a sold-out size legible but not pressable, and names the piece once as the heading", () => {
@@ -387,35 +407,70 @@ describe("the product page", () => {
 
   it("the owner's new words are all one click away", () => {
     const editing = html(renderSections([DEFAULT_PRODUCT_WORDING], [], { editing: true, product: withPhoto }));
-    for (const path of ["backLabel", "lightHintTouch", "lightHintMouse", "detailsHeading", "note"]) {
+    for (const path of ["backLabel", "zoomHintTouch", "zoomHintMouse", "detailsHeading", "note"]) {
       expect(marks(editing), path).toContain(`product-wording::${path}`);
     }
   });
 });
 
-describe("the light and the motion are decoration with a fallback", () => {
-  const light = read("src/components/storefront/lit-photo.tsx");
+describe("zooming into a photo", () => {
+  const zoom = read("src/components/storefront/photo-zoom.tsx");
+  const css = read("src/app/globals.css");
+
+  it("opens where it was touched, and whole from the keyboard", () => {
+    const detail = read("src/components/storefront/product-detail.tsx");
+    // A key press carries no place on the screen (event.detail is 0).
+    expect(detail).toMatch(/at: event\.detail === 0 \? null : \{ x: event\.clientX, y: event\.clientY \}/);
+    expect(zoom).toMatch(/if \(origin && start\.at\) \{/);
+    // Always closer than it was on the page, and never past the limit.
+    expect(zoom).toMatch(/const z = clamp\(Math\.max\(TAP_ZOOM, home\.z \* 1\.4\), 1, MAX_ZOOM\);/);
+  });
+
+  it("never lets the photo's edge come in past the screen's, and never zooms past its limits", () => {
+    expect(zoom).toMatch(/const maxX = Math\.max\(0, \(bw \* next\.z - vw\) \/ 2\);/);
+    expect(zoom).toMatch(/const to = clamp\(z, 1, MAX_ZOOM\);/);
+    expect(zoom).toMatch(/const MAX_ZOOM = 4;/);
+  });
+
+  it("holds the page and the keyboard while open, and gives both back", () => {
+    expect(zoom).toMatch(/role="dialog"\s+aria-modal="true"/);
+    expect(zoom).toMatch(/shop\.holdPage\(true\);[\s\S]*?return \(\) => shop\.holdPage\(false\);/);
+    expect(zoom).toMatch(/if \(e\.key === "Escape"\) \{\s*e\.preventDefault\(\);\s*close\(\);/);
+    expect(zoom).toMatch(/Keep the keyboard inside while the zoom is open/);
+    const shell = read("src/components/storefront/storefront-shell.tsx");
+    expect(shell).toMatch(/const covered = open !== null \|\| held;/);
+    expect(shell).toMatch(/inert=\{interactive && covered\}/);
+    const detail = read("src/components/storefront/product-detail.tsx");
+    expect(detail).toMatch(/if \(back\?\.isConnected\) back\.focus\(\{ preventScroll: true \}\);/);
+  });
+
+  it("can be worked without a pointer: every action has a key and a labelled button", () => {
+    for (const label of ["Close zoom", "Zoom in", "Zoom out", "Previous photo", "Next photo"]) {
+      expect(zoom, label).toContain(`aria-label="${label}"`);
+    }
+    for (const key of ['"+"', '"-"', '"0"', '"ArrowLeft"', '"ArrowUp"', '"Escape"']) {
+      expect(zoom, key).toContain(`e.key === ${key}`);
+    }
+  });
+
+  it("takes over touches only inside the zoom: the page still scrolls under a finger on the photo", () => {
+    expect(css).toMatch(/\.zoom-surface \{[^}]*touch-action: none;/);
+    // The photo on the page is an ordinary button: no touch handling, so a
+    // swipe that starts on it scrolls the page as it would anywhere.
+    expect(css).not.toMatch(/\.zoom-open \{[^}]*touch-action/);
+    expect(css).not.toMatch(/\.stage \{[^}]*touch-action/);
+  });
+
+  it("shows the copy already on screen first, then the largest there is", () => {
+    expect(zoom).toMatch(/sizes="\(min-width: 1024px\) 53vw, 100vw"/);
+    expect(zoom).toMatch(/sizes="300vw"\s+className="zoom-sharp object-contain"/);
+    expect(css).toMatch(/\.zoom-sharp \{\s*opacity: 0;/);
+    expect(css).toMatch(/\.zoom-sharp\[data-loaded\] \{\s*opacity: 1;/);
+  });
+});
+
+describe("the motion is decoration", () => {
   const effects = read("src/components/storefront/site-effects.tsx");
-
-  it("the light never moves by itself under reduced motion, and rests off screen", () => {
-    expect(light).toMatch(/if \(resting && !reduce\.matches\)/);
-    expect(light).toMatch(/new IntersectionObserver/);
-    expect(light).toMatch(/document\.hidden/);
-  });
-
-  it("holding the light keeps the page still; a swipe still scrolls", () => {
-    expect(light).toMatch(/addEventListener\("touchmove", onTouchMove, \{ passive: false \}\)/);
-    expect(light).toMatch(/if \(held\) \{\s*if \(e\.cancelable\) e\.preventDefault\(\);/);
-    expect(light).toMatch(/A swipe, not a hold/);
-  });
-
-  it("falls back to the plain photo when it cannot draw", () => {
-    expect(light).toMatch(/setAttribute\("data-nogl", ""\)/);
-    expect(light).toMatch(/catch \{\s*fallback\(\);/);
-    const css = read("src/app/globals.css");
-    expect(css).toMatch(/\.lit\[data-live\] \.lit-photo \{\s*visibility: hidden;/);
-    expect(css).toMatch(/\.lit\[data-nogl\] \.lit-dim \{\s*display: block;/);
-  });
 
   it("posters rise only for a visitor who has not asked for stillness, and never while editing", () => {
     expect(effects).toMatch(/if \(!reduce\.matches && !editing && typeof IntersectionObserver !== "undefined"\)/);
@@ -427,10 +482,15 @@ describe("the light and the motion are decoration with a fallback", () => {
     }
   });
 
-  it("the stitched seam and the shade never take a click", () => {
+  it("under reduced motion nothing travels: every transition is cut short for the whole site", () => {
+    const css = read("src/app/globals.css");
+    expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\*,\s*\*::before,\s*\*::after \{[^}]*transition-duration: 0\.01ms !important;/);
+  });
+
+  it("the stitched seam, the shade and the zoom hint never take a click", () => {
     const css = read("src/app/globals.css");
     expect(css).toMatch(/\.stitch \{[^}]*pointer-events: none;/);
     expect(css).toMatch(/\.hero-shade \{[^}]*pointer-events: none;/);
-    expect(css).toMatch(/\.lit-hint \{[^}]*pointer-events: none;/);
+    expect(css).toMatch(/\.stage-hint \{[^}]*pointer-events: none;/);
   });
 });

@@ -177,8 +177,8 @@ export const productWordingSchema = z.object({
   note: z.string().max(300),
   // Added with the cement design; older saved wording reads as these.
   backLabel: z.string().max(30).default("All pieces"),
-  lightHintTouch: z.string().max(60).default("Press and hold, then drag the light"),
-  lightHintMouse: z.string().max(60).default("Move the cursor to move the light"),
+  zoomHintTouch: z.string().max(60).default("Tap to zoom in"),
+  zoomHintMouse: z.string().max(60).default("Click to zoom in"),
 });
 
 export const siteBagSchema = z.object({
@@ -472,8 +472,8 @@ export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
         hint: "Optional. Only promise what you will keep, e.g. how long orders take to ship.",
       },
       { kind: "text", path: "backLabel", label: "Back link", maxLength: 30, hint: "The link back to the shop, above the name." },
-      { kind: "text", path: "lightHintTouch", label: "Light hint (phones)", maxLength: 60, hint: "On the first photo, until someone moves the light." },
-      { kind: "text", path: "lightHintMouse", label: "Light hint (computers)", maxLength: 60 },
+      { kind: "text", path: "zoomHintTouch", label: "Zoom hint (phones)", maxLength: 60, hint: "On the first photo. Leave empty for no hint." },
+      { kind: "text", path: "zoomHintMouse", label: "Zoom hint (computers)", maxLength: 60 },
     ],
   },
   "site.bag": {
