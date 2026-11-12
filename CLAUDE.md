@@ -136,6 +136,7 @@ a line-up is rows on a phone and three across on a computer.
 ## Technical foundation
 
 - **Next.js App Router only** — never introduce the Pages Router
+- Node 22 (`engines`, the Codespace and Railway all agree; `@supabase/supabase-js` 2.11x requires it)
 - React + TypeScript throughout
 - Tailwind CSS with centralized BAD ERA design tokens; component variants over per-page CSS
 - Supabase: PostgreSQL + Auth + Storage
@@ -1110,7 +1111,19 @@ Rules that hold across hardening:
 
 `docs/LAUNCH_READINESS.md` is the assessment and the owner handoff list;
 `docs/GETTING_STARTED.md` is how the owner runs it and signs in.
-**The site has not been launched.**
+**The site has not been launched for sale.**
+
+**Hosting (owner's request, 12 November 2026): Railway.** Project "BAD ERA"
+(separate from the owner's Out of Sight Market project), service `bad-era`,
+deploying `claude/festive-cray-354clx` on every push, at
+https://bad-era-production.up.railway.app. `NEXT_PUBLIC_*` values are baked in
+at build time, so changing one needs a redeploy (Railway does it on a variable
+change). The Supabase URL, anon key and site URL are set; the service-role,
+Stripe and Resend secrets are the owner's to enter in Railway and are never
+put in chat or code. Until the service-role key is in, the storefront renders
+its shipped defaults with no products and Studio cannot open — by design, the
+reads degrade rather than fail. Railway has no 4.5 MB request cap, so 25 MB
+uploads work there.
 
 QA found the storefront's navigation substantially broken — real defects, not
 missing features, now fixed:
@@ -1249,6 +1262,9 @@ the native internal provider and is always supported.
 - Stripe live keys + webhook endpoint; Supabase production project; Resend verified domain
 - Product copy: descriptions, materials, care, fit
 - Policy and legal language; social links (Studio → Site → Menu & footer); newsletter configuration
+- **Railway secrets**: `SUPABASE_SERVICE_ROLE_KEY` (a NEW secret key, since the old
+  one was exposed), then Stripe and Resend, in Railway → bad-era → Variables; and
+  the owner's own domain (Settings → Networking), then `NEXT_PUBLIC_SITE_URL`
 - **Publish the home page draft** prepared with the cement design's approved wording
   (Studio → Site → Home), once it reads right
 - Confirm the **licence of the cement image** if it came from a stock library

@@ -3,10 +3,15 @@
 How to run the site, sign in, and start editing. Written for the owner, not for
 a developer.
 
-> **The site is not deployed anywhere yet.** There is no URL to visit.
+> **The site is on Railway** (set up 12 November 2026, at your request):
+> **https://bad-era-production.up.railway.app** — Studio is at `/studio` on
+> the same address. It updates itself every time new code is pushed to this
+> branch, usually within a few minutes. It is public, but nothing can be
+> bought yet: there are no live products, and checkout stays off until the
+> Stripe keys and a flat shipping amount are in. See
+> [Your site on Railway](#your-site-on-railway).
 
-There are two ways to get one, and for most people the first is the right
-choice:
+The ways to run it yourself, if you ever need to:
 
 | | Needs installing? | You get |
 |---|---|---|
@@ -46,6 +51,35 @@ you type. Then sign in with your email and the new password.
 The command only works where your keys are set — your Codespace — and only
 changes a Studio owner's password. It goes through Supabase's own password
 system; never edit the `auth.users` table directly.
+
+---
+
+## Your site on Railway
+
+Railway → the **BAD ERA** project (separate from Out of Sight Market) → the
+**bad-era** service. It builds from the `claude/festive-cray-354clx` branch of
+`BAD-ERA-2.0` on every push.
+
+**Settings it needs** (bad-era → **Variables**). Already filled in: the
+Supabase address, its public key and the site's own address. Only you can add
+the rest, because they are secret and must never be typed into a chat:
+
+| Variable | What it is | Where to get it |
+|---|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | The server's key to your database. **Without it the shop shows no products and Studio cannot open.** | Supabase → Project Settings → API Keys. The old one was exposed in a chat, so make a **new secret key** there and use that (then put the same new key in your Codespace's `.env.local`) |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Payments | Stripe → Developers. The webhook points at `/api/webhooks/stripe` on your site's address |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Order emails | Resend, once your sending domain is verified |
+
+After you add or change a variable, Railway redeploys on its own (a few
+minutes).
+
+**Your own domain:** bad-era → **Settings → Networking → Custom Domain**, type
+it, and add the record Railway shows you where you bought the domain. Then
+change `NEXT_PUBLIC_SITE_URL` to `https://` plus your domain, so payment
+redirects and links use it.
+
+Photo uploads up to 25 MB work on Railway (the 4.5 MB limit below is Vercel's
+only).
 
 ---
 
@@ -276,7 +310,7 @@ Install [Node.js](https://nodejs.org) (choose the **LTS** version) and
 node -v
 ```
 
-It must print v20.9 or higher.
+It must print v22 or higher.
 
 ---
 
@@ -570,7 +604,7 @@ Studio deliberately never shows "0" when the truth is "the query failed".
 **Checkout fails with "store not configured"** — the flat shipping rate isn't
 set. See above.
 
-**Build or dev server won't start** — check `node -v` is 20.9+, then delete
+**Build or dev server won't start** — check `node -v` is 22+, then delete
 `node_modules` and `.next` and run `npm install` again.
 
 **Chromebook: `nvm: command not found`** — you skipped closing and reopening

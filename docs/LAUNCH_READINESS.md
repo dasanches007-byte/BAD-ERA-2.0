@@ -1,7 +1,14 @@
 # BAD ERA — launch readiness
 
-Phase 10 QA. **The site has not been launched.** This is the assessment and the
-handoff list.
+Phase 10 QA. **The site has not been launched for sale.** This is the
+assessment and the handoff list.
+
+**12 November 2026:** at the owner's request the site is hosted on Railway at
+https://bad-era-production.up.railway.app (project "BAD ERA", service
+`bad-era`, deploying this branch on every push). It is publicly reachable, but
+nothing can be bought: no products are live, and checkout fails loudly until
+the Stripe keys and the flat shipping amount are set. The service-role key is
+entered by the owner in Railway — see `docs/GETTING_STARTED.md`.
 
 Date of audit: 2026-08-24
 Branch: `claude/festive-cray-354clx`
@@ -146,7 +153,8 @@ and update the Vercel environment variable.
       **Upload a photo**. (Until the on-page editor work, a chosen photo never
       actually rendered: nothing turned its asset id into a URL. Fixed, and
       covered by `tests/unit/editor-server.test.ts`.)
-- [ ] **Large photos on Vercel.** Uploads go through a Server Action, allowed
+- [ ] **Large photos on Vercel** (not an issue on Railway, where the site is
+      hosted). Uploads go through a Server Action, allowed
       up to 25 MB in `next.config.ts`. Codespaces honours that; Vercel caps any
       function request at 4.5 MB regardless, so a full-size camera photo would
       be refused there. Before relying on Vercel for uploads, either export
