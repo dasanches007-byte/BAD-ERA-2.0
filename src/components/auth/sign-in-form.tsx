@@ -16,7 +16,12 @@ export function SignInForm({ next }: { next: string }) {
 
   return (
     <form
-      action={(formData) => {
+      // onSubmit, not `action`: a form action resets every field when it
+      // finishes, so a mistyped password would also wipe the email.
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (pending) return;
+        const formData = new FormData(event.currentTarget);
         setError(null);
         startTransition(async () => {
           const result = await signInAction(formData);

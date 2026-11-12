@@ -9,14 +9,20 @@ export type CommerceRpc = {
   releaseCheckoutInventory(checkoutId: string, status: 'expired' | 'payment_failed' | 'cancelled'): Promise<void>;
 };
 
-export async function handleStripeCheckoutEvent(event: Stripe.Event, db: CommerceRpc): Promise<void> {
+/**
+ * Handle one verified Stripe event. Returns the id of the order this event
+ * converted a checkout into, or null when it converted nothing (so the caller
+ * can send the order confirmation AFTER the commerce work is committed).
+ */
+export async function handleStripeCheckoutEvent(event: Stripe.Event, db: CommerceRpc): Promise<string | null> {
   const claimed = await db.claimStripeEvent(event.id, event.type);
-  if (!claimed) return;
+  if (!claimed) return null;
+  let convertedOrderId: string | null = null;
 
   try {
     if (!event.type.startsWith('checkout.session.')) {
       await db.finishStripeEvent(event.id, 'ignored');
-      return;
+      return null;
     }
 
     const session = event.data.object as Stripe.Checkout.Session;
@@ -26,13 +32,13 @@ export async function handleStripeCheckoutEvent(event: Stripe.Event, db: Commerc
     switch (event.type) {
       case 'checkout.session.completed':
         if (session.payment_status === 'paid' || session.payment_status === 'no_payment_required') {
-          await db.convertPaidCheckout(checkoutId, session.id, typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null);
+          convertedOrderId = await db.convertPaidCheckout(checkoutId, session.id, typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null);
         } else {
           await db.markCheckoutPaymentPending(checkoutId);
         }
         break;
       case 'checkout.session.async_payment_succeeded':
-        await db.convertPaidCheckout(checkoutId, session.id, typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null);
+        convertedOrderId = await db.convertPaidCheckout(checkoutId, session.id, typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null);
         break;
       case 'checkout.session.async_payment_failed':
         await db.releaseCheckoutInventory(checkoutId, 'payment_failed');
@@ -42,10 +48,11 @@ export async function handleStripeCheckoutEvent(event: Stripe.Event, db: Commerc
         break;
       default:
         await db.finishStripeEvent(event.id, 'ignored');
-        return;
+        return null;
     }
 
     await db.finishStripeEvent(event.id, 'processed');
+    return convertedOrderId;
   } catch (error) {
     await db.finishStripeEvent(event.id, 'failed', error instanceof Error ? error.message : 'unknown error');
     throw error;

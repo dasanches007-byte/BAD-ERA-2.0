@@ -833,5 +833,51 @@ begin
   raise notice 'PASS case 20  products are created whole, as drafts, by the owner only';
 end $$;
 
+-- ---------------------------------------------------------------------------
+-- Case 21: a Stripe event that FAILED is processed again on Stripe's retry
+-- (migration 0018). Before it, the retry claimed nothing and was answered 200,
+-- so a transient error lost a paid order for good.
+-- ---------------------------------------------------------------------------
+do $$
+begin
+  if not public.claim_stripe_event('evt_case21', 'checkout.session.completed') then
+    raise exception 'case 21: a new event was not claimed';
+  end if;
+
+  -- A second delivery while the first is still being processed: no-op.
+  if public.claim_stripe_event('evt_case21', 'checkout.session.completed') then
+    raise exception 'case 21: an event in flight was claimed twice';
+  end if;
+
+  -- The attempt fails (the webhook answers 5xx). Stripe's retry must claim it.
+  perform public.finish_stripe_event('evt_case21', 'failed', 'transient');
+  if not public.claim_stripe_event('evt_case21', 'checkout.session.completed') then
+    raise exception 'case 21: a failed event was not re-claimed on retry';
+  end if;
+  if (select error_message from public.stripe_events where stripe_event_id = 'evt_case21') is not null then
+    raise exception 'case 21: the re-claim kept the old error';
+  end if;
+
+  -- Processed is final: later deliveries change nothing.
+  perform public.finish_stripe_event('evt_case21', 'processed');
+  if public.claim_stripe_event('evt_case21', 'checkout.session.completed') then
+    raise exception 'case 21: a processed event was claimed again';
+  end if;
+
+  -- An attempt that died mid-way (never finished) is re-claimed once stale.
+  perform public.claim_stripe_event('evt_case21_stale', 'checkout.session.completed');
+  update public.stripe_events set received_at = now() - interval '11 minutes'
+   where stripe_event_id = 'evt_case21_stale';
+  if not public.claim_stripe_event('evt_case21_stale', 'checkout.session.completed') then
+    raise exception 'case 21: an abandoned attempt was never re-claimed';
+  end if;
+
+  if (select count(*) from public.stripe_events where stripe_event_id like 'evt_case21%') <> 2 then
+    raise exception 'case 21: retries must reuse the event row, not add rows';
+  end if;
+
+  raise notice 'PASS case 21  a failed Stripe event is processed again on retry';
+end $$;
+
 \echo ''
 \echo 'Acceptance matrix complete.'

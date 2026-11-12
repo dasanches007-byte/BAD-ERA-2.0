@@ -5,19 +5,11 @@ import { formatPrice } from "@/components/storefront/product-card";
 import { FULFILLMENT_LABEL, PAYMENT_LABEL } from "@/lib/account/queries";
 import { getAccountIdentity } from "@/lib/account/session";
 import { getCustomerOrder } from "@/lib/orders/queries";
+import { orderAddressLines, readOrderAddress } from "@/lib/orders/address";
 
 export const metadata = { title: "Order", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-type AddressSnapshot = {
-  recipient_name?: string;
-  line1?: string;
-  line2?: string | null;
-  city?: string;
-  region?: string;
-  postal_code?: string;
-  country_code?: string;
-};
 
 /**
  * Order detail (Master Spec §7).
@@ -41,7 +33,7 @@ export default async function AccountOrderPage({
   const order = await getCustomerOrder(identity.customerId, orderNumber);
   if (!order) notFound();
 
-  const address = (order.shippingAddress ?? {}) as AddressSnapshot;
+  const address = readOrderAddress(order.shippingAddress);
 
   return (
     <article className="space-y-12">
@@ -109,19 +101,11 @@ export default async function AccountOrderPage({
         <section>
           <h3 className="label text-ink-subtle">Shipping to</h3>
           <address className="mt-5 text-sm not-italic leading-relaxed text-ink-muted">
-            {address.recipient_name}
-            <br />
-            {address.line1}
-            {address.line2 ? (
-              <>
-                <br />
-                {address.line2}
-              </>
-            ) : null}
-            <br />
-            {address.city}, {address.region} {address.postal_code}
-            <br />
-            {address.country_code}
+            {orderAddressLines(address).map((line, i) => (
+              <span key={i} className="block">
+                {line}
+              </span>
+            ))}
           </address>
 
           {order.shipments.length > 0 ? (

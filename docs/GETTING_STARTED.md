@@ -79,11 +79,43 @@ the rest, because they are secret and must never be typed into a chat:
 | Variable | What it is | Where to get it |
 |---|---|---|
 | `SUPABASE_SERVICE_ROLE_KEY` | The server's key to your database. **Without it the shop shows no products and Studio cannot open.** | Supabase → Project Settings → API Keys. The old one was exposed in a chat, so make a **new secret key** there and use that (then put the same new key in your Codespace's `.env.local`) |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Payments | Stripe → Developers. The webhook points at `/api/webhooks/stripe` on your site's address |
-| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Order emails | Resend, once your sending domain is verified |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Payments | Stripe → Developers. See **Payments** below for the webhook |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Every email the store sends: order confirmations, and the links that confirm a new account or reset a password | Resend. See **Email** below |
 
 After you add or change a variable, Railway redeploys on its own (a few
 minutes).
+
+**Payments (Stripe).** Start with Stripe's **test** keys (they begin `sk_test_`).
+In Stripe → Developers → Webhooks, add an endpoint at
+`https://badera.world/api/webhooks/stripe` and choose these events:
+`checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+`checkout.session.async_payment_failed`, `checkout.session.expired`. Stripe then
+shows the endpoint's signing secret (it begins `whsec_`): that is
+`STRIPE_WEBHOOK_SECRET`. Buy something with the test card 4242 4242 4242 4242
+(any future date, any 3 digits). When the order appears in Studio → Orders as
+paid, switch both values to the live keys and a live webhook.
+
+**Email (Resend).** One sending service for everything, from your own domain:
+
+1. Make a Resend account and **add the domain** `badera.world`. Resend shows a
+   few DNS records (TXT and MX).
+2. Add each one in Railway: **railway.com/workspace/domains** → badera.world →
+   **DNS records** → add. Railway runs the domain's DNS, so nothing else is
+   needed. Resend marks the domain verified once it sees them (minutes, sometimes
+   longer).
+3. In Resend → API Keys, make a key. Put it in Railway as `RESEND_API_KEY`, and
+   set `RESEND_FROM_EMAIL` to an address on the domain, such as
+   `orders@badera.world`.
+4. Studio → Settings → **Order email** → **Send a test** to your own inbox.
+
+To receive replies, Railway can forward an address on your domain to the inbox
+you already use (the domain's page → Email forwarding). Put that address in
+Studio → Settings → Order email → **Replies go to**.
+
+**Shipping.** Studio → Settings → **Shipping**: what each order pays, and
+optionally the order amount from which shipping is free. Checkout stays closed
+until it is set. Studio's home page lists what is still missing before you can
+sell.
 
 **Your domain:** badera.world is already connected (BAD-ERA-2.0 → **Settings →
 Networking**), and `NEXT_PUBLIC_SITE_URL` is set to `https://badera.world`, so

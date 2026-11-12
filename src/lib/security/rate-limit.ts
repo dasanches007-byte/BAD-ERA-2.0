@@ -51,6 +51,38 @@ export const RATE_LIMITS = {
     message: "Too many sign-in attempts. Wait a few minutes and try again.",
   },
 
+  /**
+   * Creating an account. Each attempt sends an email from the store's own
+   * domain, so this also guards the domain's sending reputation: a flood of
+   * sign-ups naming strangers' addresses would otherwise mail them all.
+   * Fails closed, like sign-in.
+   */
+  signUp: {
+    bucket: "auth:sign-up",
+    limit: 5,
+    windowSeconds: 3600,
+    onFailure: "deny",
+    message: "Too many attempts to create an account. Try again in a little while.",
+  },
+
+  /** Asking for a password reset link: the same reasoning as sign-up. */
+  passwordReset: {
+    bucket: "auth:password-reset",
+    limit: 5,
+    windowSeconds: 3600,
+    onFailure: "deny",
+    message: "Too many reset requests. Try again in a little while.",
+  },
+
+  /** Using a link from an account email (confirm, reset). */
+  emailLink: {
+    bucket: "auth:email-link",
+    limit: 20,
+    windowSeconds: 600,
+    onFailure: "deny",
+    message: "Too many attempts. Wait a few minutes and try again.",
+  },
+
   /** MFA challenge verification — same reasoning as sign-in. */
   mfaChallenge: {
     bucket: "auth:mfa",

@@ -148,3 +148,44 @@ export function IntegrationHealth({
     </ul>
   );
 }
+
+export type ReadinessItem = {
+  label: string;
+  done: boolean;
+  /** What to do, and where. Shown while it is not done. */
+  todo: string;
+  href?: string;
+};
+
+/**
+ * What still stands between the store and its first sale. Every item says in
+ * words whether it is done; the chip's colour never carries that alone.
+ */
+export function ReadyToSell({ items }: { items: ReadinessItem[] }) {
+  return (
+    <ul className="divide-y divide-line">
+      {items.map((item) => (
+        <li key={item.label} className="flex items-start justify-between gap-4 px-6 py-4">
+          <div className="min-w-0">
+            <p className="text-sm text-ink">{item.label}</p>
+            {!item.done ? (
+              item.href ? (
+                <Link
+                  href={item.href}
+                  className="mt-1 block text-xs leading-relaxed text-ink-muted underline-offset-4 hover:text-ink hover:underline"
+                >
+                  {item.todo}
+                </Link>
+              ) : (
+                <p className="mt-1 text-xs leading-relaxed text-ink-muted">{item.todo}</p>
+              )
+            ) : null}
+          </div>
+          <span className="shrink-0 whitespace-nowrap">
+            <StatusChip tone={item.done ? "success" : "warning"}>{item.done ? "Done" : "To do"}</StatusChip>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}

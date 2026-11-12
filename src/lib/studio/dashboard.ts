@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/db/admin";
+import { readShippingRule } from "@/lib/settings/store";
 import type {
   DashboardSummary,
   LowStockRow,
@@ -140,4 +141,23 @@ export async function getLowStock(limit = 8): Promise<LowStockRow[]> {
       lowStockThreshold: variant.low_stock_threshold,
     };
   });
+}
+
+/**
+ * The store-side things a sale needs that only the owner can provide: a
+ * shipping price and at least one live product. (Payments and email are keys
+ * in Railway, reported from the environment by the page.) Read failures
+ * throw, so the panel renders as a failure rather than a false "to do".
+ */
+export async function getSellingReadiness(): Promise<{
+  shippingSet: boolean;
+  liveProducts: number;
+}> {
+  const db = createAdminClient();
+  const [rule, live] = await Promise.all([
+    readShippingRule(),
+    db.from("products").select("id", { count: "exact", head: true }).eq("status", "active"),
+  ]);
+  if (live.error) throw live.error;
+  return { shippingSet: rule !== null, liveProducts: live.count ?? 0 };
 }

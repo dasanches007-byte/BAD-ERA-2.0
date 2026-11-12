@@ -6,6 +6,8 @@ import { formatPrice } from "@/components/storefront/product-card";
 import { getAccountIdentity } from "@/lib/account/session";
 import { getCart } from "@/lib/cart/service";
 import { resolveExistingCartId } from "@/lib/cart/session";
+import { shippingCentsFor } from "@/lib/settings/shipping";
+import { readShippingRule } from "@/lib/settings/store";
 
 export const metadata = { title: "Checkout", robots: { index: false } };
 
@@ -46,6 +48,16 @@ export default async function CheckoutPage() {
   if (cart.hasBlockingIssues) redirect("/cart");
 
   const identity = await getAccountIdentity().catch(() => null);
+
+  // The owner's shipping rule from Studio → Settings, through the same
+  // function checkout charges with, so the amount shown is the amount paid.
+  // Unset or unreadable: the summary says shipping is added at payment and
+  // quotes no number (checkout itself refuses until the owner sets it).
+  const shippingRule = await readShippingRule().catch((error) => {
+    console.error("[bad-era] checkout: shipping rule read failed", error);
+    return null;
+  });
+  const shippingCents = shippingRule ? shippingCentsFor(cart.subtotalCents, shippingRule) : null;
 
   return (
     <div className="shell py-14 lg:py-20">
@@ -91,14 +103,31 @@ export default async function CheckoutPage() {
               </span>
             </div>
 
-            {/*
-              Shipping and tax are resolved server-side from Studio settings at
-              snapshot time. Quoting a number the store has not configured would
-              be a fabricated shipping promise (Master Spec §6.2).
-            */}
-            <p className="mt-4 text-xs leading-relaxed text-ink-subtle">
-              Flat-rate shipping and any applicable tax are added at payment.
-            </p>
+            {shippingCents === null ? (
+              // No shipping amount configured yet: quoting one would be a
+              // fabricated shipping promise (Master Spec §6.2).
+              <p className="mt-4 text-xs leading-relaxed text-ink-subtle">
+                Flat-rate shipping and any applicable tax are added at payment.
+              </p>
+            ) : (
+              <>
+                <div className="mt-3 flex items-baseline justify-between">
+                  <span className="text-sm text-ink-muted">Shipping</span>
+                  <span className="text-sm text-ink">
+                    {shippingCents === 0 ? "Free" : formatPrice(shippingCents, cart.currency)}
+                  </span>
+                </div>
+                <div className="mt-5 flex items-baseline justify-between border-t border-line pt-5">
+                  <span className="text-sm text-ink">Total</span>
+                  <span className="text-sm text-ink">
+                    {formatPrice(cart.subtotalCents + shippingCents, cart.currency)}
+                  </span>
+                </div>
+                <p className="mt-4 text-xs leading-relaxed text-ink-subtle">
+                  Any applicable tax is added at payment.
+                </p>
+              </>
+            )}
           </div>
         </aside>
       </div>

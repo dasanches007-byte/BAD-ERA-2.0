@@ -10,19 +10,12 @@ import {
 } from "@/components/studio/primitives";
 import { INVENTORY_MODE_LABEL } from "@/lib/studio/product-types";
 import { getStudioOrder } from "@/lib/studio/orders";
+import { OrderEmailPanel } from "@/components/studio/order-email-panel";
+import { getOrderEmailStatus } from "@/lib/email/order-emails";
+import { orderAddressLines, readOrderAddress } from "@/lib/orders/address";
 
 export const metadata = { title: "Order" };
 
-type AddressSnapshot = {
-  recipient_name?: string;
-  line1?: string;
-  line2?: string | null;
-  city?: string;
-  region?: string;
-  postal_code?: string;
-  country_code?: string;
-  phone?: string | null;
-};
 
 /**
  * Order workspace (Master Spec §10.3.5).
@@ -40,7 +33,14 @@ export default async function StudioOrderDetailPage({
   const order = await getStudioOrder(orderId);
   if (!order) notFound();
 
-  const address = order.shippingAddress as AddressSnapshot;
+  // A failed read is shown as unknown, never as "not sent": the owner should
+  // not re-send an email that may already be in the customer's inbox.
+  const emailStatus = await getOrderEmailStatus(order.id).catch((error: unknown) => {
+    console.error("[bad-era] studio order: email status read failed", error);
+    return undefined;
+  });
+
+  const address = readOrderAddress(order.shippingAddress);
 
   return (
     <div className="space-y-10">
@@ -189,21 +189,17 @@ export default async function StudioOrderDetailPage({
             </div>
           </Panel>
 
+          <Panel title="Confirmation email">
+            <OrderEmailPanel orderId={order.id} status={emailStatus} paid={Boolean(order.paidAt)} />
+          </Panel>
+
           <Panel title="Ship to">
             <address className="px-6 py-5 text-sm not-italic leading-relaxed text-ink-muted">
-              {address.recipient_name}
-              <br />
-              {address.line1}
-              {address.line2 ? (
-                <>
-                  <br />
-                  {address.line2}
-                </>
-              ) : null}
-              <br />
-              {address.city}, {address.region} {address.postal_code}
-              <br />
-              {address.country_code}
+              {orderAddressLines(address).map((line, i) => (
+                <span key={i} className="block">
+                  {line}
+                </span>
+              ))}
             </address>
           </Panel>
 

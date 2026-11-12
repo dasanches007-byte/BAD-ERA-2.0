@@ -13,6 +13,7 @@ const TABS = [
   { label: "Support", href: "/account/support" },
   { label: "Addresses", href: "/account/addresses" },
   { label: "Profile", href: "/account/profile" },
+  { label: "Password", href: "/account/password" },
 ];
 
 /**

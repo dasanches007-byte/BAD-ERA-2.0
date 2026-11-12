@@ -9,17 +9,9 @@ import {
   formatMoney,
 } from "@/components/studio/primitives";
 import { markSupplierOrderSubmittedAction } from "@/lib/fulfillment/actions";
+import { orderAddressLines, readOrderAddress } from "@/lib/orders/address";
 import type { SupplierTaskRow } from "@/lib/fulfillment/types";
 
-type Address = {
-  recipient_name?: string;
-  line1?: string;
-  line2?: string | null;
-  city?: string;
-  region?: string;
-  postal_code?: string;
-  country_code?: string;
-};
 
 /**
  * Manual Supplier Order workspace (Master Spec §10.5.2, §10.5.3).
@@ -38,16 +30,7 @@ export function SupplierTaskCard({ task }: { task: SupplierTaskRow }) {
   >(null);
   const [copied, setCopied] = useState(false);
 
-  const address = task.shippingAddress as Address;
-  const addressText = [
-    address.recipient_name,
-    address.line1,
-    address.line2,
-    `${address.city ?? ""}, ${address.region ?? ""} ${address.postal_code ?? ""}`.trim(),
-    address.country_code,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const addressText = orderAddressLines(readOrderAddress(task.shippingAddress)).join("\n");
 
   const submitted = task.status === "submitted" || task.status === "completed";
 

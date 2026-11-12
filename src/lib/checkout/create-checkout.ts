@@ -6,7 +6,8 @@ import { createAdminClient } from "@/lib/db/admin";
 import { getCart } from "@/lib/cart/service";
 import { resolvePhysicalComponents } from "@/lib/catalog/availability-lookup";
 import { reserveCheckoutInventory } from "@/lib/db/commerce-rpc";
-import { getFlatShippingCents, getStoreCurrency } from "@/lib/settings/store";
+import { shippingCentsFor } from "@/lib/settings/shipping";
+import { getShippingRule, getStoreCurrency } from "@/lib/settings/store";
 import { getStripe } from "@/lib/payments/stripe/client";
 import { serverEnv } from "@/lib/env/server";
 import type { Enums } from "@/lib/db/generated.types";
@@ -167,11 +168,14 @@ export async function createCheckout(
   }
 
   // --- 2. Totals, derived entirely server-side -----------------------------
-  const shippingCents = await getFlatShippingCents();
+  const shippingRule = await getShippingRule();
   const subtotalCents = cart.lines.reduce(
     (sum, line) => sum + variantById.get(line.variantId)!.price_cents * line.quantity,
     0,
   );
+  // The owner's rule from Studio → Settings, applied to the subtotal read
+  // above: the same function the checkout page used to show the amount.
+  const shippingCents = shippingCentsFor(subtotalCents, shippingRule);
   // Tax is handled by the configured Stripe tax strategy; BAD ERA does not
   // invent a rate here. Discounts arrive in a later phase.
   const discountCents = 0;
@@ -309,7 +313,7 @@ export async function createCheckout(
           {
             shipping_rate_data: {
               type: "fixed_amount",
-              display_name: "Shipping",
+              display_name: shippingCents === 0 ? "Free shipping" : "Shipping",
               fixed_amount: {
                 amount: shippingCents,
                 currency: currency.toLowerCase(),

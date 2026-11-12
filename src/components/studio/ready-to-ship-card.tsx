@@ -5,18 +5,9 @@ import { useState, useTransition } from "react";
 
 import { StatusChip, formatDateTime } from "@/components/studio/primitives";
 import { addTrackingAction } from "@/lib/fulfillment/actions";
+import { orderAddressLines, readOrderAddress } from "@/lib/orders/address";
 import type { ReadyToShipRow } from "@/lib/fulfillment/types";
 
-type Address = {
-  recipient_name?: string;
-  line1?: string;
-  line2?: string | null;
-  city?: string;
-  region?: string;
-  postal_code?: string;
-  country_code?: string;
-  phone?: string | null;
-};
 
 /**
  * A paid, stocked order awaiting the owner's own fulfillment (Master Spec §8.1).
@@ -31,17 +22,7 @@ export function ReadyToShipCard({ row }: { row: ReadyToShipRow }) {
   >(null);
   const [copied, setCopied] = useState(false);
 
-  const address = row.shippingAddress as Address;
-
-  const addressText = [
-    address.recipient_name,
-    address.line1,
-    address.line2,
-    `${address.city ?? ""}, ${address.region ?? ""} ${address.postal_code ?? ""}`.trim(),
-    address.country_code,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const addressText = orderAddressLines(readOrderAddress(row.shippingAddress)).join("\n");
 
   async function copyAddress() {
     try {

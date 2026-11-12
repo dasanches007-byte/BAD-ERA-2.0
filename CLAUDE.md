@@ -160,10 +160,10 @@ webhooks and privileged mutations terminate in Route Handlers that call domain s
 
 ## Database — 62 tables
 
-Apply migrations strictly in order `0001 → 0017`. Never hand-recreate the schema in the
+Apply migrations strictly in order `0001 → 0018`. Never hand-recreate the schema in the
 Supabase dashboard. `supabase/seed.sql` is **development data only**.
 
-`0010` through `0017` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
+`0010` through `0018` are BAD ERA additions, not part of the delivered Kickoff v0.2 package.
 `0010` and `0011` fix defects found by executing the migrations and the acceptance matrix
 against real PostgreSQL — static validation catches neither.
 
@@ -213,6 +213,15 @@ against real PostgreSQL — static validation catches neither.
   passes `p_actor`, so PostgREST resolves to the new one. When the owner can
   confirm, run: `drop function if exists public.studio_adjust_inventory(uuid,
   uuid, integer, public.inventory_reason, text);`
+- **`0018`** — `claim_stripe_event` inserted `on conflict do nothing`, so after
+  a FAILED attempt (the webhook answers 5xx so Stripe retries) every retry
+  claimed nothing and was answered 200: a transient error in
+  `convert_paid_checkout` lost a paid order for good. A retry now re-claims an
+  event whose last attempt failed, or one stuck in `received` for 10 minutes;
+  processed, ignored and in-flight events stay no-ops. Safe because the
+  commerce RPCs are idempotent. Acceptance case 21 (fails on the 0008 body).
+  **Live:** applied 12 Nov 2026, verified (retry clause, empty search_path,
+  service_role only).
 
 Migrations `0001-0009` are left byte-identical to the delivered package so their published
 SHA-256 checksums still verify.
@@ -238,9 +247,10 @@ snapshots.
 Helpers: `private.is_studio_owner()`, `private.current_customer_id()`.
 Stripe event claiming: `claim_stripe_event()` / `finish_stripe_event()`.
 
-`src/lib/db/commerce-rpc.ts` is deliberately a **throwing placeholder**. It marks the v0.2
-application boundary. Implementing it against the server-only Supabase admin client is a
-v0.3 task — do not pretend the application layer is finished.
+`src/lib/db/commerce-rpc.ts` is the RPC boundary, implemented against the server-only
+admin client (it began as the v0.2 throwing placeholder). Every function there calls one
+SECURITY DEFINER routine and parses its result strictly; it never pre-checks, retries or
+splits an operation, because atomicity lives in PostgreSQL.
 
 ---
 
@@ -284,6 +294,8 @@ Read the body with `request.text()` **before** signature verification. Never cal
 | `checkout.session.async_payment_failed` | Release reservation, mark `payment_failed` |
 | `checkout.session.expired` | Release reservation, mark `expired` |
 | Duplicate event ID | `claim_stripe_event` returns false — no second commerce action |
+| Retry of an event whose processing FAILED | `claim_stripe_event` re-claims it (0018) and it is processed again |
+| A checkout converted into an order | The order confirmation email is sent after the response (`after()`), once per order |
 
 Return 5xx on transient failure so Stripe retries; event claiming makes it idempotent.
 
@@ -884,6 +896,77 @@ Rules that hold here:
   hand-written ids (`11000000-0000-…`) fail it; live ids are
   `gen_random_uuid()`. Test Studio mutations against generated ids.
 
+## Selling setup: shipping, order email, customer accounts (Phase 12)
+
+The three things between the keys and a working store, built at the owner's
+request (12 November 2026), plus two defects found on the way.
+
+```
+supabase/migrations/0018_stripe_event_retry.sql   failed Stripe events are retried
+src/lib/settings/shipping.ts      PURE: the shipping rule, money parsing
+src/lib/settings/store.ts         readShippingRule / getShippingRule, readOrderEmailWords
+src/lib/studio/settings-actions.ts   save shipping, save email words, send a test
+src/lib/email/
+  layout.ts                PURE: the email frame (palette, logo image, button)
+  order-confirmation.ts    PURE: the order email; Studio's preview uses it too
+  account-emails.ts        PURE: confirm email, reset password, already registered
+  resend.ts                the one POST to Resend, with an idempotency key
+  order-emails.ts          send once per order, record the outcome; status read
+src/lib/studio/order-email-actions.ts   the owner sends it (again) from an order
+src/lib/auth/actions.ts           + signUp, requestPasswordReset, confirmEmailLink, setNewPassword
+src/lib/account/link-customer.ts  a confirmed account gets its customer record
+src/lib/orders/address.ts         PURE: the ONE reader of order address snapshots
+src/app/sign-up  forgot-password  auth/confirm  (storefront)/account/password
+src/components/studio/  shipping-settings-form  order-email-form  order-email-panel  settings-fields
+src/components/auth/    account-form  auth-page
+```
+
+Rules that hold here:
+
+- **Shipping still has no default.** The owner sets a flat charge per order
+  (0 = always free) and optionally a "free over" amount. Checkout charges and
+  the checkout page shows it through the same `shippingCentsFor`, so the
+  amount shown is the amount paid. Unset, checkout refuses and the summary
+  quotes no number.
+- **One confirmation email per paid order.** The webhook returns the order it
+  converted and sends the email in `after()`, never on the success page and
+  never inside the payment transaction. Each order has ONE
+  `integration_events` row (`order-confirmation:<order id>`); the automatic
+  send inserts it first, so a replay finds it and stops. The row records
+  sent / failed (with Resend's reason) / ignored (email not set up), which the
+  order page shows with **Send email / Send again**. An email failure never
+  touches the order.
+- **The email says only what is true.** Lines, totals and address come from
+  the order's snapshot. The owner edits subject, heading, message, sign-off
+  and reply-to (`{name}`, `{order}`); the layout is fixed. The default promises
+  no shipping notice, because none is sent. The logo is the approved image;
+  every typed value is escaped.
+- **Every account email is BAD ERA's, through Resend.** The server asks
+  Supabase for a one-time token (`auth.admin.generateLink`) and mails a link to
+  `/auth/confirm`. Supabase's built-in mailer only reaches the project team,
+  and this needs no Auth URL settings. Opening `/auth/confirm` uses nothing:
+  the customer presses a button (`confirmEmailLinkAction` → `verifyOtp`), so a
+  mail scanner that opens links cannot spend the token.
+- **Nothing a visitor sees says whether an address has an account.** Sign-up
+  answers the same for a taken address (the inbox gets "you already have an
+  account"); reset answers the same for an unknown one. Sign-up, reset and the
+  email link are rate limited per IP and per email, failing closed.
+- **No email, no accounts.** Without Resend, sign-up says accounts are not
+  open yet (checkout never needs one) and creates no user, since nobody could
+  confirm it.
+- **One address reader.** Checkout writes `{ name, line1, line2, city, region,
+  postalCode, country, phone }`; every screen reads it through
+  `readOrderAddress`, which also accepts the older snake_case spelling. Four
+  screens had read `recipient_name` / `postal_code` / `country_code`, so every
+  real order showed no name, postcode or country, including on Ready to Ship.
+- **Form actions reset their fields.** The account forms and sign-in submit
+  with `onSubmit` so a wrong password does not also wipe the typed email.
+  Found by driving the forms.
+- Studio's home shows **Before you can sell** (shipping, a live product,
+  Stripe, Resend) until all four are done.
+
+`tests/unit/selling-setup.test.ts` holds all of the above.
+
 ## Orders & customers (Phase 5)
 
 ```
@@ -901,7 +984,9 @@ Rules that hold across this layer:
 - **Two identities, never conflated.** `auth.users.id` is who is signed in;
   `customers.id` owns carts, orders and addresses. A signed-in visitor may have
   no customer record yet, so reads return null rather than creating one — nothing
-  is created as a side effect of a read.
+  is created as a side effect of a read. The record is created or linked when an
+  account CONFIRMS its email (`linkCustomerRecord`), which is what brings a
+  guest's earlier orders into their account.
 - **Ownership is enforced in the query, not by the URL.** These reads run on the
   service-role client, which bypasses RLS, so every one filters on the
   caller's own `customerId`.
@@ -1013,8 +1098,9 @@ Rules that hold across publishing:
   internals (`commitPagePublish`, `forkRevisionToDraft`, `recordPublishSet`,
   `writePublishAudit`) live in `publish-core.ts` behind `server-only` instead.
   `tests/unit/publishing.test.ts` sweeps every `"use server"` file in the repo
-  and fails the build on an unguarded export; `auth/actions` and `cart/actions`
-  are the two documented, deliberate exceptions.
+  and fails the build on an unguarded export; `auth/actions` (sign-in, and the
+  customer account actions: sign-up, reset, email link, new password) and
+  `cart/actions` are the two documented, deliberate exceptions.
 - **Optimistic concurrency uses a monotonic counter, not a timestamp.**
   `page_sections.version` is bumped by a trigger; a save carries the value it
   read and lands only if the row still holds it. `updated_at` was tried first
@@ -1164,11 +1250,12 @@ Rules that came out of this phase:
 - **`/checkout/cancelled` changes no state.** A browser hitting a URL is not a
   decision. The reservation is released by the verified `checkout.session.expired`
   event or the sweep, so a mis-click does not lose the customer their stock.
-- **An owner locked out uses `npm run owner:password`, not a recovery email.**
-  The recovery email links to the Site URL (localhost by default) and the app
-  has no set-new-password page; widening Auth's redirect allow-list to every
-  Codespace address would let a stranger's Codespace receive a recovery code.
-  The script runs where the service-role key already is, offers only active
+- **An owner locked out uses Forgot password (once email is set up) or
+  `npm run owner:password`.** Never Supabase's own recovery email: it links to
+  the Auth Site URL, and widening the redirect allow-list to every Codespace
+  address would let a stranger's Codespace receive a recovery code. The reset
+  link BAD ERA sends goes to `NEXT_PUBLIC_SITE_URL` (see "Selling setup"). The
+  script runs where the service-role key already is, offers only active
   `studio_users` owners, and calls the Auth admin API — never a hand-written
   UPDATE on `auth.users`.
 - **Dead surface is removed, not left returning 501.** Six API routes
@@ -1198,6 +1285,7 @@ every phase in one uncontrolled pass.
 | 9 | Hardening: security headers, MFA, rate limits, observability, a11y, SEO, performance, backups | **Complete** (MFA awaits an owner enrolment; leaked-password protection is an owner dashboard toggle) |
 | 10 | Full QA / launch readiness — **stop and report; do not launch publicly** | **Complete** — reported in `docs/LAUNCH_READINESS.md`. Not launched. Blocking items are owner-owed credentials and content |
 | 11 | Cement redesign of the storefront: surfaces, poster voice, slide-in bag, phone menu, product photo zoom (in place of the mockup's light), phone buy bar; all new wording editable | **Complete** (driven in a browser against fixtures; awaiting live products and a real phone for an end-to-end pass). Not launched |
+| 12 | Selling setup: shipping price in Studio, order confirmation email, customer accounts; failed Stripe events retried (0018, live); order address reader | **Complete** (forms and emails driven in a browser; awaiting Resend and Stripe test keys for an end-to-end pass). Not launched |
 
 Keep this table current as phases complete.
 
@@ -1262,8 +1350,13 @@ the native internal provider and is always supported.
 - Archive 01 products and exact physical counts: Tee S/M/L, Crossbody
   Black/Red/Blue — Studio → Products → **+ New product** (starters)
 - Final production photography for every slot (see the handoff checklist in master spec §23.1)
-- Flat shipping amount
-- Stripe live keys + webhook endpoint; Supabase production project; Resend verified domain
+- **Shipping price**: Studio → Settings → Shipping
+- Stripe keys (test first, then live) + the webhook endpoint at
+  `https://badera.world/api/webhooks/stripe` (four `checkout.session.*` events)
+- **Resend**: verify badera.world (its DNS records go in Railway → workspace →
+  Domains → badera.world → DNS records), then `RESEND_API_KEY` and
+  `RESEND_FROM_EMAIL` (e.g. orders@badera.world). Order emails and customer
+  accounts both wait on it; then send a test from Studio → Settings
 - Product copy: descriptions, materials, care, fit
 - Policy and legal language; social links (Studio → Site → Menu & footer); newsletter configuration
 - **Railway secrets**: `SUPABASE_SERVICE_ROLE_KEY` (a NEW secret key, since the old

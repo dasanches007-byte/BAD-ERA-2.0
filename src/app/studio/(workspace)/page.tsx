@@ -9,14 +9,17 @@ import {
 import {
   IntegrationHealth,
   LowStock,
+  ReadyToSell,
   RecentOrders,
   SummaryRow,
+  type ReadinessItem,
 } from "@/components/studio/dashboard-panels";
 import { serverEnvStatus } from "@/lib/env/server";
 import {
   getDashboardSummary,
   getLowStock,
   getRecentOrders,
+  getSellingReadiness,
 } from "@/lib/studio/dashboard";
 
 export const metadata = { title: "Home" };
@@ -30,10 +33,11 @@ export const metadata = { title: "Home" };
  * query broke.
  */
 export default async function StudioDashboardPage() {
-  const [summary, orders, lowStock] = await Promise.allSettled([
+  const [summary, orders, lowStock, readiness] = await Promise.allSettled([
     getDashboardSummary(),
     getRecentOrders(),
     getLowStock(),
+    getSellingReadiness(),
   ]);
 
   // Uses the validated contract rather than raw process.env, so a key that is
@@ -47,6 +51,35 @@ export default async function StudioDashboardPage() {
     { name: "Resend", configured: envStatus.resend },
   ];
 
+  const readinessItems: ReadinessItem[] | null =
+    readiness.status === "fulfilled"
+      ? [
+          {
+            label: "Shipping price",
+            done: readiness.value.shippingSet,
+            todo: "Set what orders pay for shipping: Settings → Shipping.",
+            href: "/studio/settings",
+          },
+          {
+            label: "A live product",
+            done: readiness.value.liveProducts > 0,
+            todo: "Add a product, its photos, then Make it live: Products.",
+            href: "/studio/products",
+          },
+          {
+            label: "Payments",
+            done: envStatus.stripe,
+            todo: "Add the Stripe keys in Railway (BAD-ERA-2.0 → Variables).",
+          },
+          {
+            label: "Order emails",
+            done: envStatus.resend,
+            todo: "Add the Resend key and sending address in Railway (BAD-ERA-2.0 → Variables).",
+          },
+        ]
+      : null;
+  const readyToSell = readinessItems?.every((item) => item.done) ?? false;
+
   return (
     <div className="space-y-10">
       <PageHeader
@@ -54,6 +87,16 @@ export default async function StudioDashboardPage() {
         title="Home"
         description="Everything that needs your attention, from real records only."
       />
+
+      {readyToSell ? null : (
+        <Panel title="Before you can sell">
+          {readinessItems ? (
+            <ReadyToSell items={readinessItems} />
+          ) : (
+            <LoadError what="what is left to set up" />
+          )}
+        </Panel>
+      )}
 
       {summary.status === "fulfilled" ? (
         <SummaryRow summary={summary.value} />

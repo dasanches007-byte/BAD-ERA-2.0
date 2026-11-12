@@ -7,8 +7,18 @@ assessment and the handoff list.
 https://badera.world (the owner's Railway project, service `BAD-ERA-2.0`,
 deploying this branch on every push). It is publicly reachable, but
 nothing can be bought: no products are live, and checkout fails loudly until
-the Stripe keys and the flat shipping amount are set. The service-role key is
+the Stripe keys and the shipping price are set. The service-role key is
 entered by the owner in Railway — see `docs/GETTING_STARTED.md`.
+
+**12 November 2026, later:** built at the owner's request: the shipping price
+in Studio → Settings, the order confirmation email (sent once per paid order,
+wording editable in Studio, with a preview and a test send), and customer
+accounts (create, confirm by email, sign in, forgotten password). Two defects
+found on the way are fixed: a Stripe event whose processing failed was never
+processed again on Stripe's retry (a charged customer could end up with no
+order; migration 0018, applied live), and every order screen read the
+shipping address with the wrong field names (no name, postcode or country on
+the card the owner packs from).
 
 Date of audit: 2026-08-24
 Branch: `claude/festive-cray-354clx`
@@ -112,14 +122,21 @@ exactly this (heading, sub-line, body; plain text, no markup field).
 
 ### 1. Credentials and configuration
 
-- [ ] **Stripe live keys** — `STRIPE_SECRET_KEY`, and a webhook endpoint
-      pointed at `/api/webhooks/stripe` with its `STRIPE_WEBHOOK_SECRET`
-- [ ] **Flat shipping amount.** Checkout deliberately fails loudly with
-      `MissingSettingError` until this is set — there is no default, because a
-      guessed shipping price is a fabricated promise
-- [ ] **Resend** verified sending domain + `RESEND_FROM_EMAIL`
-- [ ] **`NEXT_PUBLIC_SITE_URL`** set to the real domain (Stripe redirect URLs
-      and the sitemap derive from it)
+- [ ] **Stripe keys** — test keys first, then live: `STRIPE_SECRET_KEY`, and a
+      webhook endpoint at `https://badera.world/api/webhooks/stripe` (the four
+      `checkout.session.*` events) with its `STRIPE_WEBHOOK_SECRET`
+- [ ] **Shipping price** — Studio → Settings → Shipping. Checkout refuses until
+      it is set; there is no default, because a guessed shipping price is a
+      fabricated promise
+- [ ] **Resend** — verify badera.world in Resend (its DNS records go in
+      Railway's DNS records for the domain), then `RESEND_API_KEY` and
+      `RESEND_FROM_EMAIL` in Railway. Order confirmations and customer
+      accounts both need it; until then sign-up says accounts are not open yet
+- [x] **`NEXT_PUBLIC_SITE_URL`** is `https://badera.world` (Stripe redirect
+      URLs, email links and the sitemap derive from it)
+
+Studio's home page shows **Before you can sell**: what of the above is still
+missing, live.
 
 ### 2. Security (the three from Phase 9)
 
@@ -184,9 +201,13 @@ Run this once, in Stripe **test mode**, against the live database:
 4. Confirm the webhook fires and the order appears in Studio → Orders
 5. Confirm inventory decremented for the exact variants, including the bundle's
    components
-6. Confirm the confirmation email arrives
-7. Ship it from Studio → Fulfillment, add tracking, confirm the customer sees it
-8. Request a return, approve, refund, and restock — confirm all three are
+6. Confirm the confirmation email arrives, and Studio → the order →
+   Confirmation email says Sent
+7. Create a customer account with the email you ordered with: confirm it from
+   the inbox and check the test order appears under Account → Orders
+8. Ship it from Studio → Fulfillment (the Ready to Ship card shows the full
+   address), add tracking, confirm the customer sees it
+9. Request a return, approve, refund, and restock — confirm all three are
    independent
 
 Then repeat step 3 with a card that fails, and confirm the reservation is

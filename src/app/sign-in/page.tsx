@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AuthLink, AuthPage } from "@/components/auth/auth-page";
 import { SignInForm } from "@/components/auth/sign-in-form";
-import { BrandMark } from "@/components/ui/logo";
 import { safeRedirectPath } from "@/lib/auth/safe-redirect";
 import { createClient } from "@/lib/db/server";
 
@@ -15,12 +14,14 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 /**
- * Sign in.
+ * Sign in, for customers and for the Studio owner.
  *
  * Deliberately at the top level rather than under /studio: the Studio layout
  * redirects unauthenticated callers, so a sign-in page inside that segment
- * would redirect to itself forever. It also serves customer accounts in
- * Phase 5.
+ * would redirect to itself forever. Where the visitor is headed decides the
+ * words: Studio says it is private; everywhere else offers an account.
+ * Signing in grants nothing by itself: Studio access is checked separately
+ * against `studio_users` on every request.
  */
 export default async function SignInPage({
   searchParams,
@@ -29,6 +30,7 @@ export default async function SignInPage({
 }) {
   const { next } = await searchParams;
   const destination = safeRedirectPath(next, "/studio");
+  const forStudio = destination.startsWith("/studio");
 
   // Already signed in? Don't show a form they don't need.
   const supabase = await createClient();
@@ -38,34 +40,28 @@ export default async function SignInPage({
   if (user) redirect(destination);
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface text-ink">
-      <main className="flex flex-1 items-center justify-center px-6 py-16">
-        <div className="w-full max-w-sm">
-          <div className="flex flex-col items-center text-center">
-            <BrandMark height={72} priority />
-            <h1 className="mt-8 font-display text-display-sm text-ink-strong">
-              Sign in
-            </h1>
-            <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-              BAD ERA Studio is private. Signing in does not grant access on its
-              own.
-            </p>
-          </div>
-
-          <div className="mt-10">
-            <SignInForm next={destination} />
-          </div>
-
-          <p className="mt-10 text-center">
-            <Link
-              href="/"
-              className="label text-ink-subtle transition-colors hover:text-ink"
-            >
-              Back to store
-            </Link>
+    <AuthPage
+      title="Sign in"
+      intro={
+        forStudio
+          ? "BAD ERA Studio is private. Signing in does not grant access on its own."
+          : "See your orders, returns and saved addresses."
+      }
+    >
+      <SignInForm next={destination} />
+      <div className="mt-8 space-y-3 text-center text-sm text-ink-muted">
+        <p>
+          <AuthLink href="/forgot-password">Forgot your password?</AuthLink>
+        </p>
+        {forStudio ? null : (
+          <p>
+            New here?{" "}
+            <AuthLink href={`/sign-up?next=${encodeURIComponent(destination)}`}>
+              Create an account
+            </AuthLink>
           </p>
-        </div>
-      </main>
-    </div>
+        )}
+      </div>
+    </AuthPage>
   );
 }
