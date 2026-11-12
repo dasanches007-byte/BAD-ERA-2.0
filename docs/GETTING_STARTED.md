@@ -4,8 +4,8 @@ How to run the site, sign in, and start editing. Written for the owner, not for
 a developer.
 
 > **The site is on Railway** (set up 12 November 2026, at your request):
-> **https://bad-era-production.up.railway.app** — Studio is at `/studio` on
-> the same address. It updates itself every time new code is pushed to this
+> **https://badera.world** — Studio is at `/studio` on the same address
+> (https://badera.world/studio). It updates itself every time new code is pushed to this
 > branch, usually within a few minutes. It is public, but nothing can be
 > bought yet: there are no live products, and checkout stays off until the
 > Stripe keys and a flat shipping amount are in. See
@@ -56,11 +56,23 @@ system; never edit the `auth.users` table directly.
 
 ## Your site on Railway
 
-Railway → the **BAD ERA** project (separate from Out of Sight Market) → the
-**bad-era** service. It builds from the `claude/festive-cray-354clx` branch of
-`BAD-ERA-2.0` on every push.
+Railway → the project that holds **badera.world** (separate from Out of Sight
+Market) → the **BAD-ERA-2.0** service. It builds from the
+`claude/festive-cray-354clx` branch of `BAD-ERA-2.0` on every push. It also
+answers at https://bad-era-20-production.up.railway.app, Railway's own address
+for it.
 
-**Settings it needs** (bad-era → **Variables**). Already filled in: the
+**Two quick tidy-ups in Railway**, when you have a minute:
+
+1. That project is still called **industrious-celebration** (Railway's random
+   name). Open it → **Settings → General** → change the name to **BAD ERA**.
+2. There is an **empty** project already called **BAD ERA**. It was a second
+   copy of the site, made before we knew badera.world was in yours; its service
+   has been removed and nothing in it is used. Open it → **Settings → Danger**
+   → delete the project. Do this first, so you never have two projects with the
+   same name.
+
+**Settings it needs** (BAD-ERA-2.0 → **Variables**). Already filled in: the
 Supabase address, its public key and the site's own address. Only you can add
 the rest, because they are secret and must never be typed into a chat:
 
@@ -73,10 +85,10 @@ the rest, because they are secret and must never be typed into a chat:
 After you add or change a variable, Railway redeploys on its own (a few
 minutes).
 
-**Your own domain:** bad-era → **Settings → Networking → Custom Domain**, type
-it, and add the record Railway shows you where you bought the domain. Then
-change `NEXT_PUBLIC_SITE_URL` to `https://` plus your domain, so payment
-redirects and links use it.
+**Your domain:** badera.world is already connected (BAD-ERA-2.0 → **Settings →
+Networking**), and `NEXT_PUBLIC_SITE_URL` is set to `https://badera.world`, so
+payment redirects and links use it. If you ever change the domain, change that
+variable to match.
 
 Photo uploads up to 25 MB work on Railway (the 4.5 MB limit below is Vercel's
 only).

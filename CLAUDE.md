@@ -1113,12 +1113,16 @@ Rules that hold across hardening:
 `docs/GETTING_STARTED.md` is how the owner runs it and signs in.
 **The site has not been launched for sale.**
 
-**Hosting (owner's request, 12 November 2026): Railway.** Project "BAD ERA"
-(separate from the owner's Out of Sight Market project), service `bad-era`,
-deploying `claude/festive-cray-354clx` on every push, at
-https://bad-era-production.up.railway.app. `NEXT_PUBLIC_*` values are baked in
+**Hosting (owner's request, 12 November 2026): Railway, at https://badera.world**
+(the domain the owner bought through Railway). The project is the owner's own
+(created as "industrious-celebration"; the owner is renaming it "BAD ERA"),
+separate from the Out of Sight Market project, with service `BAD-ERA-2.0`
+deploying `claude/festive-cray-354clx` on every push. It also answers at
+https://bad-era-20-production.up.railway.app. A duplicate project this build
+had created was retired at the owner's choice, so there is exactly one copy;
+do not create another. `NEXT_PUBLIC_*` values are baked in
 at build time, so changing one needs a redeploy (Railway does it on a variable
-change). The Supabase URL, anon key and site URL are set; the service-role,
+change). The Supabase URL, anon key and site URL (`https://badera.world`) are set; the service-role,
 Stripe and Resend secrets are the owner's to enter in Railway and are never
 put in chat or code. Until the service-role key is in, the storefront renders
 its shipped defaults with no products and Studio cannot open — by design, the
@@ -1263,8 +1267,11 @@ the native internal provider and is always supported.
 - Product copy: descriptions, materials, care, fit
 - Policy and legal language; social links (Studio → Site → Menu & footer); newsletter configuration
 - **Railway secrets**: `SUPABASE_SERVICE_ROLE_KEY` (a NEW secret key, since the old
-  one was exposed), then Stripe and Resend, in Railway → bad-era → Variables; and
-  the owner's own domain (Settings → Networking), then `NEXT_PUBLIC_SITE_URL`
+  one was exposed), then Stripe and Resend, in Railway → the badera.world project →
+  BAD-ERA-2.0 → Variables
+- **Railway tidy-up**: rename the badera.world project ("industrious-celebration")
+  to "BAD ERA" (project Settings → General), and delete the empty project already
+  called "BAD ERA" that the build left behind (its one service has been removed)
 - **Publish the home page draft** prepared with the cement design's approved wording
   (Studio → Site → Home), once it reads right
 - Confirm the **licence of the cement image** if it came from a stock library

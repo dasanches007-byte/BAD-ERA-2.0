@@ -4,8 +4,8 @@ Phase 10 QA. **The site has not been launched for sale.** This is the
 assessment and the handoff list.
 
 **12 November 2026:** at the owner's request the site is hosted on Railway at
-https://bad-era-production.up.railway.app (project "BAD ERA", service
-`bad-era`, deploying this branch on every push). It is publicly reachable, but
+https://badera.world (the owner's Railway project, service `BAD-ERA-2.0`,
+deploying this branch on every push). It is publicly reachable, but
 nothing can be bought: no products are live, and checkout fails loudly until
 the Stripe keys and the flat shipping amount are set. The service-role key is
 entered by the owner in Railway — see `docs/GETTING_STARTED.md`.
