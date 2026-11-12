@@ -31,6 +31,11 @@ export type NewProductInput = {
   title: string;
   handle: string;
   subtitle: string;
+  /**
+   * The product's own words — materials, fit, care — shown under Details on
+   * its page. Optional: it can be written, or rewritten, later.
+   */
+  description?: string;
   productType: string;
   archive01: boolean;
   priceCents: number;
@@ -49,6 +54,7 @@ export type CreateProductPayload = {
   handle: string;
   title: string;
   subtitle: string | null;
+  description: string | null;
   product_type: string | null;
   tags: string[];
   kind: "standard" | "bundle";
@@ -226,6 +232,7 @@ export function buildCreatePayload(
     handle: input.handle,
     title: input.title.trim(),
     subtitle: input.subtitle.trim() || null,
+    description: input.description?.trim() || null,
     product_type: input.productType.trim() || null,
     tags: input.archive01 ? [ARCHIVE_TAG] : [],
   };

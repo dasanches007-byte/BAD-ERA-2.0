@@ -20,6 +20,8 @@ export function MediaSlot({
   sizes = "100vw",
   priority = false,
   overlay = "none",
+  cover = false,
+  tone = "dark",
   edit,
 }: {
   media: MediaSlotData;
@@ -27,6 +29,10 @@ export function MediaSlot({
   sizes?: string;
   priority?: boolean;
   overlay?: "none" | "hero" | "card";
+  /** Fill the positioned box that holds it, instead of sizing itself. */
+  cover?: boolean;
+  /** Which cement the slot sits on, for the placeholder shown until it is filled. */
+  tone?: "dark" | "pale";
   /** Edit-target attributes, present only while an owner is editing. */
   edit?: Record<string, string>;
 }) {
@@ -40,7 +46,9 @@ export function MediaSlot({
   return (
     <div
       {...edit}
-      className={`relative overflow-hidden bg-surface-inset ${overlayClass} ${className ?? ""}`}
+      className={`${cover ? "absolute inset-0" : "relative"} overflow-hidden ${
+        tone === "pale" ? "bg-pale-card" : "bg-surface-inset"
+      } ${overlayClass} ${className ?? ""}`}
     >
       {media.url ? (
         <Image
@@ -61,7 +69,7 @@ export function MediaSlot({
           }
         />
       ) : (
-        <Placeholder label={media.placeholderLabel} />
+        <Placeholder label={media.placeholderLabel} tone={tone} />
       )}
     </div>
   );
@@ -71,7 +79,14 @@ function focalPosition(point: { x: number; y: number }): string {
   return `${point.x * 100}% ${point.y * 100}%`;
 }
 
-function Placeholder({ label }: { label: string }) {
+function Placeholder({ label, tone }: { label: string; tone: "dark" | "pale" }) {
+  if (tone === "pale") {
+    return (
+      <div className="absolute inset-0 bg-pale-card" aria-hidden="true">
+        <span className="label absolute bottom-3 right-3.5 text-pale-muted/70">{label}</span>
+      </div>
+    );
+  }
   return (
     <div
       className="absolute inset-0 bg-[radial-gradient(120%_100%_at_50%_0%,#141312_0%,#0a0a0a_60%,#050505_100%)]"

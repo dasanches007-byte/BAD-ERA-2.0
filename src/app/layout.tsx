@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Archivo, Inter, Playfair_Display } from "next/font/google";
 
 import "./globals.css";
 
@@ -14,6 +14,19 @@ const display = Playfair_Display({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-bad-era-display",
+});
+
+/**
+ * The storefront's one loud voice: Archivo, used very condensed and very heavy
+ * for poster headlines (owner-approved cement design, 12 November 2026). The
+ * width axis is what makes it a poster face; see `.poster` in globals.css.
+ * Like every font here, never used to rebuild the logos.
+ */
+const poster = Archivo({
+  subsets: ["latin"],
+  display: "swap",
+  axes: ["wdth"],
+  variable: "--font-bad-era-poster",
 });
 
 /** Compact sans for utility labels, navigation and operational Studio text. */
@@ -57,7 +70,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable}`}>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${poster.variable}`}>
       <body>{children}</body>
     </html>
   );

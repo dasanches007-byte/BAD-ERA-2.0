@@ -1,4 +1,7 @@
 import { renderSections } from "@/components/sections/render";
+import { PhoneMenu } from "@/components/storefront/site-header";
+import { StorefrontShell } from "@/components/storefront/storefront-shell";
+import { bagWordsOf, EMPTY_BAG, type BagView } from "@/lib/cart/bag-types";
 import type { SiteChrome } from "@/lib/cms/default-pages";
 
 /**
@@ -11,20 +14,32 @@ import type { SiteChrome } from "@/lib/cms/default-pages";
  *
  * `editChrome` is true only in the editors, and only when the page being
  * edited IS the menu and footer — elsewhere they are shown, not edited.
+ *
+ * `bag` is the visitor's bag, read by the public layout. It is what makes the
+ * frame a shop: with it the bag slides in and the phone menu opens. The
+ * editors pass none, so there the same page is drawn with nothing to open.
  */
 export function StorefrontFrame({
   chrome,
   editChrome = false,
   skipLink = false,
+  bag,
   children,
 }: {
   chrome: SiteChrome;
   editChrome?: boolean;
   skipLink?: boolean;
+  bag?: BagView;
   children: React.ReactNode;
 }) {
+  const interactive = bag !== undefined;
   return (
-    <div className="flex min-h-screen flex-col bg-surface text-ink">
+    <StorefrontShell
+      words={bagWordsOf(chrome.bag)}
+      initialBag={bag ?? EMPTY_BAG}
+      interactive={interactive}
+      menu={interactive ? <PhoneMenu section={chrome.header} /> : null}
+    >
       {skipLink ? (
         // First focusable element on every storefront page (Spec §19).
         // Without it, reaching the content by keyboard means tabbing the
@@ -39,10 +54,10 @@ export function StorefrontFrame({
         putting it in the tab order — the link moves focus here, so the next
         Tab continues from the content rather than restarting at the header.
       */}
-      <main id="main-content" tabIndex={-1} className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
         {children}
       </main>
       {renderSections([chrome.footer], [], { editing: editChrome })}
-    </div>
+    </StorefrontShell>
   );
 }

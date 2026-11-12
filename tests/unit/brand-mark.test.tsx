@@ -28,14 +28,34 @@ import { heroShowsBrandMark, type Section } from "@/lib/cms/sections";
  * BAD master is exactly the file approved before (it was demoted, not
  * re-exported); both marks are images, never type; proportions hold at every
  * size; the header carries BAD and the hero the full lockup (owner, 6 Nov).
+ *
+ * Cement design (owner, 12 Nov): the header is bone on dark and black on a
+ * pale bar, so it carries the white BAD and the black BAD — both the owner's
+ * own files — and the footer is signed with the full lockup across its width.
  */
 
 vi.mock("next/image", () => ({
-  default: (props: { alt: string; width: number; height: number; className?: string; src: unknown }) => {
+  default: (props: {
+    alt: string;
+    width: number;
+    height: number;
+    className?: string;
+    style?: React.CSSProperties;
+    src: unknown;
+  }) => {
     // Vitest resolves a PNG import to its path, which says which artwork drew.
     const src = typeof props.src === "string" ? props.src : "unknown";
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img alt={props.alt} width={props.width} height={props.height} className={props.className} src={src} />;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        alt={props.alt}
+        width={props.width}
+        height={props.height}
+        className={props.className}
+        style={props.style}
+        src={src}
+      />
+    );
   },
 }));
 
@@ -77,6 +97,7 @@ describe("the artwork", () => {
     expect(bytes("public/brand/bad-era-primary-white.png").equals(bytes(PRIMARY_WHITE))).toBe(true);
     expect(bytes("public/brand/bad-era-primary-black.png").equals(bytes(PRIMARY_BLACK))).toBe(true);
     expect(bytes("public/brand/bad-secondary-white.png").equals(bytes(SECONDARY_WHITE))).toBe(true);
+    expect(bytes("public/brand/bad-secondary-black.png").equals(bytes(SECONDARY_BLACK))).toBe(true);
   });
 
   it("keeps the BAD master exactly as first approved — demoted, never re-exported", () => {
@@ -130,6 +151,22 @@ describe("the marks", () => {
     }
   });
 
+  it("scale as one piece where they follow the screen: only one dimension is ever set", () => {
+    // The hero's lockup takes a fluid height and the footer's the full width;
+    // the other dimension always follows from the file's own proportions.
+    const fluid = renderToStaticMarkup(<BrandMark fluidHeight="min(28.8vw, 17.2rem)" />);
+    expect(fluid).toMatch(/class="[^"]*\bw-auto\b[^"]*\bmax-w-none\b/);
+    expect(fluid).toContain("--mark-h:min(28.8vw, 17.2rem)");
+
+    const wide = renderToStaticMarkup(<BrandMark fullWidth />);
+    expect(wide).toMatch(/class="[^"]*\bh-auto\b[^"]*\bw-full\b/);
+    expect(wide).toContain(`width="${PRIMARY_ARTWORK.width}"`);
+    expect(wide).toContain(`height="${PRIMARY_ARTWORK.height}"`);
+
+    const black = renderToStaticMarkup(<SecondaryBrandMark tone="black" />);
+    expect(black).toContain("bad-secondary-black.png");
+  });
+
   it("are never rebuilt from type, SVG or an ERA typed after BAD", () => {
     expect(readFileSync(join(ROOT, "src/components/ui/logo.tsx"), "utf8")).not.toMatch(/font-|<svg|<path/);
     for (const file of files("src").filter((f) => f.endsWith(".tsx"))) {
@@ -142,7 +179,12 @@ describe("where they appear", () => {
   it("the header carries BAD alone — the owner's choice, with BAD ERA leading the hero", () => {
     const header = renderToStaticMarkup(<SiteHeader />);
     const home = header.match(/<a [^>]*aria-label="BAD ERA — home"[^>]*>([\s\S]*?)<\/a>/)?.[1] ?? "";
-    expect(home).toMatch(/^<img [^>]*bad-secondary-white\.png[^>]*>$/);
+    // BAD twice and nothing else: white for dark sections, and the owner's
+    // black file for the pale bar. Named once; the second is silent.
+    expect(home).toMatch(
+      /^<img alt="BAD ERA"[^>]*bad-secondary-white\.png[^>]*><img alt=""[^>]*bad-secondary-black\.png[^>]*>$/,
+    );
+    expect(home).toMatch(/class="[^"]*\bmark-on-dark\b[^"]*"[^>]*>\s*<img[^>]*class="[^"]*\bmark-on-pale\b/);
     expect(header).not.toContain("bad-era-primary");
     expect(header).not.toMatch(/>BAD ERA</);
   });
@@ -157,10 +199,11 @@ describe("where they appear", () => {
     expect(heroShowsBrandMark("BAD ERA 00")).toBe(false);
   });
 
-  it("any other hero words are a headline, in the display face, and the logo steps aside", () => {
+  it("any other hero words are a headline, in the poster voice, and the logo steps aside", () => {
     const hero = { ...DEFAULT_HOME_SECTIONS[0], headline: "The first chapter" } as Section;
     const html = renderToStaticMarkup(<>{renderSections([hero], [])}</>);
-    expect(html).toMatch(/<h1 class="font-display[^"]*">The first chapter<\/h1>/);
+    const h1 = html.match(/<h1[^>]*class="poster poster-fit"[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? "";
+    expect(h1.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()).toBe("The first chapter");
     expect(html).not.toContain("bad-era-primary");
   });
 
@@ -171,12 +214,11 @@ describe("where they appear", () => {
     expect(hint && "hint" in hint ? hint.hint : "").toMatch(/BAD ERA \(or empty\) shows the logo/);
   });
 
-  it("the footer's brand moment is the full lockup; its sign-off the compact BAD", () => {
+  it("the footer is signed with the full lockup, across its width, and nothing typed", () => {
     const footer = renderToStaticMarkup(<SiteFooter />);
-    const primary = footer.indexOf("bad-era-primary-white.png");
-    const secondary = footer.indexOf("bad-secondary-white.png");
-    expect(primary).toBeGreaterThan(-1);
-    expect(secondary).toBeGreaterThan(primary);
+    expect(footer.match(/<img [^>]*bad-era-primary-white\.png/g)?.length).toBe(1);
+    expect(footer).toMatch(/<img alt="BAD ERA"[^>]*class="[^"]*\bh-auto\b[^"]*\bw-full\b[^"]*"[^>]*bad-era-primary-white\.png/);
+    expect(footer).not.toContain("bad-secondary");
     expect(footer).not.toMatch(/>BAD ERA</);
   });
 

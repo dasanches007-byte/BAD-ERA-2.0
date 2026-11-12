@@ -1,6 +1,8 @@
 import Image, { type StaticImageData } from "next/image";
 
+import fullLockupBlack from "../../../public/brand/bad-era-primary-black.png";
 import fullLockup from "../../../public/brand/bad-era-primary-white.png";
+import compactMarkBlack from "../../../public/brand/bad-secondary-black.png";
 import compactMark from "../../../public/brand/bad-secondary-white.png";
 
 /**
@@ -16,8 +18,9 @@ import compactMark from "../../../public/brand/bad-secondary-white.png";
  * and the primary must never be imitated by typing "ERA" after the secondary.
  * The B–E monogram they replaced is retired to `brand/logo/legacy/`.
  *
- * White, for the site's dark surfaces. Black masters for light backgrounds
- * are in `brand/logo/`; the site currently has none.
+ * Monochrome: white on dark, black on light (`tone`). The black files are the
+ * owner's black masters, served byte for byte like the white ones. The site
+ * header carries both and shows whichever suits what is under it.
  */
 
 /**
@@ -42,6 +45,21 @@ type MarkProps = {
    * with text beneath it. The page margin still provides the clear space.
    */
   flush?: boolean;
+  /** White (the default) for dark surfaces, black for pale ones. */
+  tone?: "white" | "black";
+  /**
+   * A fluid height as a CSS length, e.g. `min(28.8vw, 17rem)`, for the places
+   * the logo scales with the screen. Replaces `height` at every breakpoint;
+   * the width still follows, so the proportions cannot change.
+   */
+  fluidHeight?: string;
+  /**
+   * Fill the width of whatever holds it, height following: the footer's
+   * signature. Proportions are the file's own, so nothing can stretch.
+   */
+  fullWidth?: boolean;
+  /** Empty for a second copy of the mark that is hidden from assistive tech. */
+  alt?: string;
   className?: string;
   priority?: boolean;
 };
@@ -54,12 +72,16 @@ type MarkProps = {
  * use `SecondaryBrandMark` — never shrink this until ERA is a smudge.
  */
 export function BrandMark(props: MarkProps) {
-  return <Mark src={fullLockup} artwork={PRIMARY_ARTWORK} {...props} />;
+  return (
+    <Mark src={props.tone === "black" ? fullLockupBlack : fullLockup} artwork={PRIMARY_ARTWORK} {...props} />
+  );
 }
 
 /** The SECONDARY logo: BAD alone — the header, icons, compact places, sign-offs. */
 export function SecondaryBrandMark(props: MarkProps) {
-  return <Mark src={compactMark} artwork={SECONDARY_ARTWORK} {...props} />;
+  return (
+    <Mark src={props.tone === "black" ? compactMarkBlack : compactMark} artwork={SECONDARY_ARTWORK} {...props} />
+  );
 }
 
 function Mark({
@@ -69,16 +91,33 @@ function Mark({
   mdHeight,
   lgHeight,
   flush = false,
+  fluidHeight,
+  fullWidth = false,
+  alt = "BAD ERA",
   className,
   priority = false,
 }: MarkProps & { src: StaticImageData; artwork: Artwork }) {
   const md = mdHeight ?? height;
   const lg = lgHeight ?? md;
-  const largest = Math.max(height, md, lg);
+  const largest = fluidHeight || fullWidth ? artwork.height : Math.max(height, md, lg);
+  if (fullWidth) {
+    return (
+      <Image
+        src={src}
+        alt={alt}
+        height={artwork.height}
+        width={artwork.width}
+        sizes="100vw"
+        priority={priority}
+        // Width is the holder's and height follows from the file's own ratio.
+        className={`block h-auto w-full max-w-none ${className ?? ""}`}
+      />
+    );
+  }
   return (
     <Image
       src={src}
-      alt="BAD ERA"
+      alt={alt}
       height={largest}
       width={Math.round((largest * artwork.width) / artwork.height)}
       priority={priority}
@@ -97,9 +136,9 @@ function Mark({
       ].join(" ")}
       style={
         {
-          "--mark-h": `${height}px`,
-          "--mark-h-md": `${md}px`,
-          "--mark-h-lg": `${lg}px`,
+          "--mark-h": fluidHeight ?? `${height}px`,
+          "--mark-h-md": fluidHeight ?? `${md}px`,
+          "--mark-h-lg": fluidHeight ?? `${lg}px`,
           "--mark-inset": String(artwork.inkLeft / artwork.height),
         } as React.CSSProperties
       }

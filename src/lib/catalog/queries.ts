@@ -147,7 +147,7 @@ async function resolveOptions(
  * description is the alt text, falling back to the product's title so no
  * product image is ever announced as nothing.
  */
-async function resolvePhotos(
+export async function resolvePhotos(
   products: { id: string; title: string }[],
 ): Promise<Map<string, CatalogPhoto[]>> {
   const byProduct = new Map<string, CatalogPhoto[]>();

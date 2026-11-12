@@ -134,8 +134,8 @@ describe("edit targets", () => {
 
   it("names repeater items the way an owner would", () => {
     const grid = DEFAULT_HOME_SECTIONS.find((s) => s.type === "editorial.story_grid")!;
-    expect(resolveEditTarget(grid, "tiles.1.headline")?.label).toBe("Tile 2 · Headline");
-    expect(resolveEditTarget(grid, "tiles.1.headline")?.sectionLabel).toBe("Story grid");
+    expect(resolveEditTarget(grid, "tiles.1.headline")?.label).toBe("Photo 2 · Caption");
+    expect(resolveEditTarget(grid, "tiles.1.headline")?.sectionLabel).toBe("Photo story");
   });
 
   it.each(["type", "sectionId", "enabled", "schemaVersion", "constructor", "prototype", "style", "className", "font", "color"])(

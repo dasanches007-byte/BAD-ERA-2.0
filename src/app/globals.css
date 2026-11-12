@@ -54,6 +54,17 @@
   --color-state-info: #8a9099;
   --color-state-neutral: #6b6864;
 
+  /* --- Cement (storefront, owner-approved 12 November 2026).
+         One material in two tones: the owner's cement, and the same cement
+         inverted and calmed. The textures are in public/brand/texture; these
+         are their average colours, shown until they load, and the lettering
+         that goes on the pale one. See brand/texture/README.md. --- */
+  --color-cement: #2d2d2d;
+  --color-pale: #e2e0da;
+  --color-pale-card: #f2f0ec; /* a piece's tile on pale cement */
+  --color-pale-ink: #121211; /* lettering on pale cement */
+  --color-pale-muted: #55524e; /* quiet lettering and prices on pale cement */
+
   /* --- Type families --- */
   --font-display: var(--font-bad-era-display), "Didot", "Bodoni MT",
     "Playfair Display", Georgia, "Times New Roman", serif;
@@ -64,6 +75,9 @@
   --font-sans: var(--font-bad-era-sans), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  /* The storefront's poster voice: Archivo, very condensed, very heavy. */
+  --font-poster: var(--font-bad-era-poster), "Arial Narrow", "Helvetica Neue", Arial,
+    sans-serif;
 
   /* --- Editorial display scale (fluid, cinematic) --- */
   --text-display-xl: clamp(3.5rem, 11vw, 9rem);
@@ -269,8 +283,16 @@ body {
 }
 
 /* The site header is sticky; inside the editor it sticks below the edit bar. */
-.be-canvas header.sticky {
+.be-canvas .site-head {
   top: var(--be-bar-height, 0px);
+}
+
+/* While its own links are being edited the header is taller (on a phone the
+   links are laid out under it), so it scrolls away with the page rather than
+   riding over everything below. */
+.be-canvas .site-head[data-editing] {
+  position: relative;
+  top: auto;
 }
 
 @keyframes be-flash {
@@ -286,164 +308,705 @@ body {
   animation: be-flash 1.4s var(--ease-bad-era) both;
 }
 
-/*
- * Ambient light — chosen by the owner from the "make it feel alive" studies:
- * UNDERGLOW (an LED line under the header; Archive 01 cards lit from below
- * like pieces on a lit shelf) and the GALLERY SPOTLIGHT on the hero.
- *
- * Warm white only. The light is the bone of the palette, so it adds presence
- * without adding colour; colour still comes from the photography. Every glow
- * breathes slowly (7–8 s) and out of step — never blinks, never flashes.
- * Reduced motion: the rule above stops the breathing, and each element rests
- * at its base opacity rather than vanishing. The spotlight's script stops
- * following and drifting (hero-spotlight.tsx).
- *
- * Decorative throughout: aria-hidden, pointer-events none, so nothing here can
- * take a click, a focus or a screen-reader announcement.
- */
-:root {
-  --glow: 244 241 234;
+/* ==========================================================================
+   The cement system — the storefront's look, owner-approved 12 November 2026.
+
+   One material in two tones (cement, pale cement), bone and black lettering,
+   one loud condensed voice, and a stitched seam set in from the edge. No
+   colour: the only colour on a page is in the photography.
+
+   Everything here is a fixed part of the design. Studio edits the words and
+   the photos these classes dress, never the classes.
+   ========================================================================== */
+
+/* --- Surfaces ------------------------------------------------------------ */
+
+/* The owner's cement, upright on a phone and on its side on a wide screen,
+   with a soft light across the top and shade gathering at the bottom. */
+.cement {
+  position: relative;
+  color: var(--color-ink);
+  background-color: var(--color-cement);
+  background-image:
+    radial-gradient(120% 70% at 14% 0%, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0) 62%),
+    linear-gradient(180deg, rgb(0 0 0 / 0) 52%, rgb(0 0 0 / 0.3)),
+    url("/brand/texture/cement.webp");
+  background-size: auto, auto, cover;
+  background-position: 0 0, 0 0, center;
+  background-repeat: no-repeat;
 }
 
-@keyframes glow-breathe {
-  0%,
-  100% {
-    opacity: 0.6;
+.pale {
+  color: var(--color-pale-ink);
+  background: var(--color-pale) url("/brand/texture/pale.webp") center / cover no-repeat;
+}
+
+@media (min-aspect-ratio: 1/1) {
+  .cement {
+    background-image:
+      radial-gradient(120% 70% at 14% 0%, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0) 62%),
+      linear-gradient(180deg, rgb(0 0 0 / 0) 52%, rgb(0 0 0 / 0.3)),
+      url("/brand/texture/cement-wide.webp");
   }
-  50% {
+
+  .pale {
+    background-image: url("/brand/texture/pale-wide.webp");
+  }
+}
+
+/* A slab thick enough to throw a shadow on whatever it slides over. */
+.slab-shadow {
+  box-shadow: 0 -34px 70px rgb(0 0 0 / 0.6);
+}
+
+/* The seam: a stitched line set in from the edge of a cement slab. */
+.stitch {
+  position: absolute;
+  inset: 14px;
+  width: calc(100% - 28px);
+  height: calc(100% - 28px);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.stitch rect {
+  fill: none;
+  stroke: rgb(244 241 234 / 0.5);
+  stroke-width: 1.5;
+  stroke-dasharray: 9 6;
+  stroke-linecap: round;
+}
+
+@media (min-width: 1024px) {
+  .stitch {
+    inset: 22px;
+    width: calc(100% - 44px);
+    height: calc(100% - 44px);
+  }
+}
+
+/* --- The poster voice ---------------------------------------------------- */
+
+.poster,
+.storefront .font-display {
+  font-family: var(--font-poster);
+  font-stretch: 62%;
+  font-weight: 800;
+  font-feature-settings: normal;
+  text-transform: uppercase;
+  letter-spacing: -0.012em;
+}
+
+/* Every storefront headline takes the poster voice, whichever page it is on. */
+.storefront .font-display {
+  line-height: 0.92;
+}
+
+.poster {
+  line-height: 0.86;
+}
+
+.poster em {
+  font-style: normal;
+}
+
+/* A poster sized to fill its column, whatever the owner writes. The Poster
+   component works out how wide its widest line sets, in ems (`--w`), and
+   counts its lines (`--l`); the size is then the largest that keeps that line
+   inside the column, under the design's own cap for the place it sits, and
+   with all its lines inside `--poster-fill` of the screen's height. Before
+   the face has loaded a line may be a little wide: it wraps rather than run
+   off the page. */
+.poster-box {
+  container-type: inline-size;
+}
+
+.poster-fit {
+  font-size: clamp(
+    2rem,
+    min(
+      var(--poster-cap, 31cqi),
+      calc(100cqi / (var(--w, 3.5) * 1.03)),
+      calc(var(--poster-fill, 75vh) / var(--l, 3))
+    ),
+    var(--poster-max, 18rem)
+  );
+  overflow-wrap: anywhere;
+}
+
+@supports not (width: 1cqi) {
+  .poster-fit {
+    font-size: clamp(
+      2rem,
+      min(calc(84vw / (var(--w, 3.5) * 1.03)), calc(var(--poster-fill, 75vh) / var(--l, 3))),
+      var(--poster-max, 18rem)
+    );
+  }
+}
+
+/* A line is a mask for its words to rise through: clipped top and bottom,
+   never at the sides. */
+.poster-line {
+  display: block;
+  overflow: hidden;
+  padding-block: 0.05em;
+  margin-block: -0.05em;
+}
+
+@supports (overflow: clip) {
+  .poster-line {
+    overflow-x: visible;
+    overflow-y: clip;
+  }
+}
+
+.poster-line > span {
+  display: block;
+}
+
+/* Lines rise into place once, the first time they are seen. The classes are
+   added by the page's script only to posters that start off screen, so with
+   no script, or under reduced motion, every line is simply there. */
+.rise-ready .poster-line > span {
+  transform: translateY(104%);
+}
+
+.rise-in .poster-line > span {
+  transition: transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rise-in .poster-line:nth-child(2) > span {
+  transition-delay: 70ms;
+}
+
+.rise-in .poster-line:nth-child(3) > span {
+  transition-delay: 140ms;
+}
+
+.rise-in .poster-line:nth-child(n + 4) > span {
+  transition-delay: 210ms;
+}
+
+/* --- Pills: every button and arrow link ---------------------------------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  padding: 0.8125rem 1.375rem;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 220ms,
+    color 220ms,
+    border-color 220ms;
+}
+
+.pill > svg {
+  width: 18px;
+  height: 10px;
+  flex: none;
+  transition: transform 300ms var(--ease-bad-era);
+}
+
+.pill:hover > svg {
+  transform: translateX(4px);
+}
+
+/* Solid bone, for dark surfaces. */
+.pill-bone {
+  border-color: var(--color-ink);
+  background-color: var(--color-ink);
+  color: var(--color-inverse-ink);
+}
+
+.pill-bone:hover {
+  background-color: transparent;
+  color: var(--color-ink);
+}
+
+/* Outlined, on dark surfaces. */
+.pill-on-dark:hover {
+  border-color: var(--color-ink);
+  background-color: var(--color-ink);
+  color: var(--color-inverse-ink);
+}
+
+/* Outlined, on pale cement. */
+.pill-on-pale:hover {
+  border-color: var(--color-pale-ink);
+  background-color: var(--color-pale-ink);
+  color: var(--color-ink);
+}
+
+/* Solid black, for pale cement. */
+.pill-ink {
+  border-color: var(--color-pale-ink);
+  background-color: var(--color-pale-ink);
+  color: var(--color-ink);
+}
+
+.pill-ink:hover {
+  background-color: transparent;
+  color: var(--color-pale-ink);
+}
+
+.pill-wide {
+  width: 100%;
+  padding-block: 1.1875rem;
+  font-size: 0.8125rem;
+}
+
+/* Working on it: said by aria-busy, shown by easing back. */
+.pill[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.pill:disabled,
+.pill[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* --- Header: bone on dark, black on a pale bar ---------------------------- */
+
+.site-head {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  color: var(--color-ink);
+  transition: color 250ms;
+}
+
+.site-head::before,
+.site-head::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity 250ms;
+}
+
+.site-head::before {
+  background: linear-gradient(rgb(10 10 10 / 0.62), rgb(10 10 10 / 0));
+}
+
+.site-head::after {
+  border-bottom: 1.5px solid var(--color-pale-ink);
+  background: rgb(226 224 218 / 0.94);
+  opacity: 0;
+}
+
+.site-head .mark-on-pale {
+  display: none;
+}
+
+/* Over pale cement. The page's script keeps `data-tone` true to whatever is
+   under the header; before it runs, a page that opens on pale cement is
+   recognised here, so the header never flashes the wrong way. */
+.site-head[data-tone="light"],
+.storefront:has(#main-content > [data-tone="light"]:first-child) .site-head:not([data-tone]) {
+  color: var(--color-pale-ink);
+
+  &::before {
+    opacity: 0;
+  }
+
+  &::after {
     opacity: 1;
   }
+
+  & .mark-on-dark {
+    display: none;
+  }
+
+  & .mark-on-pale {
+    display: block;
+  }
 }
 
-/* Header: a hairline LED with light falling onto whatever scrolls beneath. */
-.glow-line {
-  position: absolute;
-  left: 4%;
-  right: 4%;
-  bottom: -1px;
-  height: 1px;
-  pointer-events: none;
-  background: rgb(var(--glow));
-  box-shadow:
-    0 0 10px 1px rgb(var(--glow) / 0.85),
-    0 0 34px 5px rgb(var(--glow) / 0.3);
-  opacity: 0.85;
-  animation: glow-breathe 7s ease-in-out infinite;
+/* A page that opens on pale cement beside a photo (the product page on a
+   computer) says so, for the same reason. */
+@media (min-width: 1024px) {
+  .storefront:has(#main-content [data-head-lg="light"]) .site-head:not([data-tone]) {
+    color: var(--color-pale-ink);
+
+    &::before {
+      opacity: 0;
+    }
+
+    &::after {
+      opacity: 1;
+    }
+
+    & .mark-on-dark {
+      display: none;
+    }
+
+    & .mark-on-pale {
+      display: block;
+    }
+  }
 }
 
-.glow-spill {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  height: 110px;
-  pointer-events: none;
-  background: radial-gradient(55% 100% at 50% 0%, rgb(var(--glow) / 0.1), transparent 72%);
-  opacity: 0.85;
-  animation: glow-breathe 7s ease-in-out infinite;
+/* A page's first section may sit under the header rather than below it. */
+.under-head {
+  margin-top: -4rem;
 }
 
-/* Archive 01: each card stands on a lit shelf. */
-.glow-shelf {
-  position: relative;
-  box-shadow: 0 34px 60px -34px rgb(var(--glow) / 0.4);
+/* Focus is the lettering's own colour, so it reads on either cement. */
+.storefront :focus-visible,
+.drawer :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
 }
 
-.glow-shelf-light {
-  position: absolute;
-  left: 8%;
-  right: 8%;
-  bottom: -1px;
-  height: 2px;
-  pointer-events: none;
-  background: rgb(var(--glow));
-  box-shadow:
-    0 0 14px 2px rgb(var(--glow) / 0.8),
-    0 0 46px 10px rgb(var(--glow) / 0.2);
-  opacity: 0.85;
-  animation: glow-breathe 8s ease-in-out infinite;
+/* The photo story: quiet lettering, with the picked-out word in bone. */
+.night .poster em {
+  color: var(--color-ink);
 }
 
-.glow-shelf:nth-child(2) .glow-shelf-light {
-  animation-delay: -2.6s;
+/* A piece's photo leans in a little under the cursor. */
+.piece-tile img {
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.glow-shelf:nth-child(3) .glow-shelf-light {
-  animation-delay: -5.2s;
+.group:hover .piece-tile img {
+  transform: scale(1.04);
 }
 
-/* Light from the shelf rising up the photo. */
-.glow-shelf-rise {
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 70%;
-  pointer-events: none;
-  background: linear-gradient(to top, rgb(var(--glow) / 0.1), transparent);
-}
+/* --- Hero: held still while the page slides up over it -------------------- */
 
-/* Hero: a soft light that follows the cursor or finger, and film grain. */
-.spot-light {
-  position: absolute;
-  left: 0;
+.hero-hold {
+  position: sticky;
   top: 0;
-  width: 760px;
-  height: 760px;
-  margin: -380px 0 0 -380px;
+  z-index: 0;
+  height: 100vh;
+  --p: 0;
+}
+
+@supports (height: 100svh) {
+  .hero-hold {
+    height: 100svh;
+  }
+}
+
+.hero-hold ~ :where(section, article) {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-shot img {
+  transform: scale(calc(1 + var(--p) * 0.05));
+  filter: brightness(calc(1 - var(--p) * 0.45));
+}
+
+.hero-shade {
+  position: absolute;
+  inset: auto 0 0;
+  height: 46%;
+  pointer-events: none;
+  background: linear-gradient(0deg, rgb(10 10 10 / 0.82), rgb(10 10 10 / 0));
+}
+
+/* --- Drawers: the bag (right) and the phone menu (left) ------------------- */
+
+.drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  visibility: hidden;
+  transition: visibility 0s 320ms;
+}
+
+.drawer[data-open] {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.drawer-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(8 8 7 / 0.62);
+  opacity: 0;
+  touch-action: none;
+  transition: opacity 260ms;
+}
+
+.drawer[data-open] .drawer-scrim {
+  opacity: 1;
+  transition-duration: 420ms;
+}
+
+.drawer-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(calc(100vw - 44px), 420px);
+  overflow: hidden;
+  transition: transform 260ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+.drawer-panel:focus {
+  outline: none;
+}
+
+.drawer-panel[data-side="right"] {
+  right: 0;
+  transform: translateX(104%);
+  box-shadow:
+    -40px 0 80px rgb(0 0 0 / 0.6),
+    inset 1.5px 0 0 rgb(244 241 234 / 0.28);
+}
+
+.drawer-panel[data-side="left"] {
+  left: 0;
+  transform: translateX(-104%);
+  box-shadow:
+    40px 0 80px rgb(0 0 0 / 0.6),
+    inset -1.5px 0 0 rgb(244 241 234 / 0.28);
+}
+
+.drawer[data-open] .drawer-panel {
+  transform: none;
+  transition: transform 460ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.round-btn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1.5px solid rgb(244 241 234 / 0.45);
   border-radius: 50%;
+  background: none;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition:
+    background-color 200ms,
+    color 200ms;
+}
+
+.round-btn:hover {
+  background-color: var(--color-ink);
+  color: var(--color-inverse-ink);
+}
+
+.round-btn:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.round-btn-sm {
+  width: 2.125rem;
+  height: 2.125rem;
+}
+
+/* --- Product page: a light you can hold ----------------------------------- */
+
+/* The first photo, dim until the light is brought to it. The canvas draws the
+   photo lit; the plain photo underneath is what shows if it cannot. */
+.lit {
+  position: relative;
+  overflow: hidden;
+  height: min(66vh, 135vw);
+  background: #0b0b0a;
+  color: var(--color-ink);
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  --lx: 50%;
+  --ly: 42%;
+}
+
+@supports (height: 100svh) {
+  .lit {
+    height: min(66svh, 135vw);
+  }
+}
+
+@media (min-width: 1024px) {
+  .lit {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  @supports (height: 100svh) {
+    .lit {
+      height: 100svh;
+    }
+  }
+}
+
+.lit canvas,
+.lit-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.lit canvas {
+  opacity: 0;
+  transition: opacity 400ms;
+}
+
+.lit[data-live] canvas {
+  opacity: 1;
+}
+
+.lit[data-live] .lit-photo {
+  visibility: hidden;
+}
+
+/* No WebGL: a dark sheet with a pool of light cut in it, over the plain photo. */
+.lit-dim {
+  position: absolute;
+  inset: 0;
+  display: none;
+  pointer-events: none;
   background: radial-gradient(
-    closest-side,
-    rgb(var(--glow) / 0.14),
-    rgb(var(--glow) / 0.045) 55%,
-    transparent
+    circle 46vmin at var(--lx) var(--ly),
+    rgb(11 11 10 / 0) 0%,
+    rgb(11 11 10 / 0.28) 46%,
+    rgb(11 11 10 / 0.8) 100%
   );
-  mix-blend-mode: screen;
-  will-change: transform;
-  /* Where it rests before the script takes over (and under reduced motion). */
-  transform: translate3d(34vw, 40vh, 0);
 }
 
-@media (max-width: 767px) {
-  .spot-light {
-    width: 520px;
-    height: 520px;
-    margin: -260px 0 0 -260px;
-  }
+.lit[data-nogl] .lit-dim {
+  display: block;
 }
 
-.spot-vignette {
+.lit::after {
+  content: "";
   position: absolute;
-  inset: 0;
+  inset: auto 0 0;
+  height: 30%;
   pointer-events: none;
-  background: radial-gradient(120% 95% at 50% 45%, transparent 55%, rgb(0 0 0 / 0.32));
+  background: linear-gradient(0deg, rgb(11 11 10 / 0.7), rgb(11 11 10 / 0));
 }
 
-.spot-grain {
+.lit-hint {
   position: absolute;
-  inset: 0;
+  inset: auto 0 1.125rem;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
   pointer-events: none;
-  opacity: 0.07;
-  mix-blend-mode: screen;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation: film-grain 0.9s steps(6) infinite;
+  transition: opacity 600ms;
 }
 
-@keyframes film-grain {
-  0% {
-    background-position: 0 0;
+.lit-hint span {
+  padding: 0.5625rem 0.875rem;
+  border: 1px solid rgb(244 241 234 / 0.3);
+  border-radius: 999px;
+  background: rgb(11 11 10 / 0.5);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.lit-hint .for-mouse {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lit-hint .for-mouse {
+    display: inline;
   }
-  20% {
-    background-position: -37px 21px;
+
+  .lit-hint .for-touch {
+    display: none;
   }
-  40% {
-    background-position: 29px -44px;
+}
+
+.lit[data-used] .lit-hint {
+  opacity: 0;
+}
+
+/* While the owner is editing, both hints are shown and stay shown, stacked,
+   so each can be tapped. */
+.be-editable .lit-hint {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.be-editable .lit-hint .for-mouse,
+.be-editable .lit-hint .for-touch {
+  display: inline;
+}
+
+.lit-hint-plain span {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* --- The buy bar: on a phone, Add to bag stays in reach ------------------- */
+
+.buybar {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 45;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.875rem;
+  padding: 0.75rem var(--spacing-gutter) calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgb(244 241 234 / 0.22);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow: 0 -18px 40px rgb(0 0 0 / 0.35);
+  transform: translateY(110%);
+  visibility: hidden;
+  transition:
+    transform 240ms cubic-bezier(0.4, 0, 1, 1),
+    visibility 0s 240ms;
+}
+
+@media (max-width: 1023px) {
+  .buybar {
+    display: flex;
   }
-  60% {
-    background-position: -18px -13px;
-  }
-  80% {
-    background-position: 41px 33px;
-  }
-  100% {
-    background-position: 0 0;
+}
+
+.buybar[data-show] {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s;
+}
+
+/* Where there is a buy bar, the footer leaves room for it. */
+@media (max-width: 1023px) {
+  .storefront:has(.buybar) > footer {
+    padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px));
   }
 }

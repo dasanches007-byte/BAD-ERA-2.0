@@ -1,4 +1,5 @@
 import {
+  BagWording,
   CampaignFeature,
   EditorialStoryGrid,
   HeroEditorial,
@@ -88,7 +89,8 @@ function renderSection(
       const curated = section.productHandles
         .map((handle) => byHandle.get(handle))
         .filter((p): p is CatalogProduct => Boolean(p));
-      const products = curated.length > 0 ? curated : allProducts.slice(0, 4);
+      // Three: one row of the line-up on a computer.
+      const products = curated.length > 0 ? curated : allProducts.slice(0, 3);
       return (
         <ProductRail
           key={section.sectionId}
@@ -137,6 +139,11 @@ function renderSection(
 
     case "product.wording":
       return <ProductPage key={section.sectionId} section={section} product={product} editing={editing} />;
+
+    case "site.bag":
+      // Words for the slide-in bag and the buy buttons. Drawn only for the
+      // owner, to be edited; on the site they appear in the bag itself.
+      return <BagWording key={section.sectionId} section={section} editing={editing} />;
 
     default: {
       const _never: never = section;

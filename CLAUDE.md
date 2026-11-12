@@ -37,12 +37,13 @@ explicitly changing the spec.
   (`brand/logo/README.md`), superseding the B–E monogram of master spec §0.1/§0.3.
   **PRIMARY** is the full **BAD ERA** lockup (oversized BAD, small italic ERA on its lower
   right): `brand/logo/primary-full-BAD-ERA/`, rendered by `BrandMark` — the homepage hero,
-  the footer's brand column, sign-in. **SECONDARY** is **BAD** alone, exactly the file first
-  approved: `brand/logo/secondary-BAD/`, rendered by `SecondaryBrandMark` — the site header
-  (owner's choice, 6 Nov 2026), icons, Studio's nav, the footer sign-off. The hero shows the
-  lockup whenever its headline is the brand name or empty (`heroShowsBrandMark`); any other
-  words are a headline in the display face. The brand name is never typeset where the logo
-  can stand.
+  the footer's signature (the lockup across the slab's full width), sign-in. **SECONDARY** is
+  **BAD** alone, exactly the file first approved: `brand/logo/secondary-BAD/`, rendered by
+  `SecondaryBrandMark` — the site header (owner's choice, 6 Nov 2026), icons, Studio's nav.
+  The header carries the white BAD and the owner's black BAD and shows whichever suits what
+  is under it (cement design, 12 Nov 2026). The hero shows the lockup whenever its headline
+  is the brand name or empty (`heroShowsBrandMark`); any other words are a headline in the
+  poster voice. The brand name is never typeset where the logo can stand.
   **Never** set either in a font, redraw, trace, reshape, slant, stretch, recolor or add
   effects, and never imitate the primary by typing "ERA" after the BAD artwork. Preserve
   aspect ratio and clear space (≥ ¼ of BAD's letter height; the PNGs carry it). ERA is a
@@ -97,22 +98,38 @@ payment / order / fulfillment data.
 
 ## Visual system
 
-| Token | Value |
+**The storefront is the cement design — owner-approved 12 November 2026**, chosen from
+mockups and superseding the serif-and-hairline storefront look of master spec §1.1. Studio
+keeps the earlier system (the second table). The approved mockup is the reference; see
+"Cement design" below for the rules and `brand/texture/README.md` for the material.
+
+| Storefront token | Value |
+|---|---|
+| Surfaces | The owner's **cement** (dark) and the same cement inverted and calmed (**pale**), plus near-black. Textures in `public/brand/texture/` |
+| Text | Bone on dark, near-black on pale. Quiet text: steel on dark, graphite on pale |
+| Colour | **None in the design.** The only colour on a page is in the photography |
+| Headlines | The **poster voice**: Archivo, very condensed (62%), weight 800, capitals, sized to fill its column |
+| Utility & nav | Small uppercase sans-serif, 0.14em tracking |
+| Buttons | Pills: 1.5px outline or solid, bone on dark, black on pale |
+| Seam | A stitched (dashed) line set in from the edge of a cement slab |
+| Motion | Lines rise once; the hero eases back as the page slides over it; the bag slides in. Never bouncy. Respect `prefers-reduced-motion` |
+
+| Studio token | Value |
 |---|---|
 | Backgrounds | Near-black / charcoal, subtle warm-black variation |
 | Text | Bone / ivory / soft white; secondary gray. **No** bright dashboard blues |
-| Accent | Restrained metallic / silver / stone. Color comes from photography, not chrome |
+| Accent | Restrained metallic / silver / stone |
 | Borders | Hairline, low-contrast, deliberate |
 | Headlines | Elegant editorial serif / high-fashion display |
 | Utility & nav | Small uppercase sans-serif, generous tracking |
-| Motion | Slow controlled fades, image reveals, subtle hover shifts. Never bouncy or gamified. Respect `prefers-reduced-motion` |
-| Spacing | Generous cinematic rhythm; sections breathe |
 
 Semantic status color is used sparingly and **never alone** — always pair color with a label
-or icon.
+or icon. On the storefront, sold out and errors are said in words in the surface's own
+lettering.
 
 Mobile is intentionally composed, not a squeezed desktop layout. One design system across
-both. Never squeeze a five-card row into an unreadable horizontal strip on small screens.
+both. Never squeeze a five-card row into an unreadable horizontal strip on small screens:
+a line-up is rows on a phone and three across on a computer.
 
 ---
 
@@ -383,6 +400,9 @@ printing, multi-employee roles, live carrier rates.
 subtitle) → trust strip → ERA campaign feature → Featured Drops (Studio-curated) → editorial
 story row (three tiles) → footer. The four-tile category row
 (Tops/Outerwear/Accessories/Lookbook) was **removed** from the approved revision.
+The cement design keeps this structure and the same section types; it changes how each is
+drawn (the campaign feature is the cement statement slab, the story row is the photo story
+on black).
 
 ---
 
@@ -420,7 +440,8 @@ migration version.
 Registered v1 sections: `hero.editorial` · `trust.strip` · `campaign.feature` ·
 `product.rail` · `editorial.story_grid` · `archive01.feature` · `newsletter` ·
 `legal.prose` (Phase 10, for policy pages) · `site.header` · `site.footer` ·
-`shop.catalog` · `product.wording` (see "Menu, footer, Shop & product wording").
+`shop.catalog` · `product.wording` · `site.bag` (see "Menu, footer, Shop & product
+wording").
 
 Field types: text (with max-length guidance) · restricted rich text · media (asset id, alt,
 focal X/Y, optional mobile override) · product reference · collection reference · CTA (label,
@@ -470,11 +491,13 @@ Rules that hold across this layer:
 src/components/
   ui/logo.tsx              BrandMark (primary BAD ERA) + SecondaryBrandMark (BAD). Images only.
   ui/media-slot.tsx        Every editorial image. Renders a placeholder until Studio fills it.
-  storefront/site-header.tsx   Locked global component
+  ui/poster.tsx            The poster voice, the stitched seam, the pill arrow
+  storefront/site-header.tsx   Locked global component (+ PhoneMenu)
   storefront/site-footer.tsx   Locked global component
   storefront/product-card.tsx  Price from commerce data, availability from stock state
   storefront/variant-picker.tsx  Client. Sold-out variants disabled but legible
   storefront/cart-lines.tsx      Client. Mutations go through Server Actions
+  (bag, light, buy bar: see "Cement design")
   sections/                Section renderers, one per registered section_type
 src/lib/cms/
   sections.ts              Typed section payloads + MediaSlot/CTA field types
@@ -495,7 +518,8 @@ Rules that hold across the storefront:
   page survives an outage. Never wrap a cart, checkout, inventory or order read in it —
   and a PDP catalog failure rethrows rather than rendering a misleading 404.
 - **The display serif needs `lnum`.** Without lining figures forced in the theme,
-  "ERA 00" renders as "ERA oo".
+  "ERA 00" renders as "ERA oo". (Studio and sign-in; the storefront's headlines are the
+  poster voice, which `.storefront .font-display` applies to every storefront page.)
 - Newsletter signup belongs to the footer only. The `newsletter` section type stays
   registered for other pages.
 - Social links are owner-owed. Do not invent handles to fill the footer.
@@ -652,7 +676,9 @@ Rules that hold across click-to-edit:
 The owner edits these like the homepage, in the same two editors with the
 same draft → publish → rollback. Studio → Site lists them first: **Menu &
 footer** (page `site`, kind `global`), **Shop** (`shop`, `/shop`) and
-**Product pages** (`product`, no single route).
+**Product pages** (`product`, no single route). Menu & footer also holds
+**Bag & buy buttons** (`site.bag`): the slide-in bag's words and what every
+buy button says.
 
 ```
 src/lib/cms/
@@ -682,7 +708,15 @@ Rules that hold here:
   whatever is stored. Hiding the menu or the Shop grid breaks the store; it
   does not restyle it.
 - **Account, Cart and the logo are not content.** The menu holds only the
-  owner's links; those three are fixed in `SiteHeader`.
+  owner's links; those three are fixed in `SiteHeader`, as is the word Menu.
+  On a phone the header is the logo, Menu and Cart; the owner's links and
+  Account are behind Menu (`PhoneMenu`), one to a row. While the owner edits
+  the menu on a phone the links are laid out under the header to be tapped.
+- **A section added to a template later reaches existing drafts.**
+  `getOrCreateDraft` tops a draft up with any `TEMPLATE_DEFAULTS` section it
+  lacks (the bag's wording arrived after the menu and footer). New fields on
+  an existing section carry a Zod `.default()`, so content saved before them
+  still parses and shows what it showed.
 - **Lists the owner manages carry `newItem`** (menu, footer and social links).
   Only they get add / remove / reorder, capped at the schema's max; a fixed set
   (the three story tiles) keeps its count. Clicking one link opens the whole
@@ -704,43 +738,87 @@ restarts a running site. It never discards work — it restores CLAUDE.md only
 when Next's generated agent-rules block is the file's ONLY change — and skips
 the update, saying so, when anything else is uncommitted.
 
-## Ambient light (owner-approved)
+## Cement design (owner-approved 12 November 2026)
 
-Two effects, chosen by the owner from five mockups: **underglow** (a breathing
-LED line under the header, a lit shelf under each Archive 01 card) and the
-**gallery spotlight** on the hero (a soft light that follows the cursor or a
-finger, drifts on its own when idle, with fine film grain).
+The storefront's look, chosen by the owner from mockups (the approved one:
+homepage, product page, slide-in bag, phone buy bar). It replaced the serif
+storefront and retired the earlier ambient light (header underglow, hero
+spotlight, archive shelf light).
 
 ```
-src/app/globals.css                         "Ambient light" section (--glow token)
-src/components/sections/hero-spotlight.tsx  Client. The spotlight's motion
+brand/texture/                 the owner's cement (master) + README: palette, rules
+public/brand/texture/          cement / pale cement, upright and on its side
+src/app/globals.css            "The cement system": surfaces, poster, pills, header tones,
+                               drawers, the lit stage, the buy bar
+src/components/ui/poster.tsx   Poster (line breaking + sizing), Stitch, Arrow
+src/components/storefront/
+  storefront-shell.tsx   Client. The frame, the bag (right) and phone menu (left) slabs
+  shop-context.tsx       the bag, its words and how to open it, for every button
+  header-buttons.tsx     Cart (a real link that slides the bag in) and Menu
+  add-to-bag.tsx         the buy button; a card's add / choose / sold out
+  lit-photo.tsx          Client. A light you can hold (WebGL, with fallbacks)
+  product-detail.tsx     lit photo + pale buy panel + more photos + phone buy bar
+  site-effects.tsx       Client. Header tone, hero easing, posters rising
+src/lib/cart/bag.ts  bag-types.ts   the bag as drawn: server read / client-safe shapes
 ```
 
-Rules that hold across the light:
+Rules that hold across the design:
 
-- **Warm white only** — `--glow: 244 241 234`, the bone of the palette. Colour
-  comes from photography, never from the light. No hue, no colour cycling.
-- **Slow.** Breathing cycles are 6 s or longer. Never a flicker or a pulse.
-- **Decoration only.** Every layer is `aria-hidden` and `pointer-events: none`,
-  so it never takes a click — the on-page editor looks straight through it.
-- **The light sits between the photo and the words** (`z-[5]` under the text's
-  `z-10`), so it lights the image and never washes the type. It never touches
-  the logo.
-- **The spotlight moves by `transform` only** and runs only while the hero is
-  on screen and the tab is visible.
-- **Reduced motion means stillness.** The spotlight script does nothing and the
-  global rule stops the breathing; every glow then rests visible at ~0.85
-  opacity rather than vanishing.
-- The Archive shelf light appears only where Archive cards render — i.e. once
-  the three Archive 01 products are active.
+- **The look is fixed; Studio edits words and photos.** No section reads a
+  face, size or colour from content. A poster is sized by the design to fit
+  whatever the owner writes: `Poster` breaks the words into lines, works out
+  how wide the widest line sets from the face's measured letter widths, and
+  CSS sizes it to the column. Counting letters was tried and broke
+  "CROSSBODY" mid-word, because an M is three I's wide.
+- **No colour in the design.** Cement, pale cement, bone, black and shade.
+  The light on the product page is warm white. `tests/unit/cement.test.tsx`
+  fails if a hue is written into the cement styles.
+- **The cement is a brand surface, not a photo slot.** It is not swapped from
+  Studio. Photos are still `MediaSlot`s and still replaced with no code change.
+- **The header follows what is under it.** Each section says `data-tone`
+  (dark or light); `SiteEffects` gives the header that tone, and CSS (`:has`)
+  gets a page that opens on pale cement right before any script runs.
+- **The bag never leaves the page, and never does sums.** Adding a piece
+  calls `addToCartAction(variantId, 1)` and slides the bag in with the
+  `BagView` the server returned. Prices, totals and the count are read from
+  that; the browser sends back a variant or a quantity, never a price. The
+  layout reads the bag for the first paint (`readBagForRender`: no cart is
+  created, a failed read is an empty bag). `/cart` and `/checkout` remain
+  full pages, and Cart is a real link to `/cart`, so it works without script.
+- **A slab that is open owns the keyboard.** The page behind is `inert`,
+  Tab stays inside, Escape closes, and focus returns to what opened it.
+- **A light you can hold** is the product page's first photo, lit from its
+  own detail. Mouse: it follows. Touch: tap places it; press and hold picks it
+  up and the page stays put while it is dragged; a swipe still scrolls.
+  Arrow keys carry it. It rests off screen and in a hidden tab, never moves
+  by itself under reduced motion, and falls back to the plain photo (always
+  in the page underneath) without WebGL or if the picture cannot be read.
+  The photo is drawn through `/_next/image`, so it is same-origin and can be
+  used as a texture.
+- **On a phone, Add to bag stays in reach**: a bar along the bottom of the
+  product page whenever the page's own button is out of sight. It adds the
+  chosen variant, exactly as that button would, and steps aside for the bag.
+- **Never `disabled` while saving** on the control that triggered the save
+  (it drops keyboard focus); `aria-busy` says it and the button eases back.
+- **Decoration never takes a click.** The seam, the hero's shade and the
+  light's hint are `pointer-events: none`; the on-page editor looks through
+  them. The hints become tappable only while the owner is editing.
+- **In the editors nothing opens.** `StorefrontFrame` is given the visitor's
+  bag only by the public layout; without it the shell provides the words and
+  no slabs. The bag's words are edited on the Menu & footer page, where
+  `BagWording` lays them out (customers never get that block).
+- **Sold out is said once**, on the button. A card with sizes or colours
+  links to the product page rather than guessing one.
 
-`tests/unit/ambient-light.test.tsx` holds all of the above.
+`tests/unit/cement.test.tsx` holds all of the above.
 
 ## Products & product photos
 
 The owner's way to stock the store: Studio → Products → **+ New product**
-(Archive 01 is one tap per piece), then the product's **Photos** tab, then
-**Make it live**.
+(Archive 01 is one tap per piece; name, price, sizes, stock and an optional
+description on one form), then the product's **Photos** tab, then
+**Make it live**. The first photo is the main one: on every card, in the
+bag, and the one a customer can light on the product page.
 
 ```
 supabase/migrations/0017_studio_products.sql   create product; actor-checked stock adjust
@@ -1085,6 +1163,7 @@ every phase in one uncontrolled pass.
 | 8 | Publishing / version control: optimistic concurrency, publish sets, revision history, rollback, audit trail | **Complete** |
 | 9 | Hardening: security headers, MFA, rate limits, observability, a11y, SEO, performance, backups | **Complete** (MFA awaits an owner enrolment; leaked-password protection is an owner dashboard toggle) |
 | 10 | Full QA / launch readiness — **stop and report; do not launch publicly** | **Complete** — reported in `docs/LAUNCH_READINESS.md`. Not launched. Blocking items are owner-owed credentials and content |
+| 11 | Cement redesign of the storefront: surfaces, poster voice, slide-in bag, phone menu, hold-the-light product page, phone buy bar; all new wording editable | **Complete** (driven in a browser against fixtures; awaiting live products and a real phone for an end-to-end pass). Not launched |
 
 Keep this table current as phases complete.
 
@@ -1153,3 +1232,7 @@ the native internal provider and is always supported.
 - Stripe live keys + webhook endpoint; Supabase production project; Resend verified domain
 - Product copy: descriptions, materials, care, fit
 - Policy and legal language; social links (Studio → Site → Menu & footer); newsletter configuration
+- **Publish the home page draft** prepared with the cement design's approved wording
+  (Studio → Site → Home), once it reads right
+- Confirm the **licence of the cement image** if it came from a stock library
+  (`brand/texture/README.md`)

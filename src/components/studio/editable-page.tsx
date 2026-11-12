@@ -39,15 +39,21 @@ export function editablePageView({
   editing: boolean;
 }): React.ReactNode {
   if (templateKey === CHROME_TEMPLATE) {
+    const draftChrome = chromeFrom(sections);
     return (
-      <StorefrontFrame chrome={chromeFrom(sections)} editChrome={editing}>
-        <div className="shell flex min-h-[45vh] flex-col items-center justify-center py-24 text-center">
+      <StorefrontFrame chrome={draftChrome} editChrome={editing}>
+        <div
+          className="shell flex min-h-[45vh] flex-col items-center justify-center py-24 text-center"
+          data-tone="dark"
+        >
           <p className="label text-ink-subtle">Every page</p>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-ink-muted">
             Each page&rsquo;s own content goes here. The menu above and the footer below are
             shared by all of them — tap any of their words or links to change them.
           </p>
         </div>
+        {/* The bag and the buy buttons are shared by every page too. */}
+        {renderSections([draftChrome.bag], [], { editing })}
       </StorefrontFrame>
     );
   }

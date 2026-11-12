@@ -1,11 +1,14 @@
+import Link from "next/link";
+
 import { ProductCard } from "@/components/storefront/product-card";
 import { ProductDetail } from "@/components/storefront/product-detail";
+import { Poster } from "@/components/ui/poster";
 import type { CatalogProduct } from "@/lib/catalog/queries";
 import { editAttrs } from "@/lib/cms/edit-targets";
 import type { ProductWordingSection, ShopCatalogSection } from "@/lib/cms/sections";
 
 /**
- * The Shop page and the product page, as sections.
+ * The Shop page and the product page, as sections, in the cement design.
  *
  * Their WORDS are the owner's (Studio → Site → Shop, Product pages); the
  * products, prices, stock and purchase controls are commerce data and never
@@ -13,11 +16,13 @@ import type { ProductWordingSection, ShopCatalogSection } from "@/lib/cms/sectio
  * the editor shows the real page, and the page cannot drift from the editor.
  */
 
+const SMALL = "text-xs font-semibold uppercase tracking-[0.14em]";
+
 /**
- * Shop All (Master Spec §4). Editorial header, then a product grid that must
- * accommodate apparel, accessories and future eyewear without redesign.
- * Filtering and sorting arrive with real catalog breadth; shipping empty
- * filter chrome now would be noise.
+ * Shop All (Master Spec §4), on pale cement: the heading in the poster voice,
+ * then every live piece in the same line-up the homepage uses. Filtering and
+ * sorting arrive with real catalog breadth; shipping empty filter chrome now
+ * would be noise.
  */
 export function ShopCatalog({
   section,
@@ -29,48 +34,52 @@ export function ShopCatalog({
   editing?: boolean;
 }) {
   return (
-    <>
-      <header className="shell pt-20 pb-14 lg:pt-28 lg:pb-20">
+    <section
+      className="pale min-h-[80vh] px-4 pb-24 pt-14 lg:px-[72px] lg:pb-32 lg:pt-20"
+      data-tone="light"
+    >
+      <header className="mb-10">
         {section.eyebrow || editing ? (
           <p
             {...editAttrs(editing, section, "eyebrow")}
             {...(section.eyebrow ? {} : { "data-be-empty": "" })}
-            className="label text-ink-subtle"
+            className={`${SMALL} mb-4 text-pale-muted`}
           >
             {section.eyebrow || "+ Add a small heading"}
           </p>
         ) : null}
-        <h1
-          {...editAttrs(editing, section, "headline")}
-          className="mt-6 font-display text-display-lg text-ink-strong"
-        >
-          {section.headline}
-        </h1>
+        <Poster
+          as="h1"
+          text={section.headline}
+          cap="24cqi"
+          max="10.5rem"
+          fill="60vh"
+          rise={false}
+          edit={editAttrs(editing, section, "headline")}
+        />
       </header>
 
-      <div className="shell pb-section">
-        {products.length === 0 ? (
-          // Zero-result state (Master Spec §20.1). Calm, not an error page.
-          <div className="hairline flex min-h-[40vh] flex-col items-center justify-center gap-4 bg-surface-raised px-6 text-center">
-            <p {...editAttrs(editing, section, "emptyTitle")} className="label text-ink-subtle">
-              {section.emptyTitle}
-            </p>
-            <p
-              {...editAttrs(editing, section, "emptyText")}
-              className="max-w-sm text-sm leading-relaxed text-ink-muted"
-            >
-              {section.emptyText}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-12 lg:grid-cols-4">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        )}
-      </div>
-    </>
+      {products.length === 0 ? (
+        // Zero-result state (Master Spec §20.1). Calm, not an error page.
+        <div className="flex min-h-[40vh] flex-col items-start justify-center gap-4 border-y-[1.5px] border-pale-ink py-12">
+          <p {...editAttrs(editing, section, "emptyTitle")} className="poster text-[clamp(2.125rem,9.6vw,4rem)] leading-[0.88]">
+            {section.emptyTitle}
+          </p>
+          <p
+            {...editAttrs(editing, section, "emptyText")}
+            className="max-w-sm text-sm leading-relaxed text-pale-muted"
+          >
+            {section.emptyText}
+          </p>
+        </div>
+      ) : (
+        <div className="grid border-t-[1.5px] border-pale-ink lg:grid-cols-3 lg:gap-x-7 lg:gap-y-10 lg:border-t-0">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} tone="pale" />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -79,8 +88,17 @@ export function isArchiveProduct(product: CatalogProduct): boolean {
   return product.tags.some((t) => t.toLowerCase().includes("archive"));
 }
 
+/** The arrow on the back link: the pill's arrow, turned round. */
+function BackArrow() {
+  return (
+    <svg viewBox="0 0 18 10" width="18" height="10" aria-hidden="true" className="-scale-x-100">
+      <path d="M0 5h16.5M12.5 1l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 /**
- * Product detail — the shared Editorial Commerce template (Master Spec §5).
+ * Product detail — the shared template (Master Spec §5).
  *
  * ONE template renders every product from structured data. Never a bespoke
  * page per product (Master Spec §10.3.2). The product's own words come from
@@ -100,15 +118,19 @@ export function ProductPage({
   product: CatalogProduct | null;
   editing?: boolean;
 }) {
+  const edit = (path: string) => editAttrs(editing, section, path);
+
   if (!product) {
     if (!editing) return null;
     return (
-      <article className="shell py-14 lg:py-20">
-        <p className="max-w-md text-sm leading-relaxed text-ink-muted">
+      <article className="pale px-4 py-14 lg:px-16 lg:py-20" data-tone="light">
+        <p className="max-w-md text-sm leading-relaxed text-pale-muted">
           Once a product is live, this page shows it with the words below. Add one in Studio →
           Products.
         </p>
-        <div className="mt-10 max-w-md">
+        <div className="mt-10 grid max-w-md gap-6">
+          <BackLink section={section} editing={editing} />
+          <LightHint section={section} editing={editing} standalone />
           <Wording section={section} product={null} editing={editing} />
         </div>
       </article>
@@ -116,32 +138,103 @@ export function ProductPage({
   }
 
   const archive = isArchiveProduct(product);
-  const edit = (path: string) => editAttrs(editing, section, path);
 
   return (
-    <article className="shell py-14 lg:py-20">
-      <ProductDetail
-        product={product}
-        header={
-          <>
-            {archive && section.archiveLabel ? (
-              <p {...edit("archiveLabel")} className="label mb-5 text-ink-subtle">
-                {section.archiveLabel}
-              </p>
-            ) : editing ? (
-              <p {...edit("archiveLabel")} data-be-empty="" className="label mb-5 text-ink-disabled">
-                {section.archiveLabel || "+ Archive 01 label"} · Archive 01 pieces only
-              </p>
-            ) : null}
-            <h1 className="font-display text-display-md text-ink-strong">{product.title}</h1>
-            {product.subtitle ? (
-              <p className="mt-4 text-sm leading-relaxed text-ink-muted">{product.subtitle}</p>
-            ) : null}
-          </>
-        }
-        details={<Wording section={section} product={product} editing={editing} />}
-      />
-    </article>
+    <ProductDetail
+      product={product}
+      back={<BackLink section={section} editing={editing} />}
+      lightHint={<LightHint section={section} editing={editing} />}
+      header={
+        <>
+          {archive && section.archiveLabel ? (
+            <p {...edit("archiveLabel")} className={`${SMALL} mb-3 text-pale-muted`}>
+              {section.archiveLabel}
+            </p>
+          ) : editing ? (
+            <p {...edit("archiveLabel")} data-be-empty="" className={`${SMALL} mb-3 text-pale-muted/70`}>
+              {section.archiveLabel || "+ Archive 01 label"} · Archive 01 pieces only
+            </p>
+          ) : null}
+          <Poster as="h1" text={product.title} cap="34cqi" max="9.375rem" fill="42vh" rise={false} />
+          {product.subtitle ? (
+            <p className="mt-3 text-sm leading-relaxed text-pale-muted">{product.subtitle}</p>
+          ) : null}
+        </>
+      }
+      details={<Wording section={section} product={product} editing={editing} />}
+    />
+  );
+}
+
+function BackLink({ section, editing }: { section: ProductWordingSection; editing?: boolean }) {
+  const edit = editAttrs(editing, section, "backLabel");
+  if (!section.backLabel) {
+    return editing ? (
+      <p {...edit} data-be-empty="" className={`${SMALL} text-pale-muted/70`}>
+        + Back link
+      </p>
+    ) : null;
+  }
+  return (
+    <Link
+      {...edit}
+      href="/shop"
+      className={`${SMALL} inline-flex items-center gap-2.5 justify-self-start py-2 transition-opacity hover:opacity-70`}
+    >
+      <BackArrow />
+      {section.backLabel}
+    </Link>
+  );
+}
+
+/**
+ * How to move the light: one line for a finger, one for a mouse. CSS shows
+ * whichever the device is; both are shown while editing, so each can be
+ * tapped. `standalone` is the same pair as plain lines, for the editor when
+ * there is no product to light.
+ */
+function LightHint({
+  section,
+  editing,
+  standalone = false,
+}: {
+  section: ProductWordingSection;
+  editing?: boolean;
+  standalone?: boolean;
+}) {
+  const touch = section.lightHintTouch;
+  const mouse = section.lightHintMouse;
+  if (!touch && !mouse && !editing) return null;
+  const lines = (
+    <>
+      {touch || editing ? (
+        <span
+          {...editAttrs(editing, section, "lightHintTouch")}
+          {...(touch ? {} : { "data-be-empty": "" })}
+          className="for-touch"
+        >
+          {touch || "+ Light hint for phones"}
+        </span>
+      ) : null}
+      {mouse || editing ? (
+        <span
+          {...editAttrs(editing, section, "lightHintMouse")}
+          {...(mouse ? {} : { "data-be-empty": "" })}
+          className="for-mouse"
+        >
+          {mouse || "+ Light hint for computers"}
+        </span>
+      ) : null}
+    </>
+  );
+  if (standalone) {
+    return <p className="lit-hint-plain grid justify-items-start gap-2">{lines}</p>;
+  }
+  // Decoration for everyone but the owner: the stage itself is labelled.
+  return (
+    <p className="lit-hint" aria-hidden={editing ? undefined : true}>
+      {lines}
+    </p>
   );
 }
 
@@ -158,48 +251,49 @@ function Wording({
   const edit = (path: string) => editAttrs(editing, section, path);
   const archive = product ? isArchiveProduct(product) : false;
   const description = product?.description ?? null;
+  const fine = "max-w-[44ch] text-[13px] leading-[1.55] text-pale-muted";
 
   return (
-    <>
+    <div className="grid gap-5">
       {description || editing ? (
-        <div className="mt-14 border-t border-line pt-8">
+        <div className="border-t-[1.5px] border-pale-ink pt-5">
           {section.detailsHeading ? (
-            <h2 {...edit("detailsHeading")} className="label mb-4 text-ink-subtle">
+            <h2 {...edit("detailsHeading")} className={`${SMALL} mb-3`}>
               {section.detailsHeading}
             </h2>
           ) : editing ? (
-            <p {...edit("detailsHeading")} data-be-empty="" className="label mb-4 text-ink-disabled">
+            <p {...edit("detailsHeading")} data-be-empty="" className={`${SMALL} mb-3 text-pale-muted/70`}>
               + Details heading
             </p>
           ) : null}
           {description ? (
-            <p className="whitespace-pre-line text-sm leading-relaxed text-ink-muted">{description}</p>
+            <p className={`whitespace-pre-line ${fine}`}>{description}</p>
           ) : (
             // Editing only: the product's own words live with the product.
-            <p data-be-empty="" className="text-sm leading-relaxed text-ink-subtle">
+            <p data-be-empty="" className={fine}>
               This product has no description yet. Write it in Studio → Products.
             </p>
           )}
         </div>
       ) : null}
       {section.note ? (
-        <p {...edit("note")} className="mt-8 whitespace-pre-line text-sm leading-relaxed text-ink-muted">
+        <p {...edit("note")} className={`whitespace-pre-line ${fine}`}>
           {section.note}
         </p>
       ) : editing ? (
-        <p {...edit("note")} data-be-empty="" className="mt-8 text-sm leading-relaxed text-ink-subtle">
+        <p {...edit("note")} data-be-empty="" className={`${fine} opacity-70`}>
           + Add a note for every product page
         </p>
       ) : null}
       {archive && section.archiveNote ? (
-        <p {...edit("archiveNote")} className="label mt-10 text-ink-subtle">
+        <p {...edit("archiveNote")} className={`${SMALL} text-pale-muted`}>
           {section.archiveNote}
         </p>
       ) : editing ? (
-        <p {...edit("archiveNote")} data-be-empty="" className="label mt-10 text-ink-disabled">
+        <p {...edit("archiveNote")} data-be-empty="" className={`${SMALL} text-pale-muted/70`}>
           {section.archiveNote || "+ Archive 01 note"} · Archive 01 pieces only
         </p>
       ) : null}
-    </>
+    </div>
   );
 }

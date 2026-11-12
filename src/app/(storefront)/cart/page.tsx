@@ -67,12 +67,7 @@ export default async function CartPage() {
             <Link
               href="/checkout"
               aria-disabled={cart.hasBlockingIssues}
-              className={[
-                "label mt-8 flex w-full items-center justify-center border px-8 py-5 transition-colors duration-[var(--animate-duration-base)]",
-                cart.hasBlockingIssues
-                  ? "pointer-events-none border-line text-ink-disabled"
-                  : "border-ink/70 text-ink hover:border-ink hover:bg-ink hover:text-inverse-ink",
-              ].join(" ")}
+              className="pill pill-bone pill-wide mt-8"
             >
               Checkout
             </Link>
@@ -94,10 +89,7 @@ function EmptyCart() {
         Pieces you add will appear here.
       </p>
       <div className="mt-10">
-        <Link
-          href="/shop"
-          className="label inline-flex items-center border border-ink/70 px-9 py-4 text-ink transition-colors duration-[var(--animate-duration-base)] hover:border-ink hover:bg-ink hover:text-inverse-ink"
-        >
+        <Link href="/shop" className="pill pill-on-dark">
           Shop all
         </Link>
       </div>

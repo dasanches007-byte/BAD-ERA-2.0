@@ -89,6 +89,10 @@ export const productRailSchema = z.object({
 export const editorialStoryGridSchema = z.object({
   ...baseFields,
   type: z.literal("editorial.story_grid"),
+  // Added with the cement design. Content saved before then has neither, and
+  // reads as no heading and a hidden button — exactly what it showed.
+  heading: z.string().max(80).default(""),
+  cta: ctaSchema.default({ label: "Shop the collection", href: "/shop", enabled: false }),
   tiles: z
     .array(
       z.object({
@@ -171,6 +175,25 @@ export const productWordingSchema = z.object({
   detailsHeading: z.string().max(30),
   archiveNote: z.string().max(80),
   note: z.string().max(300),
+  // Added with the cement design; older saved wording reads as these.
+  backLabel: z.string().max(30).default("All pieces"),
+  lightHintTouch: z.string().max(60).default("Press and hold, then drag the light"),
+  lightHintMouse: z.string().max(60).default("Move the cursor to move the light"),
+});
+
+export const siteBagSchema = z.object({
+  ...baseFields,
+  type: z.literal("site.bag"),
+  title: z.string().max(24),
+  emptyText: z.string().max(120),
+  keepShopping: z.string().max(30),
+  subtotalLabel: z.string().max(24),
+  shippingNote: z.string().max(160),
+  checkoutLabel: z.string().max(24),
+  addToBag: z.string().max(24),
+  added: z.string().max(24),
+  soldOut: z.string().max(24),
+  chooseOptions: z.string().max(24),
 });
 
 export const sectionSchema = z.discriminatedUnion("type", [
@@ -186,6 +209,7 @@ export const sectionSchema = z.discriminatedUnion("type", [
   siteFooterSchema,
   shopCatalogSchema,
   productWordingSchema,
+  siteBagSchema,
 ]);
 
 // --- Inspector definitions --------------------------------------------------
@@ -287,7 +311,7 @@ export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
   "trust.strip": {
     type: "trust.strip",
     label: "Trust strip",
-    description: "Three short reassurances under the hero.",
+    description: "A slim band of short reassurances under the hero.",
     schemaVersion: 1,
     fields: [
       {
@@ -304,15 +328,21 @@ export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
   },
   "campaign.feature": {
     type: "campaign.feature",
-    label: "Campaign feature",
-    description: "Large editorial image with campaign language.",
+    label: "Statement",
+    description: "The cement slab that slides up over the hero: one big line, a button, and a photo if you want one.",
     schemaVersion: 1,
     fields: [
-      { kind: "text", path: "eyebrow", label: "Eyebrow", maxLength: 30 },
-      { kind: "text", path: "headline", label: "Headline", maxLength: 80 },
-      { kind: "text", path: "supportingLine", label: "Supporting line", maxLength: 200 },
-      { kind: "cta", path: "cta", label: "Action" },
-      { kind: "media", path: "media", label: "Campaign image" },
+      {
+        kind: "textarea",
+        path: "headline",
+        label: "The big line",
+        maxLength: 80,
+        hint: "Short reads loudest. It breaks into lines by itself, or press Return where you want a new line.",
+      },
+      { kind: "text", path: "eyebrow", label: "Small stamp", maxLength: 30, hint: "Optional, above the big line. E.g. ERA 00." },
+      { kind: "text", path: "supportingLine", label: "Supporting line", maxLength: 200, hint: "Optional." },
+      { kind: "cta", path: "cta", label: "Button" },
+      { kind: "media", path: "media", label: "Photo" },
     ],
   },
   "product.rail": {
@@ -328,21 +358,29 @@ export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
   },
   "editorial.story_grid": {
     type: "editorial.story_grid",
-    label: "Story grid",
-    description: "Three editorial tiles.",
+    label: "Photo story",
+    description: "A big line over three photos from the shoot.",
     schemaVersion: 1,
     fields: [
       {
+        kind: "textarea",
+        path: "heading",
+        label: "The big line",
+        maxLength: 80,
+        hint: "Optional. Put *stars* around the word to pick out, e.g. Confidence looks *good* on you.",
+      },
+      {
         kind: "repeater",
         path: "tiles",
-        label: "Tiles",
+        label: "Photos",
         max: 3,
         fields: [
-          { kind: "textarea", path: "headline", label: "Headline", maxLength: 60, hint: "Line breaks are preserved." },
-          { kind: "text", path: "supportingLine", label: "Supporting line", maxLength: 120 },
-          { kind: "media", path: "media", label: "Image" },
+          { kind: "media", path: "media", label: "Photo" },
+          { kind: "textarea", path: "headline", label: "Caption", maxLength: 60, hint: "Optional. Line breaks are kept." },
+          { kind: "text", path: "supportingLine", label: "Caption small line", maxLength: 120, hint: "Optional." },
         ],
       },
+      { kind: "cta", path: "cta", label: "Button under the photos" },
     ],
   },
   "archive01.feature": {
@@ -433,6 +471,35 @@ export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
         maxLength: 300,
         hint: "Optional. Only promise what you will keep, e.g. how long orders take to ship.",
       },
+      { kind: "text", path: "backLabel", label: "Back link", maxLength: 30, hint: "The link back to the shop, above the name." },
+      { kind: "text", path: "lightHintTouch", label: "Light hint (phones)", maxLength: 60, hint: "On the first photo, until someone moves the light." },
+      { kind: "text", path: "lightHintMouse", label: "Light hint (computers)", maxLength: 60 },
+    ],
+  },
+  "site.bag": {
+    type: "site.bag",
+    label: "Bag & buy buttons",
+    description:
+      "The bag that slides in from the side, and the words on every buy button. What is in the bag and its prices come from your products.",
+    schemaVersion: 1,
+    alwaysShown: true,
+    fields: [
+      { kind: "text", path: "title", label: "Bag title", maxLength: 24 },
+      { kind: "text", path: "emptyText", label: "When the bag is empty", maxLength: 120 },
+      { kind: "text", path: "keepShopping", label: "Keep shopping button", maxLength: 30 },
+      { kind: "text", path: "subtotalLabel", label: "Subtotal label", maxLength: 24 },
+      {
+        kind: "textarea",
+        path: "shippingNote",
+        label: "Line under the subtotal",
+        maxLength: 160,
+        hint: "Only say what is true. Shipping is added at checkout.",
+      },
+      { kind: "text", path: "checkoutLabel", label: "Checkout button", maxLength: 24 },
+      { kind: "text", path: "addToBag", label: "Buy button", maxLength: 24, hint: "On every product." },
+      { kind: "text", path: "added", label: "Buy button, just after adding", maxLength: 24 },
+      { kind: "text", path: "soldOut", label: "Buy button, sold out", maxLength: 24 },
+      { kind: "text", path: "chooseOptions", label: "Card button, when a size or colour is needed", maxLength: 24 },
     ],
   },
   newsletter: {

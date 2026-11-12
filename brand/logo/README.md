@@ -18,14 +18,22 @@ and when, is part of the record.
 
 | | Mark | Use |
 |---|---|---|
-| **Primary** | Full **BAD ERA**: oversized BAD, small italic ERA on its lower right | The homepage hero, the footer's brand column, sign-in, packaging, signage — wherever ERA can still be read |
-| **Secondary** | **BAD** alone | The site header, app and browser icons, Studio's nav, small sign-offs, embroidery, hardware |
+| **Primary** | Full **BAD ERA**: oversized BAD, small italic ERA on its lower right | The homepage hero, the footer's signature (across the full width of the cement slab), sign-in, packaging, signage — wherever ERA can still be read |
+| **Secondary** | **BAD** alone | The site header (white on dark, the black master on the pale bar), app and browser icons, Studio's nav, embroidery, hardware |
 | Retired | B–E monogram (`legacy/`) | Nowhere. Kept for history |
 
 **6 November 2026, owner's placement:** BAD alone in the site header; the full
 BAD ERA lockup takes the homepage hero's headline place. The hero draws the
 lockup whenever its headline is the brand name (or empty); any other words
 show as a headline.
+
+**12 November 2026, cement design:** the header has no box of its own. It is
+white BAD over dark sections and the black BAD master on a pale bar over pale
+cement, switching as the page scrolls. Both are the supplied files, byte for
+byte; neither is recoloured. The footer is signed with the full lockup across
+the width of its cement slab, replacing the brand column and the small BAD
+sign-off. In the hero the lockup scales with the screen (92% of its width, up
+to 880px), always as one piece.
 
 Rules from the package, all locked:
 

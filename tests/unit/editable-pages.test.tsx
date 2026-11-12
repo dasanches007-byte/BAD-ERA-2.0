@@ -6,12 +6,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import { renderSections } from "@/components/sections/render";
 import { editablePageView, sampleProduct } from "@/components/studio/editable-page";
-import { SiteHeader } from "@/components/storefront/site-header";
+import { PhoneMenu, SiteHeader } from "@/components/storefront/site-header";
 import type { CatalogProduct } from "@/lib/catalog/queries";
 import {
   chromeFrom,
   DEFAULT_PRODUCT_WORDING,
   DEFAULT_SHOP_CATALOG,
+  DEFAULT_SITE_BAG,
   DEFAULT_SITE_FOOTER,
   DEFAULT_SITE_HEADER,
   pickSection,
@@ -52,9 +53,13 @@ const marks = (markup: string) =>
 /** Where the page's links go (anchors only, not the logo's preload hint). */
 const hrefs = (markup: string) => [...markup.matchAll(/<a [^>]*href="([^"]*)"/g)].map((m) => m[1]);
 
+/** What a customer reads: the words, without the markup around them. */
+const words = (markup: string) => markup.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+
 const DEFAULTS: Section[] = [
   DEFAULT_SITE_HEADER,
   DEFAULT_SITE_FOOTER,
+  DEFAULT_SITE_BAG,
   DEFAULT_SHOP_CATALOG,
   DEFAULT_PRODUCT_WORDING,
 ];
@@ -112,7 +117,9 @@ describe("starting content", () => {
 
   it("is the wording the site already shipped with, so publishing nothing changes nothing", () => {
     const header = html(<SiteHeader />);
-    expect(hrefs(header)).toEqual(["/", "/shop", "/about", "/account", "/cart", "/shop", "/about"]);
+    expect(hrefs(header)).toEqual(["/", "/shop", "/about", "/account", "/cart"]);
+    // On a phone the same links are behind Menu.
+    expect(hrefs(html(<PhoneMenu />))).toEqual(["/shop", "/about", "/account"]);
 
     const footer = html(renderSections([DEFAULT_SITE_FOOTER], []));
     for (const words of [
@@ -124,7 +131,7 @@ describe("starting content", () => {
     }
     expect(hrefs(footer)).toEqual(["/shop", "/shop", "/about", "/shipping", "/returns-policy", "/support", "/privacy", "/terms"]);
 
-    const shop = html(renderSections([DEFAULT_SHOP_CATALOG], []));
+    const shop = words(html(renderSections([DEFAULT_SHOP_CATALOG], [])));
     expect(shop).toContain("All products");
     expect(shop).toContain("Products appear here as soon as they are published from BAD ERA Studio.");
 
@@ -162,7 +169,11 @@ describe("the menu, footer, Shop grid and product page cannot be hidden", () => 
   });
 
   it("falls back to the shipped menu and footer when there is nothing published", () => {
-    expect(chromeFrom(null)).toEqual({ header: DEFAULT_SITE_HEADER, footer: DEFAULT_SITE_FOOTER });
+    expect(chromeFrom(null)).toEqual({
+      header: DEFAULT_SITE_HEADER,
+      footer: DEFAULT_SITE_FOOTER,
+      bag: DEFAULT_SITE_BAG,
+    });
     const ownMenu = { ...DEFAULT_SITE_HEADER, links: [link("Archive", "/shop")] };
     expect(chromeFrom([ownMenu]).header.links).toEqual(ownMenu.links);
     expect(chromeFrom([ownMenu]).footer).toEqual(DEFAULT_SITE_FOOTER);
@@ -205,9 +216,19 @@ describe("menu and footer links", () => {
     expect(marks(markup)).toContain("site-header::links.2.link");
   });
 
-  it("wraps on a phone rather than squeezing into a sideways strip", () => {
+  it("never squeezes into a sideways strip on a phone", () => {
+    // Customers get the links one to a row, behind Menu; the header itself
+    // holds only the logo, Menu and Cart at that width.
     const markup = html(<SiteHeader section={header} />);
-    expect(markup).toMatch(/aria-label="Primary mobile"[\s\S]*flex-wrap/);
+    expect(markup).toMatch(/<nav aria-label="Primary" class="hidden md:block">/);
+    expect(markup).toMatch(/<button [^>]*class="[^"]*md:hidden[^"]*"[^>]*>Menu<\/button>/);
+    const menu = html(<PhoneMenu section={header} />);
+    expect(menu).toContain("Journal");
+    expect(menu).not.toContain("Lookbook");
+    expect(menu).toMatch(/href="\/account"/);
+    // While the owner edits them, they are laid out to be tapped, and wrap.
+    const editing = html(<SiteHeader section={header} editing />);
+    expect(editing).toMatch(/aria-label="Primary mobile"[\s\S]*flex-wrap/);
   });
 
   it("refuses a destination that is not a site path or a web address", () => {
@@ -311,7 +332,7 @@ describe("click-to-edit on the new pages", () => {
 
   it("lets the header stay sticky while editing — its wrapper draws no box", () => {
     const editing = html(renderSections([DEFAULT_SITE_HEADER], [], { editing: true }));
-    expect(editing).toMatch(/<div data-be-section="site-header" class="contents"><header class="sticky/);
+    expect(editing).toMatch(/<div data-be-section="site-header" class="contents"><header class="site-head"/);
   });
 
   it("reaches every product page word from any product, archive or not", () => {

@@ -20,9 +20,12 @@ export async function OwnerEditLink({
   pageKey,
   label = "Edit this page",
   also,
+  aboveBuyBar = false,
 }: {
   pageKey: string;
   label?: string;
+  /** On a product page a phone has Add to bag along the bottom: sit above it. */
+  aboveBuyBar?: boolean;
   /** A second way in, e.g. a product page's own product in Studio. */
   also?: { href: string; label: string };
 }) {
@@ -39,7 +42,11 @@ export async function OwnerEditLink({
     "label inline-flex min-h-12 items-center gap-2.5 border border-line-strong bg-surface-overlay px-5 text-ink shadow-[0_8px_24px_rgb(0_0_0/0.5)] transition-colors hover:border-ink";
 
   return (
-    <div className="fixed bottom-5 right-5 z-[60] flex flex-col items-end gap-2">
+    <div
+      className={`fixed right-5 z-[60] flex flex-col items-end gap-2 ${
+        aboveBuyBar ? "bottom-24 lg:bottom-5" : "bottom-5"
+      }`}
+    >
       {also ? (
         <Link href={also.href} prefetch={false} className={button}>
           {also.label}

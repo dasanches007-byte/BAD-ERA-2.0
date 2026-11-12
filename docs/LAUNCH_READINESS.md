@@ -153,6 +153,14 @@ and update the Vercel environment variable.
       photos under 4.5 MB or move uploads to a signed direct-to-Storage URL
       (the server issues the URL, verifies the bytes after) — a contained
       change to `media-actions.ts` and `media-field.tsx`.
+- [ ] **Publish the home page.** Its draft is prepared with the cement
+      design's approved wording ("Dress like you run it.", "Confidence looks
+      good on you.") and your three other photos in the photo story. Studio →
+      **Site** → **Home** → check it → **Publish**. Until then the live home
+      page shows the new design with the earlier words
+- [ ] **The cement image's licence.** The storefront's surfaces are made from
+      the cement image you supplied (`brand/texture/`). If it came from a
+      stock library, confirm the licence covers a commercial site
 - [ ] Social links (the footer does not invent handles)
 - [ ] Newsletter configuration — the footer field currently reads "SOON"
 

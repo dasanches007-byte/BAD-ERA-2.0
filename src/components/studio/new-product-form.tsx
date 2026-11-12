@@ -39,6 +39,7 @@ type State = {
   handle: string;
   handleTouched: boolean;
   subtitle: string;
+  description: string;
   productType: string;
   archive01: boolean;
   price: string;
@@ -56,6 +57,7 @@ const EMPTY: State = {
   handle: "",
   handleTouched: false,
   subtitle: "",
+  description: "",
   productType: "",
   archive01: false,
   price: "",
@@ -193,6 +195,12 @@ export function NewProductForm({
           label="Short line under the name (optional)"
           value={state.subtitle}
           onChange={(subtitle) => set({ subtitle })}
+        />
+        <TextAreaField
+          label="Description (optional)"
+          value={state.description}
+          onChange={(description) => set({ description })}
+          hint="Materials, fit, care — in your own words. Shown under Details on the product page. You can write or change it later."
         />
         <TextField
           label="Price"
@@ -490,6 +498,7 @@ function toInput(state: State): NewProductInput {
     title: state.title,
     handle: state.handle.trim(),
     subtitle: state.subtitle,
+    description: state.description,
     productType: state.productType,
     archive01: state.archive01,
     priceCents: parsePrice(state.price) ?? 0,
@@ -598,6 +607,36 @@ function TextField({
           className="min-h-11 w-full bg-transparent px-3 text-sm text-ink focus:outline-none"
         />
       </div>
+      {hint ? <p className="mt-2 text-xs text-ink-subtle">{hint}</p> : null}
+    </div>
+  );
+}
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  hint?: string;
+}) {
+  const id = useId();
+  return (
+    <div>
+      <label htmlFor={id} className="label block text-ink-muted">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        rows={4}
+        maxLength={8000}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-2 block w-full border border-line-strong bg-transparent px-3 py-3 text-sm leading-relaxed text-ink focus:border-ink focus:outline-none"
+      />
       {hint ? <p className="mt-2 text-xs text-ink-subtle">{hint}</p> : null}
     </div>
   );

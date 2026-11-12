@@ -54,13 +54,15 @@ export const DEFAULT_HOME_SECTIONS: Section[] = [
     sectionId: "home-era-00",
     enabled: true,
     schemaVersion: 1,
-    eyebrow: "ERA 00",
-    headline: "The first chapter",
+    // The cement statement (owner-approved 12 November 2026). It breaks into
+    // lines by itself: Dress / like you / run it.
+    eyebrow: "",
+    headline: "Dress like you run it.",
     supportingLine: "",
     // The dedicated ERA 00 landing page is deferred, so v1 points at Shop All
     // rather than shipping a route that does not exist (Master Spec §3.1).
-    cta: { label: "Explore", href: "/shop", enabled: true },
-    media: emptyMedia("ERA 00 campaign photography", "ERA campaign", {
+    cta: { label: "Shop the collection", href: "/shop", enabled: true },
+    media: emptyMedia("BAD ERA campaign photography", "Statement photo", {
       x: 0.5,
       y: 0.35,
     }),
@@ -96,6 +98,9 @@ export const DEFAULT_HOME_SECTIONS: Section[] = [
     sectionId: "home-stories",
     enabled: true,
     schemaVersion: 1,
+    heading: "Confidence looks *good* on you.",
+    // Off until there is a piece to send people to.
+    cta: { label: "Shop the collection", href: "/shop", enabled: false },
     tiles: [
       {
         headline: "Blessed.\nNot lucky.",

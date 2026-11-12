@@ -42,7 +42,8 @@ export const EDITABLE_PAGES: readonly EditablePage[] = [
     route: null,
     kind: "global",
     templateKey: CHROME_TEMPLATE,
-    blurb: "The menu at the top and the footer at the bottom of every page, including social links.",
+    blurb:
+      "The menu at the top, the footer at the bottom, social links, and the words in the bag and on the buy buttons.",
   },
   {
     pageKey: "shop",
@@ -58,7 +59,8 @@ export const EDITABLE_PAGES: readonly EditablePage[] = [
     route: null,
     kind: "page",
     templateKey: PRODUCT_TEMPLATE,
-    blurb: "Words every product page shares. Names, prices and photos are in Studio → Products.",
+    blurb:
+      "Words every product page shares, like the back link and the light hint. Names, prices and photos are in Studio → Products.",
   },
 ];
 

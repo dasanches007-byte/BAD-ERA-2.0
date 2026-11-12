@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 
 import { formatPrice } from "@/components/storefront/product-card";
+import { useShop } from "@/components/storefront/shop-context";
 import {
   removeCartLineAction,
   updateCartLineAction,
@@ -18,6 +19,9 @@ import type { CartLine } from "@/lib/cart/service";
  * database. A line that can no longer be fulfilled at its current quantity is
  * flagged rather than silently reduced, so the customer sees what changed
  * (Master Spec §6.1).
+ *
+ * Each change hands the bag it returns to the header, so the count beside
+ * Cart is right without a reload.
  */
 export function CartLines({ lines }: { lines: CartLine[] }) {
   return (
@@ -31,6 +35,7 @@ export function CartLines({ lines }: { lines: CartLine[] }) {
 
 function CartLineRow({ line }: { line: CartLine }) {
   const [pending, startTransition] = useTransition();
+  const shop = useShop();
 
   const optionSummary = Object.entries(line.options)
     .map(([name, value]) => `${name}: ${value}`)
@@ -38,7 +43,8 @@ function CartLineRow({ line }: { line: CartLine }) {
 
   function setQuantity(next: number) {
     startTransition(async () => {
-      await updateCartLineAction(line.itemId, next);
+      const result = await updateCartLineAction(line.itemId, next);
+      if (result.ok) shop.adopt(result.bag);
     });
   }
 
@@ -91,7 +97,8 @@ function CartLineRow({ line }: { line: CartLine }) {
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
-                await removeCartLineAction(line.itemId);
+                const result = await removeCartLineAction(line.itemId);
+                if (result.ok) shop.adopt(result.bag);
               })
             }
             className="label text-ink-subtle transition-colors hover:text-ink disabled:opacity-50"

@@ -347,23 +347,35 @@ export async function getOrCreateDraft(pageKey: string): Promise<PageDraft | nul
   }
 
   const draft = await assembleDraft(page, revisionId);
-  if (draft.sections.length > 0 || draft.sectionRows.length > 0) return draft;
 
   // A page whose words have a shipped default starts its first draft from
   // them, so the owner edits what customers see today rather than a blank.
+  // The same top-up covers a section added to a template later (the bag's
+  // wording arrived after the menu and footer): a draft that lacks it gets
+  // the shipped words, which is what customers are already seeing.
   const defaults = TEMPLATE_DEFAULTS[draft.templateKey];
   if (!defaults) return draft;
-  await seedDraftSections(revisionId, defaults);
+  const present = new Set(draft.sectionRows.map((row) => row.sectionKey));
+  const missing = defaults.filter((section) => !present.has(section.sectionId));
+  if (missing.length === 0) return draft;
+  const after = Math.max(-1, ...draft.sectionRows.map((row) => row.position)) + 1;
+  await seedDraftSections(revisionId, missing, after);
   return assembleDraft(page, revisionId);
 }
 
 /**
- * Write default sections into an EMPTY draft revision. The draft is not
+ * Write default sections into a draft revision that lacks them, after the
+ * `after` sections it already has. The draft is not
  * live, so this changes nothing a customer sees. Two tabs seeding at once
  * collide on (revision_id, section_key), and the loser's rows are dropped.
  */
-async function seedDraftSections(revisionId: string, sections: Section[]): Promise<void> {
-  const rows = sections.map((section, position) => {
+async function seedDraftSections(
+  revisionId: string,
+  sections: Section[],
+  after = 0,
+): Promise<void> {
+  const rows = sections.map((section, index) => {
+    const position = after + index;
     const parsed = parseSection(section);
     if (!parsed.success) throw new Error(`Default ${section.type} section is invalid`);
     const { sectionId, type, enabled, schemaVersion, ...payload } = parsed.data as Record<string, unknown> & {

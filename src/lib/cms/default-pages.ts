@@ -9,6 +9,7 @@ import type {
   Section,
   SectionType,
   ShopCatalogSection,
+  SiteBagSection,
   SiteFooterSection,
   SiteHeaderSection,
 } from "@/lib/cms/sections";
@@ -86,11 +87,36 @@ export const DEFAULT_PRODUCT_WORDING: ProductWordingSection = {
   detailsHeading: "Details",
   archiveNote: "Limited quantities. Never restocked.",
   note: "",
+  backLabel: "All pieces",
+  lightHintTouch: "Press and hold, then drag the light",
+  lightHintMouse: "Move the cursor to move the light",
+};
+
+/**
+ * The bag and the buy buttons (cement design, owner-approved 12 November
+ * 2026). The line under the subtotal is the one the cart page has always
+ * carried: it promises nothing the store has not configured.
+ */
+export const DEFAULT_SITE_BAG: SiteBagSection = {
+  type: "site.bag",
+  sectionId: "site-bag",
+  enabled: true,
+  schemaVersion: 1,
+  title: "Your bag",
+  emptyText: "Your bag is empty.",
+  keepShopping: "Keep shopping",
+  subtotalLabel: "Subtotal",
+  shippingNote: "Flat-rate shipping and any applicable tax are calculated at checkout.",
+  checkoutLabel: "Checkout",
+  addToBag: "Add to bag",
+  added: "Added",
+  soldOut: "Sold out",
+  chooseOptions: "Choose options",
 };
 
 /** What a new draft of each template starts with. */
 export const TEMPLATE_DEFAULTS: Record<string, Section[]> = {
-  [CHROME_TEMPLATE]: [DEFAULT_SITE_HEADER, DEFAULT_SITE_FOOTER],
+  [CHROME_TEMPLATE]: [DEFAULT_SITE_HEADER, DEFAULT_SITE_FOOTER, DEFAULT_SITE_BAG],
   [SHOP_TEMPLATE]: [DEFAULT_SHOP_CATALOG],
   [PRODUCT_TEMPLATE]: [DEFAULT_PRODUCT_WORDING],
 };
@@ -113,12 +139,17 @@ export function pickSection<T extends SectionType>(
   return { ...(found ?? fallback), enabled: true };
 }
 
-export type SiteChrome = { header: SiteHeaderSection; footer: SiteFooterSection };
+export type SiteChrome = {
+  header: SiteHeaderSection;
+  footer: SiteFooterSection;
+  bag: SiteBagSection;
+};
 
-/** The header and footer from the "Menu & footer" page's sections. */
+/** The header, footer and bag wording from the "Menu & footer" page's sections. */
 export function chromeFrom(sections: readonly Section[] | null | undefined): SiteChrome {
   return {
     header: pickSection(sections, "site.header", DEFAULT_SITE_HEADER),
     footer: pickSection(sections, "site.footer", DEFAULT_SITE_FOOTER),
+    bag: pickSection(sections, "site.bag", DEFAULT_SITE_BAG),
   };
 }

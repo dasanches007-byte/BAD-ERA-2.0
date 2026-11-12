@@ -109,7 +109,11 @@ export function ProductPhotosEditor({
           <h2 className="label text-ink-subtle">
             Photos{photos.length > 0 ? ` · ${photos.length}` : ""}
           </h2>
-          <p className="text-xs text-ink-subtle">The first photo is the main one, shown on every card.</p>
+          <p className="text-xs text-ink-subtle">
+            The first photo is the main one: it is on every card, and on the product page it is the
+            one customers can move the light across. A close-up of the fabric or stitching shows that
+            off best.
+          </p>
         </div>
 
         {photos.length === 0 ? (

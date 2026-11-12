@@ -71,6 +71,7 @@ export default async function ProductPage({
       {renderSections([wording], [], { product })}
       <OwnerEditLink
         pageKey="product"
+        aboveBuyBar
         label="Edit page wording"
         also={{ href: `/studio/products/${product.id}`, label: "Edit this product" }}
       />

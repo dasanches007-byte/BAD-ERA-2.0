@@ -397,7 +397,7 @@ Checked against the live database:
 | About / Privacy / Terms / Shipping / Returns policy / Support | Registered and editable, **none published yet** — they show the "not published" placeholder until you write them |
 | Products | **0** |
 | Variants | **0** |
-| Media assets | **0** |
+| Media assets | 4 (your campaign photos) |
 | Orders | 0 |
 | Inventory locations | 1 |
 | Fulfillment providers | 1 (BAD ERA STOCK) |
@@ -415,9 +415,12 @@ fault.
 |---|---|
 | The big BAD ERA logo on the homepage | It shows because the hero's headline says **BAD ERA**. Tap it to change the headline: any other words replace the logo; type BAD ERA again (or leave it empty) to bring it back |
 | Change words or a photo on the homepage | Open your site, press **Edit this page** (bottom right — only you see it), then click the thing you want to change |
+| Change the big line on the cement ("Dress like you run it.") | Tap it in the editor and type. It breaks into lines and sizes itself to fit; press Return where you want your own line break. In the photo story's big line, put \*stars\* around the word to pick out in white |
+| Change what the bag and the buy buttons say ("Your bag", "Add to bag", "Checkout"…) | Studio → **Site** → **Menu & footer** → **Edit on the page**, scroll to **The bag and the buy buttons**, tap any of the words |
 | Change the menu, the footer, or add your social links | Studio → **Site** → **Menu & footer** → **Edit on the page**, then tap any link or words. Tapping a menu link opens the whole menu: add, remove, reorder, hide |
 | Change the words on the Shop page | Open **/shop** → **Edit this page** (or Studio → **Site** → **Shop**) |
-| Change the words every product page shares ("Details", the Archive 01 lines, a note on every product) | Open any product → **Edit page wording** (or Studio → **Site** → **Product pages**). A product's own name, price, description and photos: **Edit this product** |
+| Change the words every product page shares ("Details", the back link, the hint on the photo, the Archive 01 lines, a note on every product) | Open any product → **Edit page wording** (or Studio → **Site** → **Product pages**). A product's own name, price, description and photos: **Edit this product** |
+| Choose the photo customers can move the light across | It is the product's **first** photo: **Products** → the product → **Photos**, and put the one you want first. A close-up of fabric or stitching shows it off best |
 | Write the about / privacy / terms / shipping / returns / support pages | Open that page on your site → **Edit this page** → **Start writing this page** → tap the text → **Publish** |
 | See every field of a page in one list | **Site** → **All fields** |
 | Upload photography | Click any photo on the page → **Upload a photo**. Or **Media** to manage the whole library |

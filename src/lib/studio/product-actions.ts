@@ -193,6 +193,7 @@ const newProductSchema = z.object({
   title: z.string().max(200),
   handle: z.string().max(120),
   subtitle: z.string().max(300),
+  description: z.string().max(8000).default(""),
   productType: z.string().max(120),
   archive01: z.boolean(),
   priceCents: z.number().int().min(0).max(100_000_000),

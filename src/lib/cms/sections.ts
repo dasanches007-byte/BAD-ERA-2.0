@@ -86,6 +86,13 @@ export type ProductRailSection = SectionBase & {
 
 export type EditorialStoryGridSection = SectionBase & {
   type: "editorial.story_grid";
+  /**
+   * The line above the photos, in the poster voice. Optional. A word between
+   * *stars* is the one picked out in bone against the quieter rest.
+   */
+  heading: string;
+  /** Optional button under the photos. Off until the owner turns it on. */
+  cta: CtaField;
   tiles: {
     headline: string;
     supportingLine: string;
@@ -185,6 +192,34 @@ export type ProductWordingSection = SectionBase & {
   archiveNote: string;
   /** Optional, on every product page. Empty by default: the owner's words. */
   note: string;
+  /** The link back to the shop, above the name. */
+  backLabel: string;
+  /** How to move the light on the first photo: on a touch screen, with a mouse. */
+  lightHintTouch: string;
+  lightHintMouse: string;
+};
+
+/**
+ * The bag that slides in from the side, and the words on the buttons that
+ * fill it (page `site`, "Menu & footer"). Wording only: what is in the bag,
+ * its prices and its total are commerce data, read fresh on the server.
+ */
+export type SiteBagSection = SectionBase & {
+  type: "site.bag";
+  title: string;
+  emptyText: string;
+  keepShopping: string;
+  subtotalLabel: string;
+  /** Under the subtotal. Says only what is true: shipping is added at checkout. */
+  shippingNote: string;
+  checkoutLabel: string;
+  /** The buy button, everywhere it appears. */
+  addToBag: string;
+  /** What the buy button says for a moment after a piece goes in the bag. */
+  added: string;
+  soldOut: string;
+  /** On a card whose piece needs a size or colour chosen first. */
+  chooseOptions: string;
 };
 
 export type Section =
@@ -199,7 +234,8 @@ export type Section =
   | SiteHeaderSection
   | SiteFooterSection
   | ShopCatalogSection
-  | ProductWordingSection;
+  | ProductWordingSection
+  | SiteBagSection;
 
 export type SectionType = Section["type"];
 
@@ -217,6 +253,7 @@ export const REGISTERED_SECTION_TYPES: readonly SectionType[] = [
   "site.footer",
   "shop.catalog",
   "product.wording",
+  "site.bag",
 ] as const;
 
 /** Empty media slot helper — every image starts unfilled and Studio-replaceable. */
