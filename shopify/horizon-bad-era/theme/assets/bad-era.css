@@ -22,6 +22,11 @@
   --bad-era-ink: #121211;
   --bad-era-seam: rgb(244 241 234 / 0.5);
   --bad-era-seam-pale: rgb(18 18 17 / 0.35);
+  /* Light across the top of a cement slab, shade gathering at the bottom.
+     Laid over the cement texture on the slabs below. */
+  --bad-era-shade:
+    radial-gradient(120% 70% at 14% 0%, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0) 62%),
+    linear-gradient(180deg, rgb(0 0 0 / 0) 52%, rgb(0 0 0 / 0.3));
 }
 
 h1,
@@ -85,26 +90,49 @@ button.shopify-payment-button__button--unbranded {
   box-shadow: inset 0 0 0 1.5px var(--button-border-color);
 }
 
-/* --- Cement surfaces ------------------------------------------------------
-   For sections given the class in their Custom CSS (the hero and the footer
-   use the textures through the theme's own image settings instead). */
-.bad-era-cement {
-  background-color: #2d2d2d;
-  background-image:
-    radial-gradient(120% 70% at 14% 0%, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0) 62%),
-    linear-gradient(180deg, rgb(0 0 0 / 0) 52%, rgb(0 0 0 / 0.3)),
-    var(--bad-era-cement, none);
+/* --- Cement slabs and the seam -------------------------------------------
+   The home hero, the statement slab and the footer, found by their section
+   ids (templates/index.json, sections/footer-group.json): a section's id ends
+   in `__<its key>`. Shopify's per-section Custom CSS cannot hold these (it
+   refuses an empty `content`), so they live here. A stitched line is set in
+   from each slab's edge; decoration never takes a click. */
+[id$='__footer_m9NzUG'] .section-background {
+  background-image: var(--bad-era-shade), var(--bad-era-cement, none);
   background-size: auto, auto, cover;
-  background-position: 0 0, 0 0, center;
+  background-position: center;
   background-repeat: no-repeat;
 }
 
 @media (min-aspect-ratio: 1/1) {
-  .bad-era-cement {
-    background-image:
-      radial-gradient(120% 70% at 14% 0%, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0) 62%),
-      linear-gradient(180deg, rgb(0 0 0 / 0) 52%, rgb(0 0 0 / 0.3)),
-      var(--bad-era-cement-wide, var(--bad-era-cement, none));
+  [id$='__footer_m9NzUG'] .section-background {
+    background-image: var(--bad-era-shade), var(--bad-era-cement-wide, none);
+  }
+}
+
+[id$='__footer_m9NzUG'] .section-background::after,
+[id$='__hero_bad_era'] .hero__container::after,
+[id$='__statement_bad_era'] .custom-section-background::after {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border: 1.5px dashed var(--bad-era-seam);
+  pointer-events: none;
+  z-index: 2;
+}
+
+[id$='__statement_bad_era'] .custom-section-background {
+  position: relative;
+}
+
+[id$='__statement_bad_era'] .custom-section-background::after {
+  border-color: var(--bad-era-seam-pale);
+}
+
+@media screen and (min-width: 990px) {
+  [id$='__hero_bad_era'] .hero__container::after,
+  [id$='__statement_bad_era'] .custom-section-background::after,
+  [id$='__footer_m9NzUG'] .section-background::after {
+    inset: 22px;
   }
 }
 

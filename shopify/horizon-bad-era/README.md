@@ -34,12 +34,12 @@ are kept here, in `theme/`, at the paths they have in the theme.
 
 | File | Change |
 |---|---|
-| `assets/bad-era.css` | New. Poster voice on every heading preset (condensed Archivo, 800, capitals), tracked small capitals for menu and labels, pill lettering and the 1.5px outline |
+| `assets/bad-era.css` | New. Poster voice on every heading preset (condensed Archivo, 800, capitals), tracked small capitals for menu and labels, pill lettering and the 1.5px outline; the footer's cement and the stitched seam on the hero, statement slab and footer, found by section id (`[id$='__hero_bad_era']`…) |
 | `snippets/bad-era-styles.liquid` | New. Loads the font and exposes the cement textures from Files as CSS variables, then the stylesheet |
 | `layout/theme.liquid` | Two lines: renders `bad-era-styles` last in `<head>`, so its overrides win |
 | `config/settings_data.json` | Palette near-black / bone / steel / hairline; BAD logo (white, black inverse); favicon; uppercase headings; pill buttons, variants and badges; square cards and inputs. The `Horizon` preset is kept untouched |
 | `sections/header-group.json` | Announcement "Limited drops. Quality over quantity."; uppercase menu; no country/language pickers; header transparent over the home hero |
-| `sections/footer-group.json` | Cement footer with the stitched seam (section Custom CSS), the site's newsletter wording, the full BAD ERA lockup across the width; social links EMPTY (the owner's to give), no "Powered by Shopify" |
+| `sections/footer-group.json` | Footer (cement and seam come from `bad-era.css`) with the site's newsletter wording and the full BAD ERA lockup across the width; social links EMPTY (the owner's to give), no "Powered by Shopify" |
 | `templates/index.json` | Hero (cement, the BAD ERA lockup as an image, Shop now, stitched seam) → pale statement slab "Dress like you run it." with Shop the collection → Featured drops, three across on a computer and one per row on a phone |
 
 The wording is the site's approved wording. "Fast & reliable shipping" was
@@ -53,20 +53,24 @@ owner writes or photographs stays editable in Shopify's own theme editor.
 
 ## Status (13 November 2026)
 
-Built and checked with Shopify's Theme Check (`@shopify/theme-check-node`
-4.0.0): no offenses in these files (stock Horizon's own 7 remain). Uploading
-was interrupted when the Shopify connection dropped: the first batch (font,
-`bad-era.css`, `bad-era-styles.liquid`) may or may not have landed, which is
-harmless because nothing references them until `layout/theme.liquid` is
-uploaded. **To finish:** upload `theme/assets`, `theme/snippets`, then the
-rest, with `themeFilesUpsert` (or Shopify CLI `shopify theme push
---theme 190577082451 --only …`), then preview. The storefront is password
-protected, so a preview needs the store password or the owner's own look.
+**Uploaded to the unpublished Horizon theme and verified**: the stylesheet,
+loader snippet, layout and font match these files byte for byte (MD5); the
+four JSON files were accepted by Shopify's validation (it re-formats JSON on
+save, so their checksums differ by design). Theme Check: no offenses in these
+files (stock Horizon's own 7 remain). The empty sample collection "Women's
+Casual Wear example products" was deleted at the owner's request.
 
-**Also approved by the owner (13 November 2026), not yet done:** delete the
-empty leftover collection "Women's Casual Wear example products"
-(`gid://shopify/Collection/510993530963`, from Shopify's sample products,
-which are already deleted). Look it up first and confirm it is still empty.
+**Not yet seen rendered**: the storefront is password protected, so neither a
+preview nor a screenshot was possible from the build session. The owner
+previews (Online Store → Themes → Horizon → Preview) and publishes.
+
+Two Shopify limits found while uploading, both worked around in
+`bad-era.css`: a section's Custom CSS may hold at most 500 characters, and its
+validator refuses an empty `content` value. So no section carries Custom CSS;
+the slabs' cement and seam are matched by section id in the stylesheet. If a
+section key in `templates/index.json` or `sections/footer-group.json` is
+renamed, rename it in `bad-era.css` too. `tools/validate.py` checks the
+500-character limit.
 
 ## Tools
 

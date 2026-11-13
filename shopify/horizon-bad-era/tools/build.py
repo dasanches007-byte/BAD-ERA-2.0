@@ -81,7 +81,6 @@ settings = {"current": current, "presets": {"Horizon": original}}
 pathlib.Path("config/settings_data.json").write_text(HEADER + json.dumps(settings, indent=2) + "\n")
 
 # ---------------------------------------------------------------- header
-seam = "content: ''; position: absolute; inset: 14px; border: 1.5px dashed rgb(244 241 234 / 0.5); pointer-events: none;"
 header = {
  "type": "header", "name": "t:names.header",
  "sections": {
@@ -164,12 +163,7 @@ footer = {
    "block_order": ["group_H6VpwJ", "email_signup_crihX7", "image_signature"],
    "name": "t:names.footer",
    "settings": {"section_width": "page-width", "gap": 28, "background_color": "#2d2d2d",
-                "padding-block-start": 72, "padding-block-end": 48},
-   "custom_css": [
-     ".section-background {background-image: radial-gradient(120% 70% at 14% 0%, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0) 62%), linear-gradient(180deg, rgb(0 0 0 / 0) 52%, rgb(0 0 0 / 0.3)), var(--bad-era-cement, none); background-size: auto, auto, cover; background-position: 0 0, 0 0, center; background-repeat: no-repeat;}",
-     "@media (min-aspect-ratio: 1/1) {.section-background {background-image: radial-gradient(120% 70% at 14% 0%, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0) 62%), linear-gradient(180deg, rgb(0 0 0 / 0) 52%, rgb(0 0 0 / 0.3)), var(--bad-era-cement-wide, none);}}",
-     ".section-background::after {" + seam + "}"
-   ]},
+                "padding-block-start": 72, "padding-block-end": 48}},
   "footer_utilities_jLGE8U": {
    "type": "footer-utilities",
    "blocks": {

@@ -3,9 +3,6 @@ import json, re, copy, pathlib
 ROOT = pathlib.Path(os.environ.get("HORIZON", "/home/user/shopify/horizon"))
 HEADER = pathlib.Path("config/settings_data.json").read_text().split("*/", 1)[0] + "*/\n"
 d = json.loads(re.sub(r"^/\*.*?\*/", "", (ROOT / "templates/index.json").read_text(), flags=re.S))
-seam_dark = "content: ''; position: absolute; inset: 14px; border: 1.5px dashed rgb(244 241 234 / 0.5); pointer-events: none; z-index: 2;"
-seam_pale = "content: ''; position: absolute; inset: 14px; border: 1.5px dashed rgb(18 18 17 / 0.35); pointer-events: none; z-index: 2;"
-desk_seam = "@media screen and (min-width: 990px) {.hero__container::after {inset: 22px;}}"
 
 def text(html, preset, **kw):
     s = {"text": html, "width": "100%", "max_width": "none", "alignment": "center", "type_preset": preset,
@@ -43,8 +40,7 @@ hero = {
   "horizontal_alignment_flex_direction_column": "center", "vertical_alignment_flex_direction_column": "center",
   "gap": 36, "section_width": "full-width", "section_height": "full-screen", "section_height_custom": 100,
   "toggle_overlay": True, "overlay_color": "#00000059", "overlay_style": "gradient", "gradient_direction": "to top",
-  "blurred_reflection": False, "reflection_opacity": 75, "padding-block-start": 40, "padding-block-end": 40},
- "custom_css": [".hero__container::after {" + seam_dark + "}", desk_seam]}
+  "blurred_reflection": False, "reflection_opacity": 75, "padding-block-start": 40, "padding-block-end": 40}}
 
 statement = {
  "type": "section", "name": "t:names.section",
@@ -62,8 +58,7 @@ statement = {
   "background_image": "shopify://shop_images/bad-era-pale-wide.webp", "background_image_position": "cover",
   "toggle_overlay": False, "overlay_color": "#00000026", "overlay_style": "solid", "gradient_direction": "to top",
   "border": "none", "border_width": 1, "border_opacity": 100, "border_radius": 0,
-  "padding-block-start": 96, "padding-block-end": 96},
- "custom_css": [".custom-section-background::after {" + seam_pale + "}"]}
+  "padding-block-start": 96, "padding-block-end": 96}}
 
 pl = copy.deepcopy(d["sections"]["product_list_fa6P9H"])
 hdr = pl["blocks"]["static-header"]["blocks"]

@@ -37,7 +37,11 @@ for f in sys.argv[1:]:
         sch = schema_of("section", s["type"])
         check_settings(f"{f}:{sid}({s['type']})", sch, s.get("settings", {}))
         walk_blocks(f"{f}:{sid}", s.get("blocks", {}))
-        if set(s.get("block_order", [])) != set(s.get("blocks", {}).keys()): problems.append(f"{f}:{sid}: block_order mismatch")
+        css = "".join(s.get("custom_css", []))
+        if len(css) > 500: problems.append(f"{f}:{sid}: custom CSS is {len(css)} characters (Shopify allows 500)")
+        static_only = all(b.get("static") for b in s.get("blocks", {}).values())
+        if not static_only and set(s.get("block_order", [])) != set(k for k, b in s.get("blocks", {}).items() if not b.get("static")):
+            problems.append(f"{f}:{sid}: block_order mismatch")
     if set(d["order"]) != set(d["sections"].keys()): problems.append(f"{f}: order mismatch")
 # global settings
 gs = json.load(open(ROOT / "config/settings_schema.json"))
