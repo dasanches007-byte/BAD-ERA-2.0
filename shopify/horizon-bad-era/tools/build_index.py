@@ -45,8 +45,10 @@ hero = {
 statement = {
  "type": "section", "name": "t:names.section",
  "blocks": {
-  "text_statement": text("<h2>Dress like you run it.</h2>", "h1", text_color="#121211"),
-  "button_collection": button("Shop the collection", "shopify://collections/shop-all", "button-custom"),
+  # The owner's words (13 Nov 2026), bone on the cement.
+  "text_statement": text("<h2>Step in your era.</h2>", "h1", text_color="#f4f1ea"),
+  "button_collection": button("Shop the collection", "shopify://collections/shop-all", "button-custom",
+                              custom_button_text="#f4f1ea", custom_button_border="#f4f1ea"),
  },
  "block_order": ["text_statement", "button_collection"],
  "settings": {
@@ -54,9 +56,10 @@ statement = {
   "vertical_alignment": "center", "align_baseline": False,
   "horizontal_alignment_flex_direction_column": "center", "vertical_alignment_flex_direction_column": "center",
   "gap": 32, "section_width": "full-width", "section_height": "large", "section_height_custom": 60,
-  "background_media": "image", "background_color": "#e2e0da",
-  "background_image": "shopify://shop_images/bad-era-pale-wide.webp", "background_image_position": "cover",
-  "toggle_overlay": False, "overlay_color": "#00000026", "overlay_style": "solid", "gradient_direction": "to top",
+  # The owner's cement (owner's request, 13 Nov 2026), shade gathering at the bottom.
+  "background_media": "image", "background_color": "#2d2d2d",
+  "background_image": "shopify://shop_images/bad-era-cement-wide.webp", "background_image_position": "cover",
+  "toggle_overlay": True, "overlay_color": "#0000004d", "overlay_style": "gradient", "gradient_direction": "to top",
   "border": "none", "border_width": 1, "border_opacity": 100, "border_radius": 0,
   "padding-block-start": 96, "padding-block-end": 96}}
 

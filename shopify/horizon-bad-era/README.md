@@ -40,7 +40,7 @@ are kept here, in `theme/`, at the paths they have in the theme.
 | `config/settings_data.json` | Palette near-black / bone / steel / hairline; BAD logo (white, black inverse); favicon; uppercase headings; pill buttons, variants and badges; square cards and inputs. The `Horizon` preset is kept untouched |
 | `sections/header-group.json` | Announcement "Limited drops. Quality over quantity."; uppercase menu; no country/language pickers; header transparent over the home hero |
 | `sections/footer-group.json` | Footer (cement and seam come from `bad-era.css`) with the site's newsletter wording and the full BAD ERA lockup across the width; social links EMPTY (the owner's to give), no "Powered by Shopify" |
-| `templates/index.json` | Hero (cement, the BAD ERA lockup as an image, Shop now, stitched seam) → pale statement slab "Dress like you run it." with Shop the collection → Featured drops, three across on a computer and one per row on a phone |
+| `templates/index.json` | Hero (cement, the BAD ERA lockup as an image, Shop now, stitched seam) → cement statement slab "Step in your era." (the owner's words) in bone with Shop the collection → Featured drops, three across on a computer and one per row on a phone |
 
 The wording is the site's approved wording. "Fast & reliable shipping" was
 left out on purpose: made-to-order pieces take days to produce, so it would be
@@ -63,6 +63,16 @@ Casual Wear example products" was deleted at the owner's request.
 **Not yet seen rendered**: the storefront is password protected, so neither a
 preview nor a screenshot was possible from the build session. The owner
 previews (Online Store → Themes → Horizon → Preview) and publishes.
+
+**Statement slab, 13 Nov 2026 (owner's request): the owner's cement.** It was
+pale cement and showed as plain colour: `bad-era.css` made the section's
+`.custom-section-background` a positioned box, and Horizon positions the
+background image against `.section`, so the image was squeezed into a thin
+strip (measured: 69px of a 480px slab). No image chosen in the editor could
+show there. The seam now hangs on `.section` and the image fills the slab
+(1280×480 and 390×506 measured against Horizon's own rules). The heading is the
+owner's "Step in your era.", taken from the theme editor. The portrait the owner
+uploaded to Files at 17:30 that day is left in Files, unused.
 
 Two Shopify limits found while uploading, both worked around in
 `bad-era.css`: a section's Custom CSS may hold at most 500 characters, and its

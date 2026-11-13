@@ -21,7 +21,6 @@
   --bad-era-bone: #f4f1ea;
   --bad-era-ink: #121211;
   --bad-era-seam: rgb(244 241 234 / 0.5);
-  --bad-era-seam-pale: rgb(18 18 17 / 0.35);
   /* Light across the top of a cement slab, shade gathering at the bottom.
      Laid over the cement texture on the slabs below. */
   --bad-era-shade:
@@ -95,7 +94,14 @@ button.shopify-payment-button__button--unbranded {
    ids (templates/index.json, sections/footer-group.json): a section's id ends
    in `__<its key>`. Shopify's per-section Custom CSS cannot hold these (it
    refuses an empty `content`), so they live here. A stitched line is set in
-   from each slab's edge; decoration never takes a click. */
+   from each slab's edge; decoration never takes a click.
+
+   The statement slab's cement is its own Background image setting, so it can
+   be changed in the theme editor. Its seam hangs on `.section`, which is what
+   Horizon positions the background image against. Never make
+   `.custom-section-background` a positioned box: it is a thin grid row, so
+   the image is squeezed into a strip and the slab shows plain colour (it
+   did, 13 Nov 2026). */
 [id$='__footer_m9NzUG'] .section-background {
   background-image: var(--bad-era-shade), var(--bad-era-cement, none);
   background-size: auto, auto, cover;
@@ -111,7 +117,7 @@ button.shopify-payment-button__button--unbranded {
 
 [id$='__footer_m9NzUG'] .section-background::after,
 [id$='__hero_bad_era'] .hero__container::after,
-[id$='__statement_bad_era'] .custom-section-background::after {
+[id$='__statement_bad_era'] .section::after {
   content: '';
   position: absolute;
   inset: 14px;
@@ -120,17 +126,9 @@ button.shopify-payment-button__button--unbranded {
   z-index: 2;
 }
 
-[id$='__statement_bad_era'] .custom-section-background {
-  position: relative;
-}
-
-[id$='__statement_bad_era'] .custom-section-background::after {
-  border-color: var(--bad-era-seam-pale);
-}
-
 @media screen and (min-width: 990px) {
   [id$='__hero_bad_era'] .hero__container::after,
-  [id$='__statement_bad_era'] .custom-section-background::after,
+  [id$='__statement_bad_era'] .section::after,
   [id$='__footer_m9NzUG'] .section-background::after {
     inset: 22px;
   }
