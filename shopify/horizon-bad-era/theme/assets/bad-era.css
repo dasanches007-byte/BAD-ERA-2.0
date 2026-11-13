@@ -1,0 +1,123 @@
+/* ==========================================================================
+   BAD ERA: the cement design on Horizon (owner-approved 12 November 2026).
+
+   One material in two tones (cement, pale cement), bone and near-black
+   lettering, one loud condensed voice for headlines, small tracked capitals
+   for everything else, and pill buttons. No colour: the only colour on a page
+   is in the photography. Colours themselves come from the theme's palette
+   (Theme settings > Colors), so this file only shapes type and surfaces.
+   ========================================================================== */
+
+/* --- The poster voice ----------------------------------------------------
+   Archivo, very condensed and very heavy, in capitals. Horizon gives every
+   heading preset the heading font, so naming it once dresses them all. */
+:root {
+  --font-heading--family: 'BAD ERA Poster', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --font-heading--style: normal;
+  --font-heading--weight: 800;
+  --font-accent--family: var(--font-heading--family);
+  --font-accent--style: normal;
+  --font-accent--weight: 800;
+  --bad-era-bone: #f4f1ea;
+  --bad-era-ink: #121211;
+  --bad-era-seam: rgb(244 241 234 / 0.5);
+  --bad-era-seam-pale: rgb(18 18 17 / 0.35);
+}
+
+h1,
+h2,
+h3,
+h4,
+.h1,
+.h2,
+.h3,
+.h4,
+.text-block.h1 > *,
+.text-block.h2 > *,
+.text-block.h3 > *,
+.text-block.h4 > *,
+.text-block.h1 :is(h1, h2, h3, h4, h5, h6),
+.text-block.h2 :is(h1, h2, h3, h4, h5, h6),
+.text-block.h3 :is(h1, h2, h3, h4, h5, h6),
+.text-block.h4 :is(h1, h2, h3, h4, h5, h6) {
+  font-stretch: 62%;
+  font-feature-settings: normal;
+  letter-spacing: -0.012em;
+}
+
+h1,
+.h1,
+.text-block.h1 > *,
+.text-block.h1 :is(h1, h2, h3, h4, h5, h6) {
+  line-height: 0.88;
+}
+
+/* --- Utility lettering ---------------------------------------------------
+   Navigation, buttons and small labels: small capitals, tracked 0.14em. */
+.menu-list__link,
+.menu-list__link-title,
+.announcement-bar__text,
+.h5,
+.h6,
+.text-block.h5 > *,
+.text-block.h6 > * {
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* --- Pills ----------------------------------------------------------------
+   Solid or 1.5px outline, fully rounded, bone on dark and ink on pale. The
+   colours and radius are Theme settings; this sets the lettering and line. */
+:is(.button, .button-secondary, .button-custom):not(.button-unstyled),
+button.shopify-payment-button__button--unbranded {
+  font-family: var(--font-body--family);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  min-height: 2.75rem;
+  padding-inline: 1.375rem;
+}
+
+.button-secondary:not(.button-unstyled),
+.button-custom:not(.button-unstyled) {
+  box-shadow: inset 0 0 0 1.5px var(--button-border-color);
+}
+
+/* --- Cement surfaces ------------------------------------------------------
+   For sections given the class in their Custom CSS (the hero and the footer
+   use the textures through the theme's own image settings instead). */
+.bad-era-cement {
+  background-color: #2d2d2d;
+  background-image:
+    radial-gradient(120% 70% at 14% 0%, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0) 62%),
+    linear-gradient(180deg, rgb(0 0 0 / 0) 52%, rgb(0 0 0 / 0.3)),
+    var(--bad-era-cement, none);
+  background-size: auto, auto, cover;
+  background-position: 0 0, 0 0, center;
+  background-repeat: no-repeat;
+}
+
+@media (min-aspect-ratio: 1/1) {
+  .bad-era-cement {
+    background-image:
+      radial-gradient(120% 70% at 14% 0%, rgb(255 255 255 / 0.09), rgb(255 255 255 / 0) 62%),
+      linear-gradient(180deg, rgb(0 0 0 / 0) 52%, rgb(0 0 0 / 0.3)),
+      var(--bad-era-cement-wide, var(--bad-era-cement, none));
+  }
+}
+
+/* --- Product cards and prices --------------------------------------------
+   Square corners, quiet prices: the photography carries the card. */
+.price,
+.product-card .price {
+  letter-spacing: 0.04em;
+}
+
+/* --- Motion --------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  :is(.button, .button-secondary, .button-custom) {
+    transition: none;
+  }
+}

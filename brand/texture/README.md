@@ -34,6 +34,8 @@ There is no colour in the design. The only colour on a page is in the photograph
   lift (`out = 0.47 × in + 127` after inversion), then warm slightly
   (G × 0.992, B × 0.968). Keep the mean near `#e2e0da` so type contrast holds.
 
-## Before launch
+## Ownership
 
-Confirm the licence of the supplied image if it came from a stock library.
+The cement is the owner's own photograph (confirmed by the owner, 13 November
+2026), so it is BAD ERA's to use on the site, the Shopify store and anywhere
+else the brand appears. No stock licence applies.

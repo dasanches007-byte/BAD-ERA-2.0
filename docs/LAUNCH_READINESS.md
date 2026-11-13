@@ -183,9 +183,8 @@ and update the Vercel environment variable.
       good on you.") and your three other photos in the photo story. Studio →
       **Site** → **Home** → check it → **Publish**. Until then the live home
       page shows the new design with the earlier words
-- [ ] **The cement image's licence.** The storefront's surfaces are made from
-      the cement image you supplied (`brand/texture/`). If it came from a
-      stock library, confirm the licence covers a commercial site
+- [x] **The cement image's licence.** Settled: it is your own photograph
+      (confirmed 13 November 2026), so no stock licence applies
 - [ ] Social links (the footer does not invent handles)
 - [ ] Newsletter configuration — the footer field currently reads "SOON"
 

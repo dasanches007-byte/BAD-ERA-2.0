@@ -967,6 +967,27 @@ Rules that hold here:
 
 `tests/unit/selling-setup.test.ts` holds all of the above.
 
+## Shopify starter store (owner's decision, 13 November 2026)
+
+Most fulfillment companies only connect to Shopify, so the owner sells
+made-to-order clothing (tees, hoodies) from a Shopify store,
+`urbadera.myshopify.com` (Basic), until there is profit to buy in bulk.
+badera.world and Studio stay built and saved for that stage; nothing here
+replaces them.
+
+- **The theme lives in `shopify/horizon-bad-era/`**: only the files that
+  differ from Shopify's Horizon 4.5.0, plus tools that regenerate and
+  validate them against Horizon's schemas. Read its README first.
+- **Edit the unpublished `Horizon` theme only.** Shopify blocks app writes to
+  the live theme and blocks publishing: the owner previews and publishes.
+- **Same rules as the site:** the logos are the uploaded images, never
+  typeset; no colour in the design; social links empty until the owner gives
+  them; no shipping promise the made-to-order lead time cannot keep.
+- **Products are created inside the fulfillment app** (Apliiq / Tapstitch /
+  Printful) so each order reaches the manufacturer; never hand-made in Shopify.
+- The Toji-style fitted heavyweight tee is not available on demand (heavy
+  on-demand tees are all boxy): it is the first bulk / pre-order candidate.
+
 ## Orders & customers (Phase 5)
 
 ```
@@ -1367,5 +1388,3 @@ the native internal provider and is always supported.
   called "BAD ERA" that the build left behind (its one service has been removed)
 - **Publish the home page draft** prepared with the cement design's approved wording
   (Studio → Site → Home), once it reads right
-- Confirm the **licence of the cement image** if it came from a stock library
-  (`brand/texture/README.md`)

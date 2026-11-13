@@ -1,0 +1,36 @@
+{%- comment -%}
+  BAD ERA: the cement design on Horizon (owner-approved 12 November 2026).
+
+  Rendered last in <head>, after the theme's own variables, so its few
+  overrides win. The poster face and the cement textures are resolved here
+  because asset CSS cannot run Liquid; every static rule lives in
+  assets/bad-era.css. Textures come from the store's Files, so they can be
+  replaced there without touching code.
+{%- endcomment -%}
+{{ 'archivo-variable-latin.woff2' | asset_url | preload_tag: as: 'font', type: 'font/woff2', crossorigin: 'anonymous' }}
+<style>
+  @font-face {
+    font-family: 'BAD ERA Poster';
+    src: url('{{ 'archivo-variable-latin.woff2' | asset_url }}') format('woff2');
+    font-weight: 100 900;
+    font-stretch: 62% 125%;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    {%- if images['bad-era-cement.webp'] %}
+      --bad-era-cement: url('{{ images['bad-era-cement.webp'] | image_url: width: 1600 }}');
+    {%- endif %}
+    {%- if images['bad-era-cement-wide.webp'] %}
+      --bad-era-cement-wide: url('{{ images['bad-era-cement-wide.webp'] | image_url: width: 2400 }}');
+    {%- endif %}
+    {%- if images['bad-era-pale.webp'] %}
+      --bad-era-pale: url('{{ images['bad-era-pale.webp'] | image_url: width: 1600 }}');
+    {%- endif %}
+    {%- if images['bad-era-pale-wide.webp'] %}
+      --bad-era-pale-wide: url('{{ images['bad-era-pale-wide.webp'] | image_url: width: 2400 }}');
+    {%- endif %}
+  }
+</style>
+{{ 'bad-era.css' | asset_url | stylesheet_tag }}
