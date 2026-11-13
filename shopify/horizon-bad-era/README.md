@@ -63,6 +63,11 @@ rest, with `themeFilesUpsert` (or Shopify CLI `shopify theme push
 --theme 190577082451 --only …`), then preview. The storefront is password
 protected, so a preview needs the store password or the owner's own look.
 
+**Also approved by the owner (13 November 2026), not yet done:** delete the
+empty leftover collection "Women's Casual Wear example products"
+(`gid://shopify/Collection/510993530963`, from Shopify's sample products,
+which are already deleted). Look it up first and confirm it is still empty.
+
 ## Tools
 
 `tools/` regenerates the JSON and checks every setting against Horizon's
